@@ -866,6 +866,7 @@
       state[k] = {
         fullData: [],
         filteredData: [],
+        columns: [],             // <-- cached once
         currentPage: 1,
         rowsPerPage: 100,
         sort: { column: null, asc: true },
@@ -874,18 +875,10 @@
     });
 
     let currentExplainRow = null;
-    let currentExplainDataset = null;
+    const filterDebouncers = {};
 
     function byId(id){ return document.getElementById(id); }
-
-    function setDbLoading(prefix, msg){
-      const el = byId(prefix + "Loading");
-      if (el) el.textContent = msg;
-    }
-
-    function normalizeSpaces(s) {
-      return String(s ?? "").replace(/\s+/g, " ").trim();
-    }
+    function normalizeSpaces(s){ return String(s ?? "").replace(/\s+/g, " ").trim(); }
 
     function getFirstNonEmpty(row, candidates){
       for (const c of candidates){
@@ -895,10 +888,30 @@
       return "";
     }
 
+    function setDbLoading(prefix, msg){
+      const el = byId(prefix + "Loading");
+      if (el) el.textContent = msg;
+    }
+
+    function debounce(fn, ms = 250){
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+      };
+    }
+
+    function getDebouncedFilter(prefix){
+      if (!filterDebouncers[prefix]) {
+        filterDebouncers[prefix] = debounce(() => filterTable(prefix), 220);
+      }
+      return filterDebouncers[prefix];
+    }
+
     function detectDropdownColumns(prefix){
       const st = state[prefix];
       const rows = st.fullData;
-      const cols = Object.keys(rows[0] || {});
+      const cols = st.columns;
       st.dropdownColumns.clear();
 
       cols.forEach(col => {
@@ -909,7 +922,6 @@
         const avgWords = unique.reduce((acc, v) => acc + v.split(" ").length, 0) / unique.length;
         const mostlyNumeric = unique.filter(v => /^-?\d+(\.\d+)?$/.test(v)).length / unique.length > 0.65;
 
-        // heuristic for dropdown suitability
         if (!mostlyNumeric && unique.length <= 35 && ratio < 0.35 && avgWords <= 4) {
           st.dropdownColumns.add(col.toLowerCase().trim());
         }
@@ -935,20 +947,41 @@
 
         Papa.parse(csvText, {
           header: true,
-          skipEmptyLines: true,
+          skipEmptyLines: "greedy",
+          worker: true,
+          fastMode: true,
           complete: (results) => {
             const rows = (results.data || []).filter(row =>
               Object.values(row).some(v => String(v ?? "").trim() !== "")
             );
 
-            state[prefix].fullData = rows;
-            state[prefix].filteredData = [...rows];
+            // optional fast global-search cache (non-enumerable so it won't appear in table/export)
+            for (const row of rows) {
+              try {
+                Object.defineProperty(row, "__search", {
+                  value: Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase(),
+                  enumerable: false
+                });
+              } catch {
+                row.__search = Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase();
+              }
+            }
+
+            const st = state[prefix];
+            st.fullData = rows;
+            st.filteredData = [...rows];
+            st.columns = Object.keys(rows[0] || {}); // <-- cache columns once
+
             detectDropdownColumns(prefix);
 
             cfg.loaded = true;
             initializeDatasetUI(prefix);
-            setDbLoading(prefix, "");
-            byId(prefix + "Loading").style.display = "none";
+
+            const loadingEl = byId(prefix + "Loading");
+            if (loadingEl){
+              loadingEl.textContent = "";
+              loadingEl.style.display = "none";
+            }
             byId(prefix + "Table").style.display = "table";
             byId(prefix + "Pagination").style.display = "flex";
           },
@@ -956,6 +989,7 @@
             setDbLoading(prefix, `CSV parse error: ${err.message}`);
           }
         });
+
       } catch (err){
         setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
       }
@@ -967,16 +1001,18 @@
       populateCopyColumnSelect(prefix);
 
       const global = byId(prefix + "GlobalSearch");
-      if (global){
+      if (global && !global.dataset.wired) {
         global.addEventListener("keypress", (e) => {
           if (e.key === "Enter") filterTable(prefix);
         });
+        global.addEventListener("input", getDebouncedFilter(prefix));
+        global.dataset.wired = "1";
       }
     }
 
     function renderHeadersAndFilters(prefix){
       const st = state[prefix];
-      const columns = Object.keys(st.fullData[0] || {});
+      const columns = st.columns;
       const headerRow = byId(prefix + "HeaderRow");
       const filterRow = byId(prefix + "FilterRow");
 
@@ -1024,7 +1060,7 @@
           input.type = "text";
           input.placeholder = "Filter...";
           input.dataset.col = col;
-          input.oninput = () => filterTable(prefix);
+          input.oninput = getDebouncedFilter(prefix);
           td.appendChild(input);
         }
 
@@ -1051,7 +1087,7 @@
 
       st.filteredData = st.fullData.filter(row => {
         if (global){
-          const rowText = Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase();
+          const rowText = row.__search || Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase();
           if (!rowText.includes(global)) return false;
         }
 
@@ -1079,18 +1115,19 @@
       const start = (st.currentPage - 1) * st.rowsPerPage;
       const pageData = st.filteredData.slice(start, start + st.rowsPerPage);
 
-      pageData.forEach(row => {
-        const tr = document.createElement("tr");
-        const cols = Object.keys(row);
+      const frag = document.createDocumentFragment();
+      const columns = st.columns;
 
-        cols.forEach(col => {
+      for (const row of pageData){
+        const tr = document.createElement("tr");
+
+        for (const col of columns){
           const td = document.createElement("td");
           const val = String(row[col] ?? "");
-
           if (val.length > 120) td.classList.add("long-text");
           td.textContent = val;
           tr.appendChild(td);
-        });
+        }
 
         const actionTd = document.createElement("td");
         const wrap = document.createElement("div");
@@ -1114,9 +1151,10 @@
 
         actionTd.appendChild(wrap);
         tr.appendChild(actionTd);
+        frag.appendChild(tr);
+      }
 
-        tbody.appendChild(tr);
-      });
+      tbody.appendChild(frag);
 
       const totalPages = Math.max(1, Math.ceil(st.filteredData.length / st.rowsPerPage));
       if (st.currentPage > totalPages) st.currentPage = totalPages;
@@ -1182,7 +1220,7 @@
       const st = state[prefix];
       if (!st.filteredData.length) return;
 
-      const headers = Object.keys(st.filteredData[0]);
+      const headers = st.columns; // cached columns
       let csv = headers.join(",") + "\n";
       st.filteredData.forEach(row => {
         const values = headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`);
@@ -1203,7 +1241,7 @@
       if (!sel) return;
       sel.innerHTML = "";
 
-      const cols = Object.keys(state[prefix].fullData[0] || {});
+      const cols = state[prefix].columns;
       cols.forEach(c => {
         const opt = document.createElement("option");
         opt.value = c;
@@ -1327,7 +1365,6 @@ Please return:
     }
 
     function showExplainModal(prefix, row){
-      currentExplainDataset = prefix;
       currentExplainRow = row;
       const task = byId("explainTask").value;
       byId("explainPreview").value = buildExplainPrompt(row, task);
@@ -1506,8 +1543,7 @@ Please return:
         lines.push(line);
       }
 
-      const input = byId("llmInput");
-      input.value = lines.join("\n");
+      byId("llmInput").value = lines.join("\n");
       status.style.color = "#15803d";
       status.textContent = `✅ Added ${lines.length} items from ${DATASETS[prefix].name}.`;
     }
@@ -1657,8 +1693,7 @@ Please return:
     // INITIAL LOAD
     // =========================
     window.addEventListener("load", async () => {
-      // load first tab dataset
-      await ensureLoaded("wf");
+      await ensureLoaded("wf"); // lazy load first active tab only
     });
   </script>
 
