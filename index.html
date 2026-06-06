@@ -241,10 +241,8 @@
     .source-btn:hover { background:#2563eb; }
     .explain-btn { background:#8b5cf6; }
     .explain-btn:hover { background:#7c3aed; }
-    
-    /* New Button Colors */
-    .dict-btn { background:#0ea5e9; }
-    .dict-btn:hover { background:#0284c7; }
+    .dict-btn { background:#10b981; }
+    .dict-btn:hover { background:#059669; }
     .ety-btn { background:#f59e0b; }
     .ety-btn:hover { background:#d97706; }
     .wordnik-btn { background:#ec4899; }
@@ -1595,7 +1593,8 @@ Please return:
     }
 
     function copyExplainPrompt(){
-      const p = byId("explainPreview").value.trim();
+      const p = byId("explainPreview").value.
+        trim();
       if (!p){ alert("No prompt to copy."); return; }
       navigator.clipboard.writeText(p).then(() => alert("Prompt copied.")).catch(() => alert("Copy failed."));
     }
@@ -1659,7 +1658,7 @@ Please return:
       for (let line of lines) {
         line = line.trim();
         if (!line) continue;
-                const match = line.match(/^(.*?)\s+(-?\d*\.?\d+)$/);
+        const match = line.match(/^(.*?)\s+(-?\d*\.?\d+)$/);
         if (!match) continue;
 
         const word = match[1].trim();
@@ -1703,6 +1702,7 @@ Please return:
     function getActiveDatasetPrefix(){
       const activeMain = document.querySelector(".tab-content.active")?.id;
       if (activeMain === "word-families") return "wf";
+      if (activeMain === "definitions") return "de";
       if (activeMain === "compounds"){
         const sub = document.querySelector("#compounds .subtab-pane.active")?.id;
         return sub === "comp-stats" ? "cs" : "cm";
@@ -2056,8 +2056,3 @@ Please return:
 </script>
 </body>
 </html>
-
-
-
-
-    
