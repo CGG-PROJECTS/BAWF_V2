@@ -159,14 +159,38 @@
     .long-text { white-space: pre-wrap !important; min-width: 260px; max-width: 520px; line-height: 1.35; }
 
     .row-actions { display:flex; gap:6px; flex-wrap:wrap; }
-    .source-btn, .explain-btn {
-      border:none; border-radius:6px; padding:6px 10px; color:#fff; cursor:pointer;
-      font-size:0.84rem; white-space:nowrap;
-    }
-    .source-btn { background:#3b82f6; }
-    .source-btn:hover { background:#2563eb; }
-    .explain-btn { background:#8b5cf6; }
-    .explain-btn:hover { background:#7c3aed; }
+.source-btn, .explain-btn, .lookup-btn {
+  border:none;
+  border-radius:6px;
+  padding:6px 10px;
+  color:#fff;
+  cursor:pointer;
+  font-size:0.84rem;
+  white-space:nowrap;
+}
+
+.source-btn { background:#3b82f6; }
+.source-btn:hover { background:#2563eb; }
+
+.lookup-btn.wiktionary { background:#059669; }
+.lookup-btn.wiktionary:hover { background:#047857; }
+
+.lookup-btn.etymonline { background:#ea580c; }
+.lookup-btn.etymonline:hover { background:#c2410c; }
+
+.lookup-btn.wordnik { background:#16a34a; }
+.lookup-btn.wordnik:hover { background:#15803d; }
+
+.explain-btn { background:#8b5cf6; }
+.explain-btn:hover { background:#7c3aed; }
+
+.source-btn:disabled,
+.explain-btn:disabled,
+.lookup-btn:disabled {
+  opacity:0.45;
+  cursor:not-allowed;
+}
+
 
     .pagination { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:10px; margin-top:12px; }
     .pagination button, .pagination select { padding:8px 10px; border:1px solid #d1d5db; border-radius:7px; background:#fff; cursor:pointer; }
@@ -314,8 +338,8 @@
         </div>
         <div class="db-wrap" id="cmWrap">
           <div class="db-controls">
-            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..."
-mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
+        <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
+
             <button class="db-btn" onclick="filterTable('cm')">🔍 Search</button>
             <button class="db-btn" onclick="clearAllFilters('cm')">🧹 Clear</button>
             <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
@@ -525,9 +549,45 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
   <script>
     // DATASETS Setup (Language_of_Origin removed from visible)
 const DATASETS = {
-  wf: { file: "BAWF_FINAL.csv.gz", loaded: false, name: "Word Families" },
-  cm: { file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz", loaded: false, name: "Compound Main" },
-  cs: { file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz", loaded: false, name: "Compound Stats" }
+  wf: {
+    file: "BAWF_FINAL.csv.gz",
+    name: "Word Families",
+    loaded: false,
+    data: [],
+    filtered: [],
+    all: [],
+    visible: [],
+    page: 1,
+    rpp: 100,
+    sortBy: "",
+    sortDesc: false
+  },
+  cm: {
+    file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz",
+    name: "Compound Main",
+    loaded: false,
+    data: [],
+    filtered: [],
+    all: [],
+    visible: [],
+    page: 1,
+    rpp: 100,
+    sortBy: "",
+    sortDesc: false
+  },
+  cs: {
+    file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz",
+    name: "Compound Stats",
+    loaded: false,
+    data: [],
+    filtered: [],
+    all: [],
+    visible: [],
+    page: 1,
+    rpp: 100,
+    sortBy: "",
+    sortDesc: false
+  }
 };
 
 
@@ -548,14 +608,14 @@ const DATASETS = {
     window.addEventListener('DOMContentLoaded', () => {
       initDataset('wf');
       setupAddColsListener('wf'); setupAddColsListener('cm');
-      setupAddColsListener('cs'); setupAddColsListener('de');
+      setupAddColsListener('cs'); 
       loadWebLLMModelList();
     });
 
     function getDatasetKeyFromTab(tabId) {
       if (tabId === 'word-families') return 'wf';
       if (tabId === 'compounds') return document.querySelector('#compounds .subtab-pane.active')?.id === 'comp-main' ? 'cm' : 'cs';
-      if (tabId === 'definitions') return 'de';
+    
       return null;
     }
 
@@ -723,14 +783,20 @@ function openTab(tabName, btnEl){
           const val = row[col] || '';
           bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
         });
-        const wordVal = row['Word'] || row['Baseword'] || '';
-        const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;'); 
-        bodyHtml += `<td>
-          <div class="row-actions">
-            <button class="source-btn" onclick="lookupGoogle('${wordVal.replace(/'/g, "\\'")}')">🌐 Search</button>
-            <button class="explain-btn" onclick="showExplainModal('${key}', ${safeRowJSON})">💡 Explain</button>
-          </div>
-        </td></tr>`;
+       const lookupWord = getLookupWordFromRow(row) || '';
+const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;');
+
+bodyHtml += `<td>
+  <div class="row-actions">
+    <button class="source-btn" ${lookupWord ? `onclick="lookupGoogle('${escWord}')"` : "disabled"}>🔎 Google</button>
+    <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
+    <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
+    <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
+    <button class="explain-btn" onclick="showExplainModal('${key}', ${safeRowJSON})">✨ Explain</button>
+  </div>
+</td></tr>`;
+
       });
       tbody.innerHTML = bodyHtml;
     }
@@ -840,7 +906,101 @@ function openTab(tabName, btnEl){
       const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = defaultFilename; link.click();
     }
 
-    function lookupGoogle(word) { if(word) window.open(`https://www.google.com/search?q=${encodeURIComponent(word)}+etymology+morphology`, '_blank'); }
+function getLookupWordFromRow(row) {
+  return getFirstNonEmpty(row, [
+    "Word", "word", "FLemma", "Lemma", "Baseword", "Compound",
+    "GPT_Root", "Root", "Greek_Latin_Root_1"
+  ]);
+}
+
+function lookupGoogle(word) {
+  word = String(word || "").trim();
+  if (!word) return;
+  const query = `${word} etymology morphology`;
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener");
+}
+
+function lookupDefinition(word) {
+  word = String(word || "").trim();
+  if (!word) return;
+  const wikiWord = encodeURIComponent(word.replace(/\s+/g, "_"));
+  window.open(`https://en.wiktionary.org/wiki/${wikiWord}`, "_blank", "noopener");
+}
+
+function lookupEtymology(word) {
+  word = String(word || "").trim();
+  if (!word) return;
+  window.open(`https://www.etymonline.com/word/${encodeURIComponent(word)}`, "_blank", "noopener");
+}
+
+function lookupWordnik(word) {
+  word = String(word || "").trim();
+  if (!word) return;
+  window.open(`https://www.wordnik.com/words/${encodeURIComponent(word)}`, "_blank", "noopener");
+}
+
+function lookupGoogle(word) {
+  word = String(word || "").trim();
+  if (!word) return;
+
+  const query = `${word} etymology morphology`;
+  window.open(
+    `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+    "_blank",
+    "noopener"
+  );
+}
+
+function lookupDefinition(word) {
+  word = String(word || "").trim();
+  if (!word) return;
+
+  const wikiWord = encodeURIComponent(word.replace(/\s+/g, "_"));
+  window.open(
+    `https://en.wiktionary.org/wiki/${wikiWord}`,
+    "_blank",
+    "noopener"
+  );
+}
+
+function lookupEtymology(word) {
+  word = String(word || "").trim();
+  if (!word) return;
+
+  window.open(
+    `https://www.etymonline.com/word/${encodeURIComponent(word)}`,
+    "_blank",
+    "noopener"
+  );
+}
+
+function lookupWordnik(word) {
+  word = String(word || "").trim();
+  if (!word) return;
+
+  window.open(
+    `https://www.wordnik.com/words/${encodeURIComponent(word)}`,
+    "_blank",
+    "noopener"
+  );
+}
+
+function makeActionButton(label, className, onClick, disabled = false) {
+  const btn = document.createElement("button");
+  btn.className = className;
+  btn.textContent = label;
+  btn.disabled = disabled;
+
+  if (!disabled) {
+    btn.onclick = onClick;
+  } else {
+    btn.title = "No word found for this row.";
+    btn.style.opacity = "0.45";
+    btn.style.cursor = "not-allowed";
+  }
+
+  return btn;
+}
 
     // =========================
     // EXPLAIN MODAL LOGIC
