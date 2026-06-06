@@ -1120,14 +1120,14 @@ function detectDropdownColumns(prefix){
     const bin = new Uint8Array(arrBuf);
     const csvText = pako.ungzip(bin, { to: "string" });
 
-    Papa.parse(csvText, {
-      header: true,
-      skipEmptyLines: "greedy",
-      worker: true,
-      fastMode: false, // <-- critical for correct CSV alignment
-      chunkSize: 1024 * 1024,
-      transformHeader: (h) => String(h || "").replace(/^\uFEFF/, "").trim(),
-
+  Papa.parse(csvText, {
+  header: true,
+  skipEmptyLines: "greedy",
+  worker: false, // changed from true
+  fastMode: false,
+  chunkSize: 1024 * 1024,
+  transformHeader: h => String(h || "").replace(/^\uFEFF/, "").trim(),
+  
       chunk: (results) => {
         let rows = (results.data || []).filter(r =>
           Object.values(r).some(v => String(v ?? "").trim() !== "")
