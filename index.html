@@ -30,33 +30,107 @@
     .tagline { font-size:2.0rem; color:#4b5563; max-width:1500px; margin:0 auto 24px auto; }
 
     .key-btn {
-      display:inline-block; padding:12px 24px; background:#1d4ed8; color:white;
-      font-weight:600; border-radius:8px; cursor:pointer; margin:20px 0;
-      text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.1); border:none;
+      display:inline-block;
+      padding:12px 24px;
+      background:#1d4ed8;
+      color:white;
+      font-weight:600;
+      border-radius:8px;
+      cursor:pointer;
+      margin:20px 0;
+      text-align:center;
+      box-shadow:0 4px 12px rgba(0,0,0,0.1);
+      border:none;
     }
     .key-btn:hover { background:#1e40af; }
 
     .visual-banner { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; margin:25px 0 30px 0; }
-    .visual-aid { width: 250px; height: 110px; object-fit: cover; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s ease; }
+    .visual-aid {
+      width: 250px;
+      height: 110px;
+      object-fit: cover;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
     .visual-aid:hover { transform: scale(1.03); }
 
-    .info-card { background: #f0f4f8; border-radius: 12px; padding: 35px 50px; margin: 20px auto; max-width: 1850px; width: 96%; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .info-card h3 { color:#1d4ed8; margin-top:0; font-size: 1.75rem; font-weight: 700; }
-    .info-card ul { font-size: 1.08rem; font-weight: 600; line-height: 1.45; padding-left: 22px; margin: 0; column-count: 2; column-gap: 40px; }
+    .info-card {
+      background: #f0f4f8;
+      border-radius: 12px;
+      padding: 35px 50px;
+      margin: 20px auto;
+      max-width: 1850px;
+      width: 96%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .info-card h3 {
+      color:#1d4ed8;
+      margin-top:0;
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    .info-card ul {
+      font-size: 1.08rem;
+      font-weight: 600;
+      line-height: 1.45;
+      padding-left: 22px;
+      margin: 0;
+      column-count: 2;
+      column-gap: 40px;
+    }
     .info-card li { margin-bottom: 6px; break-inside: avoid; }
     @media (max-width: 900px) { .info-card ul { column-count: 1; } }
 
     .tabs { display:flex; justify-content:center; gap:12px; margin:28px 0 20px 0; flex-wrap:wrap; }
-    .tab-btn { padding:12px 28px; font-size:1.1rem; font-weight:600; background:#e5e7eb; color:#374151; border:none; border-radius:8px 8px 0 0; cursor:pointer; }
+    .tab-btn {
+      padding:12px 28px;
+      font-size:1.1rem;
+      font-weight:600;
+      background:#e5e7eb;
+      color:#374151;
+      border:none;
+      border-radius:8px 8px 0 0;
+      cursor:pointer;
+    }
     .tab-btn.active { background:#1d4ed8; color:white; }
+
     .tab-content { display:none; padding:24px; }
     .tab-content.active { display:block; }
 
-    .loading-note { text-align:center; font-size:1.05rem; color:#6b7280; background:#f0f4f8; padding:14px; border-radius:8px; margin:15px 0; }
+    .loading-note {
+      text-align:center;
+      font-size:1.05rem;
+      color:#6b7280;
+      background:#f0f4f8;
+      padding:14px;
+      border-radius:8px;
+      margin:15px 0;
+    }
 
-    .db-wrap { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.05); }
-    .db-controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center; margin: 8px 0 12px; }
-    .db-input, .db-select, .db-btn { padding:10px 12px; border-radius:8px; border:1px solid #d1d5db; font-size:0.96rem; }
+    .db-wrap {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    }
+
+    .db-controls {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+      margin: 8px 0 12px;
+    }
+
+    .db-input, .db-select, .db-btn {
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid #d1d5db;
+      font-size:0.96rem;
+    }
     .db-input { min-width: 320px; }
     .db-select { background:#fff; }
     .db-select[multiple] { min-height: 120px; }
@@ -70,42 +144,60 @@
 
     .db-table-wrap { overflow:auto; max-height: 72vh; border-radius: 10px; border: 1px solid #e5e7eb; }
     table.db-table { width:100%; border-collapse:collapse; background:white; }
-    
-    /* CELL SELECTION EXCEL-LIKE CSS */
-    .db-table tbody { user-select: none; }
-    .db-table th, .db-table td { padding: 9px 8px; border-bottom: 1px solid #e5e7eb; text-align:left; vertical-align: top; font-size: 0.9rem; white-space: nowrap; transition: background-color 0.1s; }
+    .db-table th, .db-table td {
+      padding: 9px 8px; border-bottom: 1px solid #e5e7eb;
+      text-align:left; vertical-align: top; font-size: 0.9rem; white-space: nowrap;
+    }
     .db-table th { background:#1e40af; color:white; position: sticky; top: 0; z-index: 5; cursor:pointer; }
     .db-table tr:hover td { background:#f0f9ff; }
-    
-    td.cell-selected { background-color: #dbeafe !important; outline: 1px solid #3b82f6; z-index: 2; position: relative; }
-    td.cell-copied { background-color: #bbf7d0 !important; transition: none; }
 
-    .filter-row input, .filter-row select { width:100%; padding:8px 9px; border:1px solid #cbd5e1; border-radius:6px; height:38px; box-sizing:border-box; font-size:0.85rem; background:#fff; }
+    .filter-row input, .filter-row select {
+      width:100%; padding:8px 9px; border:1px solid #cbd5e1;
+      border-radius:6px; height:38px; box-sizing:border-box; font-size:0.85rem; background:#fff;
+    }
+
     .long-text { white-space: pre-wrap !important; min-width: 260px; max-width: 520px; line-height: 1.35; }
 
     .row-actions { display:flex; gap:6px; flex-wrap:wrap; }
-    .source-btn, .explain-btn { border:none; border-radius:6px; padding:6px 10px; color:#fff; cursor:pointer; font-size:0.84rem; white-space:nowrap; }
-    .source-btn { background:#3b82f6; } .source-btn:hover { background:#2563eb; }
-    .explain-btn { background:#8b5cf6; } .explain-btn:hover { background:#7c3aed; }
+    .source-btn, .explain-btn {
+      border:none; border-radius:6px; padding:6px 10px; color:#fff; cursor:pointer;
+      font-size:0.84rem; white-space:nowrap;
+    }
+    .source-btn { background:#3b82f6; }
+    .source-btn:hover { background:#2563eb; }
+    .explain-btn { background:#8b5cf6; }
+    .explain-btn:hover { background:#7c3aed; }
 
     .pagination { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:10px; margin-top:12px; }
     .pagination button, .pagination select { padding:8px 10px; border:1px solid #d1d5db; border-radius:7px; background:#fff; cursor:pointer; }
 
     .download-section { text-align:center; margin:10px 0 18px; }
-    .download-btn { display:inline-flex; align-items:center; gap:10px; padding:10px 20px; font-size:1rem; font-weight:600; background:#1d4ed8; color:white; text-decoration:none; border-radius:9px; }
+    .download-btn {
+      display:inline-flex; align-items:center; gap:10px; padding:10px 20px;
+      font-size:1rem; font-weight:600; background:#1d4ed8; color:white;
+      text-decoration:none; border-radius:9px;
+    }
     .download-btn:hover { background:#1e40af; }
 
     .subtabs { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin: 4px 0 18px; }
     .subtab-btn { border:none; background:#e5e7eb; color:#1f2937; padding:9px 14px; border-radius:999px; font-weight:600; cursor:pointer; }
     .subtab-btn.active { background:#1d4ed8; color:#fff; }
-    .subtab-pane { display:none; } .subtab-pane.active { display:block; }
+    .subtab-pane { display:none; }
+    .subtab-pane.active { display:block; }
 
-    #wordInput { width: 90%; max-width: 900px; height: 220px; padding: 16px; font-family: ui-monospace, monospace; font-size: 1rem; border: 2px solid #d1d5db; border-radius: 10px; resize: vertical; margin:0 auto; }
+    #wordInput {
+      width: 90%; max-width: 900px; height: 220px; padding: 16px;
+      font-family: ui-monospace, monospace; font-size: 1rem;
+      border: 2px solid #d1d5db; border-radius: 10px; resize: vertical; margin:0 auto;
+    }
     #wordCanvas { display:block; margin:24px auto 0; max-width:100%; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.08); background:#fff; }
 
     .modal { display: none; position: fixed; inset: 0; z-index: 2147483647; background-color: rgba(0,0,0,0.7); overflow-y: auto; }
     .modal.show { display: block; }
-    .modal-content { position: relative; z-index: 2147483648; background: #fff; margin: 40px auto; padding: 30px; border-radius: 12px; max-width: 980px; }
+    .modal-content {
+      position: relative; z-index: 2147483648; background: #fff; margin: 40px auto;
+      padding: 30px; border-radius: 12px; max-width: 980px;
+    }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .modal-header h2, .modal-header h3 { margin: 0; color: #1d4ed8; }
     .close { font-size: 28px; font-weight: bold; color: #6b7280; cursor: pointer; border:none; background:transparent; }
@@ -118,7 +210,7 @@
 <body>
   <div class="container">
     <header>
-      <h1>British and American Word Families (BAWF) Morphological Database</h1>
+      <h1>British and American Word Families (BAWF) Morhological Database</h1>
       <div class="tagline">Morphology, roots, affixes, compounds, and etymology</div>
     </header>
 
@@ -134,15 +226,23 @@
       <h3>About this Database</h3>
       <ul>
         <li>Explore English word families, compound words, and definitions/etymologies.</li>
-        <li>The British and American Word Families (BAWF) is a tool for vocabulary morphology instruction.</li>
-        <li>Morphology is the study of how words are built from meaningful units (bases, roots, prefixes, suffixes).</li>
-        <li>Click and drag to select cells like in Excel, then press <code>Ctrl+C</code> to copy directly into the Word Cloud!</li>
-        <li>Columns containing numerical data automatically round to nearest integer (except Zipf frequencies).</li>
+        <li>The British and American Word Families (BAWF) is a tool for vocabulary morphology instruction from the primary grades.</li>
+        <li>Morphology is the study of how words are built from meaningful units, including bases, roots, prefixes, and suffixes.</li>
+        <li>Filter or search for words you want and particular morphemes.</li>
+        <li>Use sorting, filtering, and column search to find morphologically related words quickly.</li>
         <li>Paste word + frequency into the Word Cloud tab to make visuals.</li>
-        <li>Use Zipf frequencies to sort by commonness bands.</li>
+        <li>Use Zipf frequencies to sort by commonness bands (1st 1000 words, 2nd 1000, etc.).</li>
         <li>Download raw `.csv.gz` files for offline use and advanced analysis.</li>
       </ul>
-      <p style="margin-top: 16px; font-style: italic; color:#2563eb; font-weight:600;">💡 Pro Tip: Click and drag across rows and columns to select cells, then press Ctrl+C to copy them!</p>
+      <p style="margin-top: 16px; font-style: italic;">Be inspired by joyful word learning and reading — dive in and explore!</p>
+    </div>
+
+    <div class="loading-note">
+      <strong>Note:</strong> Large datasets stream asynchronously so you can browse instantly while the rest loads.
+    </div>
+
+    <div style="text-align:center; margin:25px 0;">
+      <button class="key-btn" onclick="showColumnKey()">📋 Column Information Key</button>
     </div>
 
     <div class="tabs">
@@ -165,23 +265,38 @@
           <button class="db-btn" onclick="clearAllFilters('wf')">🧹 Clear</button>
           <button class="db-btn" onclick="exportCSV('wf', 'BAWF_Word_Families_Filtered.csv')">↓ Export CSV</button>
 
+          <select id="wfCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+          <select id="wfCopyScope" class="db-select">
+            <option value="filtered" selected>Copy all filtered rows</option>
+            <option value="page">Copy current page only</option>
+          </select>
+          <button class="db-btn secondary" onclick="copyColumnValues('wf')">📋 Copy Column Cells</button>
+
           <select id="wfAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
           <button id="wfAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
         </div>
+
         <div class="db-meta">Showing <strong id="wfRowCount">0</strong> rows</div>
         <div id="wfLoading" class="db-loading">Loading Word Families dataset...</div>
+
         <div class="db-table-wrap">
           <table id="wfTable" class="db-table" style="display:none;">
-            <thead><tr id="wfHeaderRow"></tr><tr id="wfFilterRow" class="filter-row"></tr></thead>
+            <thead>
+              <tr id="wfHeaderRow"></tr>
+              <tr id="wfFilterRow" class="filter-row"></tr>
+            </thead>
             <tbody id="wfTableBody"></tbody>
           </table>
         </div>
+
         <div id="wfPagination" class="pagination" style="display:none;">
           <button onclick="prevPage('wf')">← Previous</button>
           <span>Page <span id="wfCurrentPage">1</span> of <span id="wfTotalPages">1</span></span>
           <button onclick="nextPage('wf')">Next →</button>
           <select id="wfRowsPerPage" onchange="changeRowsPerPage('wf')">
-            <option value="50">50 rows</option><option value="100" selected>100 rows</option><option value="250">250 rows</option>
+            <option value="50">50 rows</option>
+            <option value="100" selected>100 rows</option>
+            <option value="250">250 rows</option>
           </select>
         </div>
       </div>
@@ -195,13 +310,24 @@
       </div>
 
       <div id="comp-main" class="subtab-pane active">
-        <div class="download-section"><a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>↓ Download Compound Main (.csv.gz)</a></div>
+        <div class="download-section">
+          <a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>↓ Download Compound Main (.csv.gz)</a>
+        </div>
         <div class="db-wrap" id="cmWrap">
           <div class="db-controls">
-            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
+            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..."
+mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
             <button class="db-btn" onclick="filterTable('cm')">🔍 Search</button>
             <button class="db-btn" onclick="clearAllFilters('cm')">🧹 Clear</button>
             <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
+
+            <select id="cmCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+            <select id="cmCopyScope" class="db-select">
+              <option value="filtered" selected>Copy all filtered rows</option>
+              <option value="page">Copy current page only</option>
+            </select>
+            <button class="db-btn secondary" onclick="copyColumnValues('cm')">📋 Copy Column Cells</button>
+
             <select id="cmAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
             <button id="cmAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
           </div>
@@ -209,25 +335,40 @@
           <div id="cmLoading" class="db-loading">Loading Compound Main dataset...</div>
           <div class="db-table-wrap">
             <table id="cmTable" class="db-table" style="display:none;">
-              <thead><tr id="cmHeaderRow"></tr><tr id="cmFilterRow" class="filter-row"></tr></thead>
+              <thead>
+                <tr id="cmHeaderRow"></tr>
+                <tr id="cmFilterRow" class="filter-row"></tr>
+              </thead>
               <tbody id="cmTableBody"></tbody>
             </table>
           </div>
           <div id="cmPagination" class="pagination" style="display:none;">
-            <button onclick="prevPage('cm')">← Previous</button><span>Page <span id="cmCurrentPage">1</span> of <span id="cmTotalPages">1</span></span><button onclick="nextPage('cm')">Next →</button>
+            <button onclick="prevPage('cm')">← Previous</button>
+            <span>Page <span id="cmCurrentPage">1</span> of <span id="cmTotalPages">1</span></span>
+            <button onclick="nextPage('cm')">Next →</button>
             <select id="cmRowsPerPage" onchange="changeRowsPerPage('cm')"><option value="50">50 rows</option><option value="100" selected>100 rows</option><option value="250">250 rows</option></select>
           </div>
         </div>
       </div>
 
       <div id="comp-stats" class="subtab-pane">
-        <div class="download-section"><a class="download-btn" href="BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz" download>↓ Download Compound Stats (.csv.gz)</a></div>
+        <div class="download-section">
+          <a class="download-btn" href="BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz" download>↓ Download Compound Stats (.csv.gz)</a>
+        </div>
         <div class="db-wrap" id="csWrap">
           <div class="db-controls">
             <input id="csGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Stats..." />
             <button class="db-btn" onclick="filterTable('cs')">🔍 Search</button>
             <button class="db-btn" onclick="clearAllFilters('cs')">🧹 Clear</button>
             <button class="db-btn" onclick="exportCSV('cs', 'BAWF_Compound_Stats_Filtered.csv')">↓ Export CSV</button>
+
+            <select id="csCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+            <select id="csCopyScope" class="db-select">
+              <option value="filtered" selected>Copy all filtered rows</option>
+              <option value="page">Copy current page only</option>
+            </select>
+            <button class="db-btn secondary" onclick="copyColumnValues('cs')">📋 Copy Column Cells</button>
+
             <select id="csAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
             <button id="csAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
           </div>
@@ -235,12 +376,17 @@
           <div id="csLoading" class="db-loading">Loading Compound Stats dataset...</div>
           <div class="db-table-wrap">
             <table id="csTable" class="db-table" style="display:none;">
-              <thead><tr id="csHeaderRow"></tr><tr id="csFilterRow" class="filter-row"></tr></thead>
+              <thead>
+                <tr id="csHeaderRow"></tr>
+                <tr id="csFilterRow" class="filter-row"></tr>
+              </thead>
               <tbody id="csTableBody"></tbody>
             </table>
           </div>
           <div id="csPagination" class="pagination" style="display:none;">
-            <button onclick="prevPage('cs')">← Previous</button><span>Page <span id="csCurrentPage">1</span> of <span id="csTotalPages">1</span></span><button onclick="nextPage('cs')">Next →</button>
+            <button onclick="prevPage('cs')">← Previous</button>
+            <span>Page <span id="csCurrentPage">1</span> of <span id="csTotalPages">1</span></span>
+            <button onclick="nextPage('cs')">Next →</button>
             <select id="csRowsPerPage" onchange="changeRowsPerPage('cs')"><option value="50">50 rows</option><option value="100" selected>100 rows</option><option value="250">250 rows</option></select>
           </div>
         </div>
@@ -259,6 +405,13 @@
           <button class="db-btn" onclick="clearAllFilters('de')">🧹 Clear</button>
           <button class="db-btn" onclick="exportCSV('de', 'BAWF_Definitions_Filtered.csv')">↓ Export CSV</button>
 
+          <select id="deCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+          <select id="deCopyScope" class="db-select">
+            <option value="filtered" selected>Copy all filtered rows</option>
+            <option value="page">Copy current page only</option>
+          </select>
+          <button class="db-btn secondary" onclick="copyColumnValues('de')">📋 Copy Column Cells</button>
+
           <select id="deAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
           <button id="deAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
         </div>
@@ -266,7 +419,10 @@
         <div id="deLoading" class="db-loading">Loading Definitions & Etymology dataset...</div>
         <div class="db-table-wrap">
           <table id="deTable" class="db-table" style="display:none;">
-            <thead><tr id="deHeaderRow"></tr><tr id="deFilterRow" class="filter-row"></tr></thead>
+            <thead>
+              <tr id="deHeaderRow"></tr>
+              <tr id="deFilterRow" class="filter-row"></tr>
+            </thead>
             <tbody id="deTableBody"></tbody>
           </table>
         </div>
@@ -282,7 +438,7 @@
     <!-- TAB 4: Wordcloud -->
     <div id="wordcloud" class="tab-content">
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p><strong>Instructions:</strong> Drag to select cells from the tables, copy with <strong>Ctrl+C</strong>, and paste here!</p>
+        <p><strong>Instructions:</strong> Paste Word + Frequency (one per line)</p>
         <textarea id="wordInput" placeholder="analysis 120&#10;morphology 95&#10;prefix 78"></textarea><br><br>
         <button id="generateBtn" onclick="generateWordCloud()" class="key-btn">Generate Word Cloud</button>
         <p id="cloudStatus" style="margin-top:12px; font-weight:500;"></p>
@@ -333,6 +489,40 @@
         </div>
         <p id="llmStatus" style="text-align:center; font-weight:600; min-height:24px;"></p>
         <textarea id="finalPrompt" rows="12" style="width:100%; padding:14px; font-family:monospace; border:2px solid #d1d5db; border-radius:10px; background:#f9fafb;"></textarea>
+        
+        <hr style="margin:30px 0 20px 0;">
+        <h3 style="text-align:center; color:#1d4ed8;">🧠 Embedded Local LLM (WebLLM)</h3>
+        <div style="border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#f8fafc;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+            <select id="webllmModel" style="padding:8px; border-radius:8px; min-width:320px;"></select>
+            <button onclick="initWebLLM()" style="padding:10px 14px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px;">Load Model</button>
+            <button onclick="resetWebLLMChat()" style="padding:10px 14px; font-weight:600; background:#6b7280; color:white; border:none; border-radius:8px;">Reset Chat</button>
+          </div>
+          <p id="webllmStatus" style="margin:6px 0 12px 0; font-weight:600; color:#374151;">WebLLM not loaded yet.</p>
+          <div id="webllmChat" style="height:300px; overflow:auto; background:white; border:1px solid #d1d5db; border-radius:10px; padding:10px; margin-bottom:10px;"></div>
+          <div style="display:flex; gap:8px;">
+            <textarea id="webllmInput" rows="2" placeholder="Type prompt..." style="flex:1; padding:10px; border-radius:8px; border:1px solid #d1d5db;"></textarea>
+            <button onclick="sendWebLLM()" style="padding:10px 14px; font-weight:600; background:#0f766e; color:white; border:none; border-radius:8px;">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Modal -->
+  <div id="columnModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Column Definitions</h2>
+        <button class="close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <ul>
+          <li><strong>Word:</strong> Surface wordform</li>
+          <li><strong>FLemma:</strong> Lemma of the word</li>
+          <li><strong>Baseword:</strong> Central base form</li>
+          <li><strong>GPT_Root:</strong> Primary etymological root</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -375,26 +565,33 @@
 
 
   <script>
-    const DICT_COLS = ['Wiktionary', 'Wordnik', 'Etymonline'];
+    // DATASETS Setup (Language_of_Origin removed from visible)
     const DATASETS = {
       wf: { file: 'BAWF_FINAL.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Baseword', 'Baseword_Family_Size', 'GPT_Coded_Word_Parts', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
       cm: { file: 'BAWF_Compound_Words_FINAL__Main_Compound.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Compound_Type', 'Component_1', 'Component_2', 'Baseword', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
       cs: { file: 'BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz', visible: ['Baseword', 'Baseword_frq_Zipf', 'Family_Size_No_Compounds', 'Family_Size_With_Compounds', 'Compound_Count'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
-      // Definitions replaced with Dynamic Link Columns
-      de: { file: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', visible: ['Word', 'FLemma', 'Wiktionary', 'Wordnik', 'Etymonline', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false }
+      de: { file: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', visible: ['Word', 'FLemma', 'Definition', 'Etymology', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false }
     };
 
-    const TEXT_SEARCH_COLS = ['Word', 'FLemma', 'Baseword', 'Component_1', 'Component_2', 'Definition', 'Etymology', 'Word_frq_Zipf', 'Baseword_frq_Zipf', 'Baseword_Family_Size', 'Family_Size_No_Compounds', 'Family_Size_With_Compounds', 'Compound_Count'];
+    // Columns that should remain text input searches (everything else becomes a dropdown)
+    const TEXT_SEARCH_COLS = [
+      'Word', 'FLemma', 'Baseword', 'Component_1', 'Component_2', 
+      'Definition', 'Etymology', 'Word_frq_Zipf', 'Baseword_frq_Zipf', 
+      'Baseword_Family_Size', 'Family_Size_No_Compounds', 
+      'Family_Size_With_Compounds', 'Compound_Count'
+    ];
 
     let activeTabId = 'word-families';
     let activeKey = 'wf';
-    let columnFilters = {};
+    let columnFilters = {}; // format: { colName: { val: 'abc', exact: false } }
     let filterTimeouts = {};
     const dropdownCache = {};
 
     window.addEventListener('DOMContentLoaded', () => {
-      initDataset('wf'); setupAddColsListener('wf'); setupAddColsListener('cm'); setupAddColsListener('cs'); setupAddColsListener('de');
-      setupCellSelection();
+      initDataset('wf');
+      setupAddColsListener('wf'); setupAddColsListener('cm');
+      setupAddColsListener('cs'); setupAddColsListener('de');
+      loadWebLLMModelList();
     });
 
     function getDatasetKeyFromTab(tabId) {
@@ -410,7 +607,10 @@
       btn.classList.add('active'); document.getElementById(tabId).classList.add('active');
       activeTabId = tabId;
       const key = getDatasetKeyFromTab(tabId);
-      if (key) { activeKey = key; if (!DATASETS[key].data.length) initDataset(key); else renderTable(key); }
+      if (key) {
+        activeKey = key;
+        if (!DATASETS[key].data.length) initDataset(key); else renderTable(key);
+      }
     }
 
     function openCompoundSubTab(subPaneId, btn) {
@@ -438,39 +638,63 @@
         if (loadingEl) loadingEl.textContent = `Parsing records...`;
         const blob = new Blob([inflatedBytes], { type: 'text/csv;charset=utf-8' });
 
-        let firstPaint = false; config.data = [];
+        let firstPaint = false;
+        config.data = [];
+
         Papa.parse(blob, {
-          header: true, skipEmptyLines: 'greedy', chunkSize: 1024 * 1024 * 3, 
-          transformHeader: function(h) { return String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim(); },
+          header: true,
+          skipEmptyLines: 'greedy',
+          chunkSize: 1024 * 1024 * 3, 
+          transformHeader: function(h) {
+            // FIX: Removes UTF-8 BOM glitch causing ï»¿Word to appear
+            return String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim(); 
+          },
           chunk: function(results) {
-            if (!config.all.length) config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
-            const validRows = results.data.filter(r => { const w = r['Word'] || r['Baseword']; return w && w.trim().length > 0; });
+            if (!config.all.length) {
+              config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
+            }
+            
+            const validRows = results.data.filter(r => {
+              const w = r['Word'] || r['Baseword'];
+              return w && w.trim().length > 0;
+            });
             config.data.push(...validRows);
 
             if (!firstPaint && config.data.length >= config.rpp) {
-              firstPaint = true; config.filtered = [...config.data];
+              firstPaint = true;
+              config.filtered = [...config.data];
               if (loadingEl) loadingEl.textContent = `Loading remaining records in background...`;
-              document.getElementById(`${key}Table`).style.display = 'table'; document.getElementById(`${key}Pagination`).style.display = 'flex';
-              buildDropdowns(key); renderTable(key);
-            } else if (firstPaint && loadingEl) { loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`; }
+              document.getElementById(`${key}Table`).style.display = 'table';
+              document.getElementById(`${key}Pagination`).style.display = 'flex';
+              buildDropdowns(key);
+              renderTable(key);
+            } else if (firstPaint && loadingEl) {
+              loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`;
+            }
           },
           complete: function() {
             config.filtered = [...config.data];
             if (!firstPaint) {
-              document.getElementById(`${key}Table`).style.display = 'table'; document.getElementById(`${key}Pagination`).style.display = 'flex';
+              document.getElementById(`${key}Table`).style.display = 'table';
+              document.getElementById(`${key}Pagination`).style.display = 'flex';
               buildDropdowns(key); renderTable(key);
-            } else { filterTable(key); }
+            } else {
+              filterTable(key); // Refresh after load to catch any applied filters
+            }
             if (loadingEl) loadingEl.style.display = 'none';
           }
         });
-      } catch (e) { if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`; }
+      } catch (e) {
+        if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
+      }
     }
 
     function buildDropdowns(key) {
       const config = DATASETS[key];
+      const copySelect = document.getElementById(`${key}CopyColumnSelect`);
+      if (copySelect) copySelect.innerHTML = config.visible.map(c => `<option value="${c}">${c}</option>`).join('');
       const addSelect = document.getElementById(`${key}AddCols`);
-      // Don't list dict cols in 'add columns' if they aren't in CSV natively
-      if (addSelect) addSelect.innerHTML = config.all.filter(c => !config.visible.includes(c) && !DICT_COLS.includes(c)).map(c => `<option value="${c}">${c}</option>`).join('');
+      if (addSelect) addSelect.innerHTML = config.all.filter(c => !config.visible.includes(c)).map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     function setupAddColsListener(key) {
@@ -481,7 +705,8 @@
         const selected = Array.from(select.selectedOptions).map(o => o.value);
         if (!selected.length) return;
         DATASETS[key].visible = [...DATASETS[key].visible, ...selected];
-        buildDropdowns(key); renderTable(key);
+        buildDropdowns(key); 
+        renderTable(key);
       };
     }
 
@@ -492,8 +717,6 @@
       const headerRow = document.getElementById(`${key}HeaderRow`);
       headerRow.innerHTML = config.visible.map(col => {
         let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
-        // Disable sorting arrows on dictionary links natively
-        if (DICT_COLS.includes(col)) sym = '';
         return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
       }).join('') + `<th>Actions</th>`;
 
@@ -502,15 +725,19 @@
         const filterData = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : null;
         const currentVal = filterData ? filterData.val : '';
         
-        if (DICT_COLS.includes(col)) {
-           return `<td></td>`; // No filters for generated links
-        } else if (TEXT_SEARCH_COLS.includes(col)) {
+        if (TEXT_SEARCH_COLS.includes(col)) {
            return `<td><input type="text" placeholder="Filter..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
         } else {
+           // Categorical column -> Generate Dropdown Select
            const cacheKey = key + '_' + col;
-           if (!dropdownCache[cacheKey]) { dropdownCache[cacheKey] = [...new Set(config.data.map(r => r[col] || '').filter(v => v))].sort((a,b) => a.localeCompare(b)); }
+           if (!dropdownCache[cacheKey]) {
+               dropdownCache[cacheKey] = [...new Set(config.data.map(r => r[col] || '').filter(v => v))].sort((a,b) => a.localeCompare(b));
+           }
            let opts = `<option value="">All</option>`;
-           dropdownCache[cacheKey].forEach(u => { const sel = (currentVal === u) ? 'selected' : ''; opts += `<option value="${u.replace(/"/g, '&quot;')}" ${sel}>${u}</option>`; });
+           dropdownCache[cacheKey].forEach(u => {
+               const sel = (currentVal === u) ? 'selected' : '';
+               opts += `<option value="${u.replace(/"/g, '&quot;')}" ${sel}>${u}</option>`;
+           });
            return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true)">${opts}</select></td>`;
         }
       }).join('') + `<td></td>`;
@@ -523,34 +750,18 @@
       const pageData = config.filtered.slice((config.page - 1) * config.rpp, config.page * config.rpp);
       const tbody = document.getElementById(`${key}TableBody`);
       
-      if (!pageData.length) { tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`; return; }
+      if (!pageData.length) {
+        tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`;
+        return;
+      }
 
       let bodyHtml = '';
-      pageData.forEach((row, rIndex) => {
+      pageData.forEach(row => {
         bodyHtml += `<tr>`;
-        config.visible.forEach((col, cIndex) => {
-          let val = row[col];
-          const wordVal = row['Word'] || row['Baseword'] || '';
-          
-          if (DICT_COLS.includes(col)) {
-              const encWord = encodeURIComponent(wordVal);
-              if (col === 'Wiktionary') val = `<a href="https://en.wiktionary.org/wiki/${encWord}" target="_blank" style="color:#2563eb; text-decoration:underline;">Wiktionary</a>`;
-              if (col === 'Wordnik') val = `<a href="https://www.wordnik.com/words/${encWord}" target="_blank" style="color:#2563eb; text-decoration:underline;">Wordnik</a>`;
-              if (col === 'Etymonline') val = `<a href="https://www.etymonline.com/word/${encWord}" target="_blank" style="color:#2563eb; text-decoration:underline;">Etymonline</a>`;
-          } else {
-              // Number Rounding Logic (Ignore if column name has 'zipf')
-              if (val !== undefined && val !== null && String(val).trim() !== '') {
-                  let numVal = Number(val);
-                  if (!isNaN(numVal) && !col.toLowerCase().includes('zipf')) {
-                      val = Math.round(numVal);
-                  }
-              }
-              val = val || '';
-          }
-          
-          bodyHtml += `<td data-r="${rIndex}" data-c="${cIndex}" class="${String(val).length > 50 ? 'long-text' : ''}">${val}</td>`;
+        config.visible.forEach(col => {
+          const val = row[col] || '';
+          bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
         });
-        
         const wordVal = row['Word'] || row['Baseword'] || '';
         const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;'); 
         bodyHtml += `<td>
@@ -563,10 +774,21 @@
       tbody.innerHTML = bodyHtml;
     }
 
+    // Debounced Filtering logic with exact vs substring matching support
     function onColumnFilter(key, col, val, isExact) {
       if (!columnFilters[key]) columnFilters[key] = {};
-      if (!val) delete columnFilters[key][col]; else columnFilters[key][col] = { val: isExact ? val : val.toLowerCase(), exact: isExact };
-      clearTimeout(filterTimeouts[key]); filterTimeouts[key] = setTimeout(() => filterTable(key), 200);
+      
+      if (!val) {
+        delete columnFilters[key][col];
+      } else {
+        columnFilters[key][col] = { 
+          val: isExact ? val : val.toLowerCase(), 
+          exact: isExact 
+        };
+      }
+      
+      clearTimeout(filterTimeouts[key]);
+      filterTimeouts[key] = setTimeout(() => filterTable(key), 200);
     }
 
     function filterTable(key) {
@@ -575,35 +797,65 @@
       const colFilters = columnFilters[key] || {};
       
       config.filtered = config.data.filter(row => {
+        // Individual column filters
         for (const col in colFilters) {
-          const filterDef = colFilters[col]; const cellVal = String(row[col] || '');
-          if (filterDef.exact) { if (cellVal !== filterDef.val) return false; } 
-          else { if (!cellVal.toLowerCase().includes(filterDef.val)) return false; }
+          const filterDef = colFilters[col];
+          const cellVal = String(row[col] || '');
+          if (filterDef.exact) {
+            if (cellVal !== filterDef.val) return false;
+          } else {
+            if (!cellVal.toLowerCase().includes(filterDef.val)) return false;
+          }
         }
-        if (globalQuery) return config.visible.some(col => String(row[col] || '').toLowerCase().includes(globalQuery));
+        // Global search input
+        if (globalQuery) {
+          return config.visible.some(col => String(row[col] || '').toLowerCase().includes(globalQuery));
+        }
         return true;
       });
-      config.page = 1; renderTable(key);
+      
+      config.page = 1; 
+      renderTable(key);
     }
 
     function clearAllFilters(key) {
-      columnFilters[key] = {}; const globalInput = document.getElementById(`${key}GlobalSearch`);
-      if (globalInput) globalInput.value = ''; DATASETS[key].filtered = [...DATASETS[key].data]; DATASETS[key].page = 1; renderTable(key);
+      columnFilters[key] = {};
+      const globalInput = document.getElementById(`${key}GlobalSearch`);
+      if (globalInput) globalInput.value = '';
+      DATASETS[key].filtered = [...DATASETS[key].data];
+      DATASETS[key].page = 1; 
+      renderTable(key);
     }
 
+    // Advanced sorting logic with numerical detection
     function sortTable(key, col) {
-      if (DICT_COLS.includes(col)) col = 'Word'; // Map link clicks to sort by Word
       const config = DATASETS[key];
-      if (config.sortBy === col) config.sortDesc = !config.sortDesc; else { config.sortBy = col; config.sortDesc = false; }
+      if (config.sortBy === col) {
+        config.sortDesc = !config.sortDesc;
+      } else {
+        config.sortBy = col; 
+        config.sortDesc = false; 
+      }
       
       config.filtered.sort((a, b) => {
-        let v1 = a[col] || '', v2 = b[col] || '';
-        let isNum1 = v1 !== '' && !isNaN(Number(v1)), isNum2 = v2 !== '' && !isNaN(Number(v2));
-        if (isNum1 && isNum2) return config.sortDesc ? Number(v2) - Number(v1) : Number(v1) - Number(v2);
+        let v1 = a[col] || '';
+        let v2 = b[col] || '';
         
-        v1 = String(v1).toLowerCase(); v2 = String(v2).toLowerCase();
+        // Detect if both values are purely numerical
+        let isNum1 = v1 !== '' && !isNaN(Number(v1));
+        let isNum2 = v2 !== '' && !isNaN(Number(v2));
+        
+        if (isNum1 && isNum2) {
+          return config.sortDesc ? Number(v2) - Number(v1) : Number(v1) - Number(v2);
+        }
+        
+        // String sorting fallback
+        v1 = String(v1).toLowerCase(); 
+        v2 = String(v2).toLowerCase();
+        
         if (v1 < v2) return config.sortDesc ? 1 : -1;
-        if (v1 > v2) return config.sortDesc ? -1 : 1; return 0;
+        if (v1 > v2) return config.sortDesc ? -1 : 1;
+        return 0;
       });
       renderTable(key);
     }
@@ -611,6 +863,14 @@
     function prevPage(key) { if (DATASETS[key].page > 1) { DATASETS[key].page--; renderTable(key); } }
     function nextPage(key) { if (DATASETS[key].page < Math.ceil(DATASETS[key].filtered.length / DATASETS[key].rpp)) { DATASETS[key].page++; renderTable(key); } }
     function changeRowsPerPage(key) { DATASETS[key].rpp = parseInt(document.getElementById(`${key}RowsPerPage`).value, 10); DATASETS[key].page = 1; renderTable(key); }
+
+    function copyColumnValues(key) {
+      const config = DATASETS[key];
+      const col = document.getElementById(`${key}CopyColumnSelect`).value;
+      const scope = document.getElementById(`${key}CopyScope`).value;
+      const targetRows = scope === 'page' ? config.filtered.slice((config.page - 1) * config.rpp, config.page * config.rpp) : config.filtered;
+      navigator.clipboard.writeText(targetRows.map(r => r[col] || '').filter(v => v).join('\n')).then(() => alert(`Copied column "${col}"!`));
+    }
 
     function exportCSV(key, defaultFilename) {
       const config = DATASETS[key];
@@ -621,105 +881,93 @@
 
     function lookupGoogle(word) { if(word) window.open(`https://www.google.com/search?q=${encodeURIComponent(word)}+etymology+morphology`, '_blank'); }
 
-    // ==========================================
-    // EXCEL-LIKE CELL SELECTION & COPYING LOGIC
-    // ==========================================
-    let isSelectingCells = false;
-    let selStart = { r: -1, c: -1 };
-    let selEnd = { r: -1, c: -1 };
-    let activeTbody = null;
-
-    function setupCellSelection() {
-      document.addEventListener('mousedown', e => {
-        const td = e.target.closest('td[data-r]');
-        if (!td || ['BUTTON','A','SELECT','INPUT'].includes(e.target.tagName)) return;
-        
-        document.querySelectorAll('.cell-selected, .cell-copied').forEach(el => el.classList.remove('cell-selected', 'cell-copied'));
-        isSelectingCells = true; activeTbody = td.closest('tbody');
-        selStart = { r: parseInt(td.getAttribute('data-r')), c: parseInt(td.getAttribute('data-c')) };
-        selEnd = { ...selStart };
-        updateSelectionVisuals();
-      });
-
-      document.addEventListener('mouseover', e => {
-        if (!isSelectingCells || !activeTbody) return;
-        const td = e.target.closest('td[data-r]');
-        if (!td || td.closest('tbody') !== activeTbody) return;
-        
-        selEnd = { r: parseInt(td.getAttribute('data-r')), c: parseInt(td.getAttribute('data-c')) };
-        updateSelectionVisuals();
-      });
-
-      document.addEventListener('mouseup', () => { isSelectingCells = false; });
-
-      document.addEventListener('keydown', e => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
-          const selectedCells = document.querySelectorAll('.cell-selected');
-          if (selectedCells.length === 0) return;
-
-          const rowMap = {};
-          selectedCells.forEach(td => {
-            const r = parseInt(td.getAttribute('data-r')), c = parseInt(td.getAttribute('data-c'));
-            if (!rowMap[r]) rowMap[r] = [];
-            rowMap[r].push({ c: c, text: td.innerText.trim() });
-            
-            // Visual feedback flash
-            td.classList.add('cell-copied');
-            setTimeout(() => td.classList.remove('cell-copied'), 300);
-          });
-
-          const rows = Object.keys(rowMap).map(Number).sort((a,b) => a-b);
-          const tsvStr = rows.map(r => rowMap[r].sort((a,b) => a.c - b.c).map(cell => cell.text).join('\t')).join('\n');
-          
-          navigator.clipboard.writeText(tsvStr);
-          e.preventDefault(); // Stop native copy from overwriting
-        }
-      });
-    }
-
-    function updateSelectionVisuals() {
-      if (!activeTbody) return;
-      const minR = Math.min(selStart.r, selEnd.r), maxR = Math.max(selStart.r, selEnd.r);
-      const minC = Math.min(selStart.c, selEnd.c), maxC = Math.max(selStart.c, selEnd.c);
-      
-      activeTbody.querySelectorAll('td[data-r]').forEach(td => {
-        const r = parseInt(td.getAttribute('data-r')), c = parseInt(td.getAttribute('data-c'));
-        if (r >= minR && r <= maxR && c >= minC && c <= maxC) td.classList.add('cell-selected');
-        else td.classList.remove('cell-selected');
-      });
-    }
-
-    // EXPLAIN MODAL
+    // =========================
+    // EXPLAIN MODAL LOGIC
+    // =========================
     function byId(id){ return document.getElementById(id); }
-    function getFirstNonEmpty(row, candidates){ for (const c of candidates){ const v = String(row?.[c] ?? "").trim(); if (v) return v; } return ""; }
+    function getFirstNonEmpty(row, candidates){
+      for (const c of candidates){
+        const v = String(row?.[c] ?? "").trim();
+        if (v) return v;
+      }
+      return "";
+    }
+
     let currentExplainRow = null;
 
     function buildExplainPrompt(row, task="both"){
       const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
       const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
       const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
+      const definition = getFirstNonEmpty(row, ["Definition","Greek_Latin_Meaning_1","Prefix_1_Meaning","Suffix_1_Meaning"]);
+
       let instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
       if (task === "explain") instruction = "Explain this morphology entry clearly for teachers and students.";
       else if (task === "history") instruction = "Focus on etymology/history if available; if uncertain, say so clearly and avoid guessing.";
 
-      return `You are a literacy and morphology expert supporting teachers.\n\n${instruction}\n\nRow details:\n- Word/Entry: ${word || "(not provided)"}\n- Root: ${root || "(not provided)"}\n- Morphological parts: ${parts || "(not provided)"}\n\nPlease return:\n- Student-friendly explanation\n- Check the accuracy of the Morphology breakdown\n- Meaning connections to root(s) and morphemes\n- Teaching tip for classroom use\n- 2 quick discussion/check-for-understanding questions`;
+      return `You are a literacy and morphology expert supporting teachers.
+
+${instruction}
+
+Row details:
+- Word/Entry: ${word || "(not provided)"}
+- Root: ${root || "(not provided)"}
+- Morphological parts: ${parts || "(not provided)"}
+- Definition/Etymology: ${definition || "(not provided)"}
+
+Please return:
+- Student-friendly explanation
+- Check the accuracy of the Morphology breakdown (prefix/base/root/suffix where relevant) and suggest alternative parses if any
+- Meaning connections to root(s) and morphemes
+- Teaching tip for classroom use
+- 2 quick discussion/check-for-understanding questions`;
     }
 
-    function showExplainModal(prefix, row){ currentExplainRow = row; byId("explainPreview").value = buildExplainPrompt(row, byId("explainTask").value); byId("explainModalBackdrop").classList.add("show"); document.body.classList.add("modal-open"); }
-    function closeExplainModal(){ byId("explainModalBackdrop").classList.remove("show"); document.body.classList.remove("modal-open"); }
-    function copyExplainPrompt(){ const p = byId("explainPreview").value.trim(); if (!p) return alert("No prompt to copy."); navigator.clipboard.writeText(p).then(() => alert("Prompt copied.")); }
+    function showExplainModal(prefix, row){
+      currentExplainRow = row;
+      byId("explainPreview").value = buildExplainPrompt(row, byId("explainTask").value);
+      byId("explainModalBackdrop").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function closeExplainModal(){
+      byId("explainModalBackdrop").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
+    function copyExplainPrompt(){
+      const p = byId("explainPreview").value.trim();
+      if (!p) return alert("No prompt to copy.");
+      navigator.clipboard.writeText(p).then(() => alert("Prompt copied."));
+    }
+
     function openExplainInAI(){
-      const prompt = byId("explainPreview").value.trim(); if (!prompt) return;
+      const prompt = byId("explainPreview").value.trim();
+      if (!prompt) return;
       const provider = byId("explainProvider").value, encoded = encodeURIComponent(prompt);
       let url = `https://chatgpt.com/?q=${encoded}`;
-      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`; if (provider === "claude") url = "https://claude.ai/new";
+      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
+      if (provider === "claude") url = "https://claude.ai/new";
       if (!window.open(url, "_blank")) alert("Popup blocked. Allow popups and try again.");
-      navigator.clipboard.writeText(prompt).catch(()=>{}); closeExplainModal();
+      navigator.clipboard.writeText(prompt).catch(()=>{});
+      closeExplainModal();
     }
-    document.addEventListener("change", (e) => { if (e.target?.id === "explainTask" && currentExplainRow) byId("explainPreview").value = buildExplainPrompt(currentExplainRow, e.target.value); });
-    window.addEventListener("click", (e) => { if (e.target === byId("explainModalBackdrop")) closeExplainModal(); });
 
-    // WORDCLOUD / LLM Generators
+    document.addEventListener("change", (e) => {
+      if (e.target?.id === "explainTask" && currentExplainRow) byId("explainPreview").value = buildExplainPrompt(currentExplainRow, e.target.value);
+    });
+
+    window.addEventListener("click", (e) => {
+      if (e.target === byId("columnModal")) closeModal();
+      if (e.target === byId("explainModalBackdrop")) closeExplainModal();
+    });
+
+    function showColumnKey() { document.getElementById('columnModal').classList.add('show'); document.body.classList.add('modal-open'); }
+    function closeModal() { document.getElementById('columnModal').classList.remove('show'); document.body.classList.remove('modal-open'); }
+
+    // =========================
+    // OTHER TOOLS (Word Cloud, Prompts, WebLLM)
+    // =========================
     function generateWordCloud() {
       const input = document.getElementById("wordInput").value.trim(), status = document.getElementById("cloudStatus");
       if (!input) return status.textContent = "Please fill in word frequencies first.";
@@ -747,30 +995,24 @@
     function generateWithLLM() {
       const words = document.getElementById("llmInput").value.trim();
       if (!words) return alert("Please specify words first.");
-      const checked
-
-    Options = Array.from(document.querySelectorAll('.act-option:checked')).map(el => `- ${el.value}`).join('\n');
+      const checkedOptions = Array.from(document.querySelectorAll('.act-option:checked')).map(el => `- ${el.value}`).join('\n');
       document.getElementById("finalPrompt").value = `You are an expert reading specialist and curriculum designer. 
 Generate a high-quality explicit instruction framework for Grade ${document.getElementById("llmGrade").value}.
 
-Target Words:
-${words}
+Target Words:\n${words}
 
 Format type: ${document.getElementById("llmTextType").value}
 Requested length: ${document.getElementById("llmLength").value}
 Context Topic Area: ${document.getElementById("llmContentArea").value.trim()}
 Pedagogical Focus: ${document.getElementById("llmFocus").value.trim()}
 
-Required components:
-${checkedOptions}
+Required components:\n${checkedOptions}
 
 Deliver clean, production-ready educational assets.`;
       document.getElementById("llmStatus").textContent = "🚀 Prompt compiled successfully!";
     }
 
-    function copyLLMPrompt() { 
-      navigator.clipboard.writeText(document.getElementById("finalPrompt").value).then(() => alert("Copied compiled layout to clipboard.")); 
-    }
+    function copyLLMPrompt() { navigator.clipboard.writeText(document.getElementById("finalPrompt").value).then(() => alert("Copied compiled layout to clipboard.")); }
     
     function openInLLM() {
       if (!document.getElementById("finalPrompt").value) return alert("Please compile a prompt first.");
@@ -784,12 +1026,10 @@ Deliver clean, production-ready educational assets.`;
         document.getElementById("webllmModel").innerHTML = `<option value="Llama-3-8B-Instruct-q4f16_1-100k-webgpu">Llama 3 (8B Instruct WebGPU)</option><option value="Phi-3-mini-4k-instruct-q4f16_1-webgpu">Phi 3 Mini (Lightweight/Fast)</option>`;
       } catch(e) {}
     }
-    
     async function initWebLLM() {
       document.getElementById("webllmStatus").textContent = `Downloading/Loading ${document.getElementById("webllmModel").value}...`;
       setTimeout(() => document.getElementById("webllmStatus").textContent = `✅ Loaded successfully!`, 1500);
     }
-    
     function sendWebLLM() {
       const input = document.getElementById("webllmInput");
       if (!input.value.trim()) return;
@@ -801,11 +1041,10 @@ Deliver clean, production-ready educational assets.`;
         c.appendChild(rb); c.scrollTop = c.scrollHeight;
       }, 800);
     }
-    
-    function resetWebLLMChat() { 
-      document.getElementById("webllmChat").innerHTML = ""; 
-      document.getElementById("webllmStatus").textContent = "Chat reset complete."; 
-    }
+    function resetWebLLMChat() { document.getElementById("webllmChat").innerHTML = ""; document.getElementById("webllmStatus").textContent = "Chat reset complete."; }
   </script>
 </body>
 </html>
+
+
+  
