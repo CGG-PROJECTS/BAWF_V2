@@ -1120,10 +1120,11 @@ function detectDropdownColumns(prefix){
     const bin = new Uint8Array(arrBuf);
     const csvText = pako.ungzip(bin, { to: "string" });
 
-  Papa.parse(csvText, {
+Papa.parse(csvText, {
   header: true,
+  delimiter: ",",
   skipEmptyLines: "greedy",
-  worker: false, // changed from true
+  worker: false,
   fastMode: false,
   chunkSize: 1024 * 1024,
   transformHeader: h => String(h || "").replace(/^\uFEFF/, "").trim(),
@@ -1135,15 +1136,15 @@ function detectDropdownColumns(prefix){
         if (!rows.length) return;
 
         // Set headers once
-        if (!st.allColumns.length) {
-          st.allColumns = (results.meta?.fields?.length)
-            ? results.meta.fields.map(h => String(h || "").trim())
-            : Object.keys(rows[0] || {}).filter(k => k !== "__parsed_extra");
+if (!st.allColumns.length) {
+  const rawFields = results.meta?.fields || [];
+  st.allColumns = sanitizeHeaders(rawFields);
 
-          st.coreColumns = chooseCoreColumns(st.allColumns);
-          if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
-          st.columns = [...st.coreColumns];
-        }
+  st.coreColumns = chooseCoreColumns(st.allColumns);
+  if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
+  st.columns = [...st.coreColumns];
+}
+
 
         // Clean rows + round grade level
         rows = rows.map(r => {
@@ -1222,6 +1223,28 @@ function detectDropdownColumns(prefix){
   }
 }
 
+function sanitizeHeaders(fields){
+  const out = [];
+  (fields || []).forEach(h => {
+    let s = String(h ?? "")
+      .replace(/^\uFEFF/, "")
+      .replace(/[\u0000-\u001F\u007F]/g, " ")
+      .trim();
+
+    if (!s) return;
+
+    // Split accidental tab-merged header text
+    const parts = s.split(/\t+/).map(p => p.trim()).filter(Boolean);
+
+    parts.forEach(p => {
+      // Drop obvious numeric garbage pretending to be a header
+      if (/^-?\d+(\.\d+)?$/.test(p)) return;
+      out.push(p);
+    });
+  });
+
+  return [...new Set(out)];
+}
 
     function initializeDatasetUI(prefix){
       renderHeadersAndFilters(prefix);
