@@ -891,6 +891,72 @@
 
     function byId(id){ return document.getElementById(id); }
     function normalizeSpaces(s){ return String(s ?? "").replace(/\s+/g, " ").trim(); }
+function colNorm(s){
+  return String(s || "").toLowerCase().replace(/[\s_()\-]+/g, "");
+}
+
+function isLikelyNumeric(v){
+  if (v === null || v === undefined) return false;
+  const s = String(v).trim();
+  if (!s) return false;
+  return /^-?\d+(\.\d+)?$/.test(s);
+}
+
+function isNumericColumn(prefix, col){
+  const st = state[prefix];
+  const rows = st.fullData;
+  const sample = Math.min(rows.length, 1500);
+  let seen = 0, numeric = 0;
+  for (let i = 0; i < sample; i++){
+    const v = rows[i]?.[col];
+    const s = String(v ?? "").trim();
+    if (!s) continue;
+    seen++;
+    if (isLikelyNumeric(s)) numeric++;
+  }
+  if (!seen) return false;
+  return (numeric / seen) >= 0.9;
+}
+
+function isForcedDropdownColumn(col){
+  const c = colNorm(col);
+
+  // Explicit root + meaning dropdowns
+  if (c === "greeklatinroot1" || c === "greeklatinmeaning1" ||
+      c === "greeklatinroot2" || c === "greeklatinmeaning2") return true;
+
+  // Prefix / suffix columns
+  if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) return true;
+
+  // N morphemes explicitly
+  if (c === "nmorphemes") return true;
+
+  return false;
+}
+
+function cleanParsedRow(row, headers){
+  // Force row values to align exactly with headers
+  const out = {};
+  headers.forEach(h => out[h] = row[h] ?? "");
+
+  // If parser produced extras, append to last column so columns don't shift
+  if (Array.isArray(row.__parsed_extra) && row.__parsed_extra.length && headers.length){
+    const last = headers[headers.length - 1];
+    const tail = row.__parsed_extra.join(",");
+    out[last] = String(out[last] ?? "");
+    out[last] = out[last] ? `${out[last]},${tail}` : tail;
+  }
+  return out;
+}
+
+function roundVocabularyGradeLevels(row, headers){
+  // Round any vocabulary expected grade level style column
+  const gradeCols = headers.filter(h => /vocabulary.*grade.*level/i.test(h));
+  for (const c of gradeCols){
+    const n = parseFloat(String(row[c] ?? "").trim());
+    if (Number.isFinite(n)) row[c] = String(Math.round(n));
+  }
+}
 
     function norm(s){ return String(s || "").toLowerCase().replace(/[\s_]+/g, ""); }
 
@@ -945,33 +1011,41 @@
       return filterDebouncers[prefix];
     }
 
-    function detectDropdownColumns(prefix){
-      const st = state[prefix];
-      const rows = st.fullData;
-      const cols = getVisibleColumns(prefix);
-      st.dropdownColumns.clear();
+function detectDropdownColumns(prefix){
+  const st = state[prefix];
+  st.dropdownColumns.clear();
 
-      const sampleSize = Math.min(rows.length, 1500);
-      if (!sampleSize) return;
+  const cols = getVisibleColumns(prefix);
+  const rows = st.fullData;
+  const sampleSize = Math.min(rows.length, 1500);
 
-      cols.forEach(col => {
-        const vals = [];
-        for (let i = 0; i < sampleSize; i++){
-          vals.push(normalizeSpaces(rows[i]?.[col]));
-        }
-        const values = vals.filter(Boolean);
-        if (!values.length) return;
-
-        const unique = [...new Set(values)];
-        const ratio = unique.length / values.length;
-        const avgWords = unique.reduce((acc, v) => acc + v.split(" ").length, 0) / unique.length;
-        const mostlyNumeric = unique.filter(v => /^-?\d+(\.\d+)?$/.test(v)).length / unique.length > 0.65;
-
-        if (!mostlyNumeric && unique.length <= 35 && ratio < 0.35 && avgWords <= 4) {
-          st.dropdownColumns.add(col.toLowerCase().trim());
-        }
-      });
+  cols.forEach(col => {
+    // Forced dropdown columns
+    if (isForcedDropdownColumn(col)) {
+      st.dropdownColumns.add(String(col).toLowerCase().trim());
+      return;
     }
+
+    // All numeric columns become dropdowns (per your request)
+    if (isNumericColumn(prefix, col)) {
+      st.dropdownColumns.add(String(col).toLowerCase().trim());
+      return;
+    }
+
+    // Existing category-like detection
+    const vals = new Set();
+    for (let i = 0; i < sampleSize; i++) {
+      const v = normalizeSpaces(rows[i]?.[col]);
+      if (v) vals.add(v);
+      if (vals.size > 50) break;
+    }
+
+    if (vals.size > 1 && vals.size <= 35) {
+      st.dropdownColumns.add(String(col).toLowerCase().trim());
+    }
+  });
+}
+
 
     function isDropdownColumn(prefix, colName){
       return state[prefix].dropdownColumns.has(String(colName).toLowerCase().trim());
@@ -1018,123 +1092,136 @@
       populateAddColsSelect(prefix);
     }
 
-    async function loadDataset(prefix){
-      const cfg = DATASETS[prefix];
-      if (!cfg || cfg.loaded) return;
+ async function loadDataset(prefix){
+  const cfg = DATASETS[prefix];
+  if (!cfg) return;
+  if (cfg.loaded) return;
+  cfg.loaded = true;
 
-      cfg.loaded = true;
-      const st = state[prefix];
+  const st = state[prefix];
+  st.fullData = [];
+  st.filteredData = [];
+  st.currentPage = 1;
+  st.sort = { column: null, asc: true };
+  st.dropdownColumns = new Set();
+  st.columns = [];
+  st.allColumns = [];
+  st.coreColumns = [];
+  st.parseDone = false;
+  st.firstPaintDone = false;
 
-      st.fullData = [];
-      st.filteredData = [];
-      st.columns = [];
-      st.allColumns = [];
-      st.coreColumns = [];
-      st.parseDone = false;
-      st.firstPaintDone = false;
-      st.currentPage = 1;
-      st.sort = { column: null, asc: true };
-      st.dropdownColumns = new Set();
+  setDbLoading(prefix, `Loading ${cfg.name}...`);
 
-      setDbLoading(prefix, `Loading ${cfg.name}...`);
+  try {
+    const resp = await fetch(cfg.file, { cache: "no-cache" });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
-      try {
-        const resp = await fetch(cfg.file, { cache: "no-cache" });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const arrBuf = await resp.arrayBuffer();
+    const bin = new Uint8Array(arrBuf);
+    const csvText = pako.ungzip(bin, { to: "string" });
 
-        const arrBuf = await resp.arrayBuffer();
-        const bin = new Uint8Array(arrBuf);
-        const csvText = pako.ungzip(bin, { to: "string" });
+    Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: "greedy",
+      worker: true,
+      fastMode: false, // <-- critical for correct CSV alignment
+      chunkSize: 1024 * 1024,
+      transformHeader: (h) => String(h || "").replace(/^\uFEFF/, "").trim(),
 
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: "greedy",
-          worker: true,
-          fastMode: true,
-          chunkSize: 1024 * 1024,
-          chunk: (results) => {
-            const rows = (results.data || []).filter(row =>
-              Object.values(row).some(v => String(v ?? "").trim() !== "")
-            );
-            if (!rows.length) return;
+      chunk: (results) => {
+        let rows = (results.data || []).filter(r =>
+          Object.values(r).some(v => String(v ?? "").trim() !== "")
+        );
+        if (!rows.length) return;
 
-            if (!st.allColumns.length) {
-              st.allColumns = (results.meta?.fields?.length)
-                ? results.meta.fields
-                : Object.keys(rows[0] || {});
-              st.coreColumns = chooseCoreColumns(st.allColumns);
-              if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
-              st.columns = [...st.coreColumns];
-            }
+        // Set headers once
+        if (!st.allColumns.length) {
+          st.allColumns = (results.meta?.fields?.length)
+            ? results.meta.fields.map(h => String(h || "").trim())
+            : Object.keys(rows[0] || {}).filter(k => k !== "__parsed_extra");
 
-            for (const row of rows) {
-              try {
-                Object.defineProperty(row, "__search", {
-                  value: Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase(),
-                  enumerable: false
-                });
-              } catch {
-                row.__search = Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase();
-              }
-            }
+          st.coreColumns = chooseCoreColumns(st.allColumns);
+          if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
+          st.columns = [...st.coreColumns];
+        }
 
-            st.fullData.push(...rows);
+        // Clean rows + round grade level
+        rows = rows.map(r => {
+          const cleaned = cleanParsedRow(r, st.allColumns);
+          roundVocabularyGradeLevels(cleaned, st.allColumns);
 
-            if (!st.firstPaintDone && st.fullData.length >= Math.max(st.rowsPerPage, 50)) {
-              st.filteredData = st.fullData.slice();
-              initializeDatasetUI(prefix);
-              detectDropdownColumns(prefix);
-              renderHeadersAndFilters(prefix);
-              renderTable(prefix);
-              populateCopyColumnSelect(prefix);
-              populateAddColsSelect(prefix);
-
-              const loadingEl = byId(prefix + "Loading");
-              if (loadingEl) {
-                loadingEl.style.display = "block";
-                loadingEl.textContent = `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows in background`;
-              }
-
-              const tableEl = byId(prefix + "Table");
-              if (tableEl) tableEl.style.display = "table";
-              const pagerEl = byId(prefix + "Pagination");
-              if (pagerEl) pagerEl.style.display = "flex";
-
-              st.firstPaintDone = true;
-            } else if (st.firstPaintDone) {
-              setDbLoading(prefix, `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows`);
-            }
-          },
-          complete: () => {
-            st.filteredData = st.fullData.slice();
-            st.parseDone = true;
-
-            initializeDatasetUI(prefix);
-            detectDropdownColumns(prefix);
-            renderHeadersAndFilters(prefix);
-            renderTable(prefix);
-            populateCopyColumnSelect(prefix);
-            populateAddColsSelect(prefix);
-
-            const loadingEl = byId(prefix + "Loading");
-            if (loadingEl) {
-              loadingEl.textContent = "";
-              loadingEl.style.display = "none";
-            }
-            byId(prefix + "Table").style.display = "table";
-            byId(prefix + "Pagination").style.display = "flex";
-          },
-          error: (err) => {
-            cfg.loaded = false;
-            setDbLoading(prefix, `CSV parse error: ${err.message}`);
+          // global search cache
+          try {
+            Object.defineProperty(cleaned, "__search", {
+              value: st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase(),
+              enumerable: false
+            });
+          } catch {
+            cleaned.__search = st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase();
           }
+          return cleaned;
         });
 
-      } catch (err){
+        st.fullData.push(...rows);
+
+        if (!st.firstPaintDone && st.fullData.length >= Math.max(st.rowsPerPage, 50)) {
+          st.filteredData = st.fullData.slice();
+          st.currentPage = 1;
+
+          initializeDatasetUI(prefix);
+          wireAddColsUI(prefix);
+          detectDropdownColumns(prefix);
+          renderHeadersAndFilters(prefix);
+          renderTable(prefix);
+          populateCopyColumnSelect(prefix);
+          populateAddColsSelect(prefix);
+
+          const loadingEl = byId(prefix + "Loading");
+          if (loadingEl) {
+            loadingEl.style.display = "block";
+            loadingEl.textContent = `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows in background`;
+          }
+
+          const tableEl = byId(prefix + "Table");
+          if (tableEl) tableEl.style.display = "table";
+          const pagerEl = byId(prefix + "Pagination");
+          if (pagerEl) pagerEl.style.display = "flex";
+
+          st.firstPaintDone = true;
+        } else if (st.firstPaintDone) {
+          setDbLoading(prefix, `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows`);
+        }
+      },
+
+      complete: () => {
+        st.filteredData = st.fullData.slice();
+        st.parseDone = true;
+
+        initializeDatasetUI(prefix);
+        wireAddColsUI(prefix);
+        detectDropdownColumns(prefix);
+        renderHeadersAndFilters(prefix);
+        renderTable(prefix);
+        populateCopyColumnSelect(prefix);
+        populateAddColsSelect(prefix);
+
+        setDbLoading(prefix, "");
+        const loadingEl = byId(prefix + "Loading");
+        if (loadingEl) loadingEl.style.display = "none";
+      },
+
+      error: (err) => {
+        setDbLoading(prefix, `CSV parse error: ${err.message}`);
         cfg.loaded = false;
-        setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
       }
-    }
+    });
+
+  } catch (err){
+    setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
+    cfg.loaded = false;
+  }
+}
+
 
     function initializeDatasetUI(prefix){
       renderHeadersAndFilters(prefix);
@@ -1187,15 +1274,15 @@
           all.textContent = "All";
           sel.appendChild(all);
 
-          const unique = [...new Set(st.fullData.map(r => normalizeSpaces(r[col])).filter(Boolean))]
-            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+const unique = [...new Set(st.fullData.map(r => normalizeSpaces(r[col])).filter(Boolean))];
 
-          unique.forEach(v => {
-            const opt = document.createElement("option");
-            opt.value = v;
-            opt.textContent = v;
-            sel.appendChild(opt);
-          });
+const numericLike = unique.length && unique.every(isLikelyNumeric);
+if (numericLike) {
+  unique.sort((a,b) => parseFloat(a) - parseFloat(b));
+} else {
+  unique.sort((a,b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+}
+
 
           td.appendChild(sel);
         } else {
