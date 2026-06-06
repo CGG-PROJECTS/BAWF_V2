@@ -5,25 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BAWF Morphological Database</title>
 
-  <!-- Tailwind CSS CDN -->
+  <!-- Data parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+
+  <!-- Word cloud -->
+  <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
+
+  <!-- Tailwind CSS (For neat, robust, clean controls layouts and polished elements) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           colors: {
             brand: {
-              50: '#eff6ff',
+              50: '#f0f4f8',
               100: '#dbeafe',
-              200: '#bfdbfe',
-              300: '#93c5fd',
-              400: '#60a5fa',
-              500: '#3b82f6',
-              600: '#2563eb',
-              700: '#1d4ed8',
+              600: '#1d4ed8',
+              700: '#1e40af',
               800: '#1e40af',
-              900: '#1e3a8a',
             }
           }
         }
@@ -31,856 +32,1116 @@
     }
   </script>
 
-  <!-- Data parsing dependencies -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-
-  <!-- Word cloud dependency -->
-  <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
-
   <style>
-    /* Scrollbars customization */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+    body {
+      margin:0; padding:0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(to bottom, #fdfdfd, #f8f8f8);
+      color:#111827;
     }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
+    .container-xl {
+      max-width:2800px;
+      margin:30px auto;
+      padding:32px 34px;
+      background:white;
+      border-radius:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.06);
     }
 
-    /* Fixed table column structures to ensure absolute alignment */
-    .table-fixed-cols {
-      table-layout: fixed;
-      width: 100%;
+    header { text-align:center; margin-bottom:16px; }
+    h1 { margin:0 0 8px 0; font-size:2.8rem; color:#1d4ed8; font-weight:700; }
+    .tagline { font-size:2.0rem; color:#4b5563; max-width:1500px; margin:0 auto 24px auto; }
+
+    .key-btn {
+      display:inline-block;
+      padding:12px 24px;
+      background:#1d4ed8;
+      color:white;
+      font-weight:600;
+      border-radius:8px;
+      cursor:pointer;
+      margin:20px 0;
+      text-align:center;
+      box-shadow:0 4px 12px rgba(0,0,0,0.1);
+      border:none;
+    }
+    .key-btn:hover { background:#1e40af; }
+
+    .visual-banner { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; margin:25px 0 30px 0; }
+    .visual-aid {
+      width: 250px;
+      height: 110px;
+      object-fit: cover;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
+    .visual-aid:hover { transform: scale(1.03); }
+
+    .info-card {
+      background: #f0f4f8;
+      border-radius: 12px;
+      padding: 35px 50px;
+      margin: 20px auto;
+      max-width: 1850px;
+      width: 96%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .info-card h3 {
+      color:#1d4ed8;
+      margin-top:0;
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    .info-card ul {
+      font-size: 1.08rem;
+      font-weight: 600;
+      line-height: 1.45;
+      padding-left: 22px;
+      margin: 0;
+      column-count: 2;
+      column-gap: 40px;
+    }
+    .info-card li {
+      margin-bottom: 6px;
+      break-inside: avoid;
+    }
+    @media (max-width: 900px) {
+      .info-card ul { column-count: 1; }
     }
 
-    .tab-transition {
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    .tabs { display:flex; justify-content:center; gap:12px; margin:28px 0 20px 0; flex-wrap:wrap; }
+    .tab-btn {
+      padding:12px 28px;
+      font-size:1.1rem;
+      font-weight:600;
+      background:#e5e7eb;
+      color:#374151;
+      border:none;
+      border-radius:8px 8px 0 0;
+      cursor:pointer;
+    }
+    .tab-btn.active { background:#1d4ed8; color:white; }
+
+    .tab-content { display:none; padding:24px; }
+    .tab-content.active { display:block; }
+
+    .loading-note {
+      text-align:center;
+      font-size:1.05rem;
+      color:#6b7280;
+      background:#f0f4f8;
+      padding:14px;
+      border-radius:8px;
+      margin:15px 0;
     }
 
-    /* Excel-style range selection highlighting */
+    .db-wrap {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    }
+
+    .db-controls {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+      margin: 8px 0 12px;
+    }
+
+    .db-input, .db-select, .db-btn {
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid #d1d5db;
+      font-size:0.96rem;
+    }
+    .db-input { min-width: 320px; }
+    .db-select { background:#fff; }
+    .db-select[multiple] { min-height: 120px; }
+    .db-btn {
+      border:none;
+      background:#1d4ed8;
+      color:#fff;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .db-btn:hover { background:#1e40af; }
+
+    .db-btn.secondary {
+      background:#e5e7eb;
+      color:#111827;
+      border:1px solid #d1d5db;
+    }
+    .db-btn.secondary:hover { background:#d1d5db; }
+
+    .db-meta {
+      text-align:center;
+      color:#374151;
+      margin:8px 0 14px;
+      font-size:0.95rem;
+    }
+
+    .db-loading {
+      text-align:center;
+      padding:28px 8px;
+      color:#1d4ed8;
+      font-weight:600;
+    }
+
+    .db-table-wrap {
+      overflow:auto;
+      max-height: 72vh;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+    }
+
+    table.db-table {
+      width:100%;
+      border-collapse:collapse;
+      background:white;
+    }
+
+    .db-table th, .db-table td {
+      padding: 9px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align:left;
+      vertical-align: top;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .db-table th {
+      background:#1e40af;
+      color:white;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      cursor:pointer;
+    }
+
+    .db-table tr:hover td { background:#f0f9ff; }
+
+    .filter-row input, .filter-row select {
+      width:100%;
+      padding:8px 9px;
+      border:1px solid #cbd5e1;
+      border-radius:6px;
+      height:38px;
+      box-sizing:border-box;
+      font-size:0.85rem;
+      background:#fff;
+    }
+
+    .long-text {
+      white-space: pre-wrap !important;
+      min-width: 260px;
+      max-width: 520px;
+      line-height: 1.35;
+    }
+
+    .row-actions {
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .source-btn, .explain-btn {
+      border:none;
+      border-radius:6px;
+      padding:6px 10px;
+      color:#fff;
+      cursor:pointer;
+      font-size:0.84rem;
+      white-space:nowrap;
+    }
+    .source-btn { background:#3b82f6; }
+    .source-btn:hover { background:#2563eb; }
+    .explain-btn { background:#8b5cf6; }
+    .explain-btn:hover { background:#7c3aed; }
+
+    .pagination {
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
+    .pagination button, .pagination select {
+      padding:8px 10px;
+      border:1px solid #d1d5db;
+      border-radius:7px;
+      background:#fff;
+      cursor:pointer;
+    }
+
+    .download-section { text-align:center; margin:10px 0 18px; }
+    .download-btn {
+      display:inline-flex; align-items:center; gap:10px;
+      padding:10px 20px;
+      font-size:1rem; font-weight:600;
+      background:#1d4ed8; color:white; text-decoration:none;
+      border-radius:9px;
+    }
+    .download-btn:hover { background:#1e40af; }
+
+    .subtabs {
+      display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+      margin: 4px 0 18px;
+    }
+    .subtab-btn {
+      border:none;
+      background:#e5e7eb;
+      color:#1f2937;
+      padding:9px 14px;
+      border-radius:999px;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .subtab-btn.active { background:#1d4ed8; color:#fff; }
+
+    .subtab-pane { display:none; }
+    .subtab-pane.active { display:block; }
+
+    #wordInput {
+      width: 90%; max-width: 900px; height: 220px; padding: 16px;
+      font-family: ui-monospace, monospace; font-size: 1rem;
+      border: 2px solid #d1d5db; border-radius: 10px; resize: vertical;
+      margin:0 auto;
+    }
+    #wordCanvas {
+      display:block; margin:24px auto 0; max-width:100%;
+      border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.08); background:#fff;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      background-color: rgba(0,0,0,0.7);
+      overflow-y: auto;
+    }
+    .modal.show { display: block; }
+
+    .modal-content {
+      position: relative;
+      z-index: 2147483648;
+      background: #fff;
+      margin: 40px auto;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 980px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .modal-header h2, .modal-header h3 { margin: 0; color: #1d4ed8; }
+
+    .close {
+      font-size: 28px;
+      font-weight: bold;
+      color: #6b7280;
+      cursor: pointer;
+      border:none;
+      background:transparent;
+    }
+    .close:hover { color: #111827; }
+
+    .modal-body { max-height: 70vh; overflow-y: auto; }
+
+    .modal-actions {
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
+    body.modal-open { overflow:hidden; }
+
+    /* Excel Drag Selection Highlight styles */
     .excel-selected {
       background-color: #dbeafe !important;
       outline: 2px solid #2563eb;
       outline-offset: -2px;
     }
-
-    /* Selection prevention to facilitate dragging over cells */
     .drag-selecting {
       user-select: none;
     }
+
+    /* Column dropdown popover button layout */
+    .column-manager-popover {
+      position: relative;
+      display: inline-block;
+    }
+    .column-manager-dropdown {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 100%;
+      z-index: 100;
+      width: 280px;
+      max-height: 350px;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+    }
+    .column-manager-dropdown.show {
+      display: block;
+    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen">
-
-  <div class="max-w-[1700px] mx-auto px-4 py-8 sm:px-6 lg:px-8">
-    
-    <!-- Header Area -->
-    <header class="text-center mb-8">
-      <div class="inline-flex items-center gap-3 px-3 py-1 bg-brand-50 border border-brand-100 rounded-full text-brand-700 text-sm font-semibold mb-3">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-        <span>Morphological & Vocabulary Pedagogy Sandbox</span>
-      </div>
-      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 mb-3">
-        BAWF <span class="text-brand-600 bg-gradient-to-r from-brand-600 to-indigo-600 bg-clip-text text-transparent">Morphological Database</span>
-      </h1>
-      <p class="text-lg text-slate-600 max-w-3xl mx-auto">
-        Interactive suite mapping English word families, prefix/suffix units, and etymologies. Select ranges to copy data down like in Excel!
-      </p>
+<body>
+  <div class="container-xl">
+    <header>
+      <h1>BAWF Morphological Database</h1>
+      <div class="tagline">Morphology, roots, affixes, compounds, and etymology</div>
     </header>
 
-    <!-- Operational Tips / Excel Selection Status Panel -->
-    <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-5 mb-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
-      <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <span class="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <h4 class="font-bold text-sm text-slate-100">Excel Drag-Select Active:</h4>
-        </div>
-        <p class="text-xs text-slate-300">
-          Click and drag over table cells to highlight, then press <kbd class="px-1 py-0.5 bg-slate-800 rounded font-mono">Ctrl+C</kbd> or click "Copy Selected Grid" to extract tab-separated rows instantly.
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button onclick="copyHighlightedGrid()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
-          📋 Copy Selected Grid
-        </button>
-        <button onclick="clearGridHighlights()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition">
-          🧹 Clear Range
-        </button>
-        <button onclick="showColumnKey()" class="px-4 py-2 bg-slate-850 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold transition">
-          Column Definitions Key
-        </button>
-      </div>
+    <div class="visual-banner">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/5/59/Word_Cloud_of_Various_Prefixes.png" alt="Word cloud of common English prefixes" class="visual-aid">
+      <img src="https://www.shichida.com.au/wp-content/uploads/2023/05/teaching-vocab-feature-1024x683.png" alt="Children engaged in fun vocabulary and word learning" class="visual-aid">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/3/3b/Sign_word_matrix.png" alt="Word matrix showing family relationships" class="visual-aid">
+      <img src="https://www.the74million.org/wp-content/uploads/2019/05/Classroom-library.jpg" alt="Group of children reading books in a circle on the floor" class="visual-aid">
+      <img src="https://as1.ftcdn.net/jpg/03/08/88/54/1000_F_308885463_Y68hiTN0ZpcqBOLPARkMawFvhFut3N7S.jpg" alt="Teacher and young children reading a colorful book together" class="visual-aid">
     </div>
 
-    <!-- Active Loading Status Banner -->
-    <div id="runtimeNotification" class="hidden flex items-center justify-between p-4 mb-6 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-sm transition-all duration-300">
+    <!-- Instructions for Excel Select Functionality -->
+    <div class="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl p-4 mb-4 flex items-center justify-between gap-4 text-sm max-w-[1850px] mx-auto w-[96%]">
       <div class="flex items-center gap-2">
-        <svg class="animate-spin h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-        <span id="runtimeNotificationText">Loading dataset archive maps...</span>
+        <span class="font-bold">✨ Excel Selection Active:</span>
+        <span>Click and drag across any table cells to highlight a range. Press <kbd class="bg-white border border-blue-300 px-1.5 py-0.5 rounded text-xs font-mono">Ctrl+C</kbd> / <kbd class="bg-white border border-blue-300 px-1.5 py-0.5 rounded text-xs font-mono">Cmd+C</kbd> or click <strong>Copy Selected Cells</strong> to grab highlighted values instantly!</span>
       </div>
+      <button onclick="copyHighlightedCells()" class="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition">Copy Selected Cells</button>
     </div>
 
-    <!-- Main Workspace Navigation Tabs -->
-    <div class="bg-slate-200/60 p-1.5 rounded-2xl flex flex-wrap gap-1 mb-6">
-      <button onclick="openTab('word-families', this)" class="tab-btn flex-1 min-w-[130px] py-3 px-4 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/50 active tab-transition bg-white text-brand-700 shadow-sm">
-        Word Families
-      </button>
-      <button onclick="openTab('compounds', this)" class="tab-btn flex-1 min-w-[130px] py-3 px-4 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/50 tab-transition">
-        Compound Words
-      </button>
-      <button onclick="openTab('definitions', this)" class="tab-btn flex-1 min-w-[130px] py-3 px-4 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/50 tab-transition">
-        Definitions & Etymologies
-      </button>
-      <button onclick="openTab('wordcloud', this)" class="tab-btn flex-1 min-w-[130px] py-3 px-4 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/50 tab-transition">
-        Word Cloud Generator
-      </button>
-      <button onclick="openTab('llm-generator', this)" class="tab-btn flex-1 min-w-[130px] py-3 px-4 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/50 tab-transition flex items-center justify-center gap-1">
-        <span>🪄 Prompt Architect & WebLLM</span>
-      </button>
+    <div class="info-card">
+      <h3>About this Database</h3>
+      <ul>
+        <li>Explore English word families, compound words, and definitions/etymologies.</li>
+        <li>The British and American Word Families (BAWF) is a tool for vocabulary morphology instruction from the primary grades.</li>
+        <li>Morphology is the study of how words are built from meaningful units, including bases, roots, prefixes, and suffixes.</li>
+        <li>Filter or search for words you want and particular morphemes.</li>
+        <li>Use sorting, filtering, and column search to find morphologically related words quickly.</li>
+        <li>Paste word + frequency into the Word Cloud tab to make visuals.</li>
+        <li>Use word families to build word walls.</li>
+        <li>Use Zipf frequencies to sort by commonness bands (1st 1000 words, 2nd 1000, etc.).</li>
+        <li>Download raw `.csv.gz` files for offline use and advanced analysis.</li>
+      </ul>
+      <p style="margin-top: 16px; font-style: italic;">
+        Be inspired by joyful word learning and reading — dive in and explore!
+      </p>
     </div>
 
-    <!-- TAB CONTAINER 1: WORD FAMILIES -->
-    <div id="word-families" class="tab-content block">
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        
-        <!-- Controls Console -->
-        <div class="p-4 sm:p-6 bg-slate-50 border-b border-slate-200 space-y-4">
-          <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-            
-            <!-- Global Search controls -->
-            <div class="flex flex-1 flex-wrap gap-2 items-center">
-              <div class="relative flex-1 min-w-[260px]">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </span>
-                <input id="wfGlobalSearch" class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" type="text" placeholder="Search Word Families..." />
-              </div>
-              <button class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition shadow-sm" onclick="filterTable('wf')">Search</button>
-              <button class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-semibold transition" onclick="clearAllFilters('wf')">Clear</button>
-              <button class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-semibold transition" onclick="exportCSV('wf', 'BAWF_Word_Families_Filtered.csv')">Export CSV</button>
-            </div>
-
-            <!-- Download direct source -->
-            <div>
-              <a class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition" href="BAWF_FINAL.csv.gz" download>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                Download Source (.csv.gz)
-              </a>
-            </div>
-          </div>
-
-          <!-- Quick Actions Panel & Row Copy Settings -->
-          <div class="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-200/80 text-xs">
-            <div class="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-xl">
-              <span class="text-slate-500 font-medium pl-1">Copy Target Column:</span>
-              <select id="wfCopyColumnSelect" class="bg-transparent font-semibold focus:outline-none text-slate-700"></select>
-              <select id="wfCopyScope" class="bg-transparent font-semibold focus:outline-none text-slate-700 border-l border-slate-200 pl-2">
-                <option value="filtered" selected>All Filtered Rows</option>
-                <option value="checked">Only Checked Rows</option>
-                <option value="page">Current Page View</option>
-              </select>
-              <button class="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg font-bold transition" onclick="copyColumnValues('wf')">Copy Cells</button>
-            </div>
-
-            <!-- Row checkboxes utility -->
-            <div class="flex gap-2">
-              <button onclick="toggleAllRowsChecked('wf', true)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold">Check All</button>
-              <button onclick="toggleAllRowsChecked('wf', false)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold">Uncheck All</button>
-            </div>
-
-            <!-- Header management -->
-            <div class="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-xl ml-auto">
-              <span class="text-slate-500 font-medium pl-1">Columns Monitor:</span>
-              <select id="wfAddCols" class="bg-transparent font-semibold focus:outline-none text-slate-700" style="max-width: 130px;"></select>
-              <button id="wfAddColsBtn" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition">Add Column</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Status indicator bar -->
-        <div class="px-6 py-3 bg-slate-50/50 border-b border-slate-200 flex justify-between items-center text-xs text-slate-500">
-          <div>Showing <strong id="wfRowCount" class="text-slate-800">0</strong> matching entities</div>
-          <div id="wfLoadStatus" class="font-medium text-brand-600">Loading datasets...</div>
-        </div>
-
-        <!-- Data table with selection boundaries -->
-        <div class="overflow-x-auto w-full relative drag-target-container">
-          <div class="max-h-[55vh] overflow-y-auto">
-            <table id="wfTable" class="w-full table-fixed-cols text-left border-collapse table-fixed select-none" style="display:none;">
-              <thead>
-                <tr id="wfHeaderRow" class="bg-slate-900 text-white text-xs uppercase tracking-wider sticky top-0 z-20 shadow"></tr>
-                <tr id="wfFilterRow" class="bg-slate-100 sticky top-[33px] z-20 shadow"></tr>
-              </thead>
-              <tbody id="wfTableBody" class="text-sm divide-y divide-slate-100 bg-white cursor-crosshair"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Pagination -->
-        <div id="wfPagination" class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4" style="display:none;">
-          <div class="flex items-center gap-2">
-            <button onclick="prevPage('wf')" class="px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 font-medium hover:bg-slate-50 transition">Previous</button>
-            <span class="text-sm text-slate-600">Page <strong id="wfCurrentPage" class="text-slate-900">1</strong> of <strong id="wfTotalPages" class="text-slate-900">1</strong></span>
-            <button onclick="nextPage('wf')" class="px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 font-medium hover:bg-slate-50 transition">Next</button>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-500 font-medium">Rows Per View:</span>
-            <select id="wfRowsPerPage" onchange="changeRowsPerPage('wf')" class="bg-white border border-slate-300 rounded-lg text-xs py-1 px-2.5 font-semibold text-slate-700 focus:outline-none">
-              <option value="50">50 Rows</option>
-              <option value="100" selected>100 Rows</option>
-              <option value="250">250 Rows</option>
-            </select>
-          </div>
-        </div>
-
-      </div>
+    <div class="loading-note">
+      <strong>Note:</strong> Large datasets may take several seconds to load the first time. After loading, filtering/sorting is instant in-browser.
     </div>
 
-    <!-- TAB CONTAINER 2: COMPOUND WORDS -->
-    <div id="compounds" class="tab-content hidden space-y-6">
-      
-      <div class="flex justify-center gap-2 bg-slate-200/50 p-1 rounded-xl max-w-md mx-auto">
-        <button class="subtab-btn flex-1 py-2 px-3 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white/40 active bg-white text-brand-700 shadow-sm" onclick="openCompoundSubTab('comp-main', this)">
-          Compound Word Elements
-        </button>
-        <button class="subtab-btn flex-1 py-2 px-3 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white/40" onclick="openCompoundSubTab('comp-stats', this)">
-          Word Family Size Metrics
-        </button>
+    <div style="text-align:center; margin:25px 0;">
+      <button class="key-btn" onclick="showColumnKey()">📋 Column Information Key</button>
+    </div>
+
+    <!-- Main Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="openTab('word-families', this)">Word Families</button>
+      <button class="tab-btn" onclick="openTab('compounds', this)">Compound Words</button>
+      <button class="tab-btn" onclick="openTab('definitions', this)">Definitions & Etymologies</button>
+      <button class="tab-btn" onclick="openTab('wordcloud', this)">Word Cloud Generator</button>
+      <button class="tab-btn" onclick="openTab('llm-generator', this)">🪄 Generate AI Stories & Worksheets!</button>
+    </div>
+
+    <!-- WORD FAMILIES -->
+    <div id="word-families" class="tab-content active">
+      <div class="download-section">
+        <a class="download-btn" href="BAWF_FINAL.csv.gz" download>↓ Download Word Families (.csv.gz)</a>
       </div>
+      <div class="db-wrap" id="wfWrap">
+        <div class="db-controls">
+          <input id="wfGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Word Families..." />
+          <button class="db-btn" onclick="filterTable('wf')">🔍 Search</button>
+          <button class="db-btn" onclick="clearAllFilters('wf')">🧹 Clear</button>
+          <button class="db-btn" onclick="exportCSV('wf', 'BAWF_Word_Families_Filtered.csv')">↓ Export CSV</button>
 
-      <!-- Main Compound Pane -->
-      <div id="comp-main" class="subtab-pane block">
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          
-          <div class="p-4 sm:p-6 bg-slate-50 border-b border-slate-200 space-y-4">
-            <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-              
-              <div class="flex flex-1 flex-wrap gap-2 items-center">
-                <div class="relative flex-1 min-w-[260px]">
-                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                  </span>
-                  <input id="cmGlobalSearch" class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none" type="text" placeholder="Search Compound Elements..." />
-                </div>
-                <button class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition" onclick="filterTable('cm')">Search</button>
-                <button class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-semibold transition" onclick="clearAllFilters('cm')">Clear</button>
-                <button class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-semibold transition" onclick="exportCSV('cm', 'BAWF_Compounds_Filtered.csv')">Export CSV</button>
-              </div>
-
-              <div>
-                <a class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                  Source File (.csv.gz)
-                </a>
-              </div>
-            </div>
-
-            <!-- Copy mechanics and checkboxes utilities -->
-            <div class="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-200/80 text-xs">
-              <div class="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-xl">
-                <span class="text-slate-500 font-medium pl-1">Copy Target Column:</span>
-                <select id="cmCopyColumnSelect" class="bg-transparent font-semibold focus:outline-none text-slate-700"></select>
-                <select id="cmCopyScope" class="bg-transparent font-semibold focus:outline-none text-slate-700 border-l border-slate-200 pl-2">
-                  <option value="filtered" selected>All Filtered Rows</option>
-                  <option value="checked">Only Checked Rows</option>
-                  <option value="page">Current Page View</option>
-                </select>
-                <button class="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg font-bold transition" onclick="copyColumnValues('cm')">Copy Cells</button>
-              </div>
-
-              <div class="flex gap-2">
-                <button onclick="toggleAllRowsChecked('cm', true)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold">Check All</button>
-                <button onclick="toggleAllRowsChecked('cm', false)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold">Uncheck All</button>
-              </div>
-
-              <div class="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-xl ml-auto">
-                <span class="text-slate-500 font-medium pl-1">Columns Monitor:</span>
-                <select id="cmAddCols" class="bg-transparent font-semibold focus:outline-none text-slate-700" style="max-width: 140px;"></select>
-                <button id="cmAddColsBtn" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition">Add Column</button>
-              </div>
+          <!-- NEATER COLUMN MANAGER DROP-DOWN POP-OVER -->
+          <div class="column-manager-popover">
+            <button class="db-btn secondary flex items-center gap-2" onclick="toggleColumnDropdown('wf')">
+              ⚙️ Manage Columns <span class="text-xs">▼</span>
+            </button>
+            <div id="wfColumnDropdown" class="column-manager-dropdown text-left shadow-lg">
+              <div class="font-bold text-sm text-slate-700 pb-2 mb-2 border-b border-slate-200">Toggle Visible Columns</div>
+              <div id="wfColumnList" class="space-y-1.5 max-h-[250px] overflow-y-auto"></div>
             </div>
           </div>
-
-          <div class="px-6 py-3 bg-slate-50/50 border-b border-slate-200 flex justify-between items-center text-xs text-slate-500">
-            <div>Showing <strong id="cmRowCount" class="text-slate-800">0</strong> matching compounds</div>
-            <div id="cmLoadStatus" class="font-medium text-brand-600">Awaiting user trigger...</div>
-          </div>
-
-          <div class="overflow-x-auto w-full relative drag-target-container">
-            <div class="max-h-[55vh] overflow-y-auto">
-              <table id="cmTable" class="w-full table-fixed-cols text-left border-collapse table-fixed select-none" style="display:none;">
-                <thead>
-                  <tr id="cmHeaderRow" class="bg-slate-900 text-white text-xs uppercase tracking-wider sticky top-0 z-20 shadow"></tr>
-                  <tr id="cmFilterRow" class="bg-slate-100 sticky top-[33px] z-20 shadow"></tr>
-                </thead>
-                <tbody id="cmTableBody" class="text-sm divide-y divide-slate-100 bg-white cursor-crosshair"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div id="cmPagination" class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4" style="display:none;">
-            <div class="flex items-center gap-2">
-              <button onclick="prevPage('cm')" class="px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 font-medium hover:bg-slate-50 transition">Previous</button>
-              <span class="text-sm text-slate-600">Page <strong id="cmCurrentPage" class="text-slate-900">1</strong> of <strong id="cmTotalPages" class="text-slate-900">1</strong></span>
-              <button onclick="nextPage('cm')" class="px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 font-medium hover:bg-slate-50 transition">Next</button>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-500 font-medium">Rows Per View:</span>
-              <select id="cmRowsPerPage" onchange="changeRowsPerPage('cm')" class="bg-white border border-slate-300 rounded-lg text-xs py-1 px-2.5 font-semibold text-slate-700 focus:outline-none">
-                <option value="50">50 Rows</option>
-                <option value="100" selected>100 Rows</option>
-                <option value="250">250 Rows</option>
-              </select>
-            </div>
-          </div>
-
         </div>
-      </div>
 
-      <!-- Compound Stats Pane -->
-      <div id="comp-stats" class="subtab-pane hidden">
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          
-          <div class="p-4 sm:p-6 bg-slate-50 border-b border-slate-200 space-y-4">
-            <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-              
-              <div class="flex flex-1 flex-wrap gap-2 items-center">
-                <div class="relative flex-1 min-w-[260px]">
-                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                  </span>
-                  <input id="csGlobalSearch" class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none" type="text" placeholder="Search Size Metrics..." />
-                </div>
-                <button class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition" onclick="filterTable('cs')">Search</button>
-                <button class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-semibold transition" onclick="clearAllFilters('cs')">Clear</button>
-                <button class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-semibold transition" onclick="exportCSV('cs', 'BAWF_Compound_Metrics_Filtered.csv')">Export CSV</button>
-              </div>
+        <div class="db-meta">Showing <strong id="wfRowCount">0</strong> rows</div>
+        <div id="wfLoading" class="db-loading">Loading Word Families dataset...</div>
 
-              <div>
-                <a class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition" href="BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz" download>
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                  Source metrics (.csv.gz)
-                </a>
-              </div>
-            </div>
+        <div class="db-table-wrap">
+          <table id="wfTable" class="db-table select-none" style="display:none;">
+            <thead>
+              <tr id="wfHeaderRow"></tr>
+              <tr id="wfFilterRow" class="filter-row"></tr>
+            </thead>
+            <tbody id="wfTableBody"></tbody>
+          </table>
+        </div>
 
-            <!-- Copy elements and checkbox selectors -->
-            <div class="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-200/80 text-xs">
-              <div class="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-xl">
-                <span class="text-slate-500 font-medium pl-1">Copy Target Column:</span>
-                <select id="csCopyColumnSelect" class="bg-transparent font-semibold focus:outline-none text-slate-700"></select>
-                <select id="csCopyScope" class="bg-transparent font-semibold focus:outline-none text-slate-700 border-l border-slate-200 pl-2">
-                  <option value="filtered" selected>All Filtered Rows</option>
-                  <option value="checked">Only Checked Rows</option>
-                  <option value="page">Current Page View</option>
-                </select>
-                <button class="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg font-bold transition" onclick="copyColumnValues('cs')">Copy Cells</button>
-              </div>
-
-              <div class="flex gap-2">
-                <button onclick="toggleAllRowsChecked('cs', true)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold">Check All</button>
-                <button onclick="toggleAllRowsChecked('cs', false)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold">Uncheck All</button>
-              </div>
-
-              <div class="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-xl ml-auto">
-                <span class="text-slate-500 font-medium pl-1">Columns Monitor:</span>
-                <select id="csAddCols" class="bg-transparent font-semibold focus:outline-none text-slate-700" style="max-width: 140px;"></select>
-                <button id="csAddColsBtn" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition">Add Column</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="px-6 py-3 bg-slate-50/50 border-b border-slate-200 flex justify-between items-center text-xs text-slate-500">
-            <div>Showing <strong id="csRowCount" class="text-slate-800">0</strong> matching elements</div>
-            <div id="csLoadStatus" class="font-medium text-brand-600">Pending data payload...</div>
-          </div>
-
-          <div class="overflow-x-auto w-full relative drag-target-container">
-            <div class="max-h-[55vh] overflow-y-auto">
-              <table id="csTable" class="w-full table-fixed-cols text-left border-collapse table-fixed select-none" style="display:none;">
-                <thead>
-                  <tr id="csHeaderRow" class="bg-slate-900 text-white text-xs uppercase tracking-wider sticky top-0 z-20 shadow"></tr>
-                  <tr id="csFilterRow" class="bg-slate-100 sticky top-[33px] z-20 shadow"></tr>
-                </thead>
-                <tbody id="csTableBody" class="text-sm divide-y divide-slate-100 bg-white cursor-crosshair"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div id="csPagination" class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4" style="display:none;">
-            <div class="flex items-center gap-2">
-              <button onclick="prevPage('cs')" class="px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 font-medium hover:bg-slate-50 transition">Previous</button>
-              <span class="text-sm text-slate-600">Page <strong id="csCurrentPage" class="text-slate-900">1</strong> of <strong id="csTotalPages" class="text-slate-900">1</strong></span>
-              <button onclick="nextPage('cs')" class="px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 font-medium hover:bg-slate-50 transition">Next</button>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-500 font-medium">Rows Per View:</span>
-              <select id="csRowsPerPage" onchange="changeRowsPerPage('cs')" class="bg-white border border-slate-300 rounded-lg text-xs py-1 px-2.5 font-semibold text-slate-700 focus:outline-none">
-                <option value="50">50 Rows</option>
-                <option value="100" selected>100 Rows</option>
-                <option value="250">250 Rows</option>
-              </select>
-            </div>
-          </div>
-
+        <div id="wfPagination" class="pagination" style="display:none;">
+          <button onclick="prevPage('wf')">← Previous</button>
+          <span>Page <span id="wfCurrentPage">1</span> of <span id="wfTotalPages">1</span></span>
+          <button onclick="nextPage('wf')">Next →</button>
+          <select id="wfRowsPerPage" onchange="changeRowsPerPage('wf')">
+            <option value="50">50 rows</option>
+            <option value="100" selected>100 rows</option>
+            <option value="250">250 rows</option>
+          </select>
         </div>
       </div>
     </div>
 
-    <!-- TAB CONTAINER 3: DEFINITIONS -->
-    <div id="definitions" class="tab-content hidden">
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        
-        <div class="p-4 sm:p-6 bg-slate-50 border-b border-slate-200 space-y-4">
-          <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-            
-            <div class="flex flex-1 flex-wrap gap-2 items-center">
-              <div class="relative flex-1 min-w-[260px]">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </span>
-                <input id="deGlobalSearch" class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none" type="text" placeholder="Search Semantic Keys & Historical Lineage..." />
-              </div>
-              <button class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition shadow-sm" onclick="filterTable('de')">Search</button>
-              <button class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-semibold transition" onclick="clearAllFilters('de')">Clear</button>
-              <button class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-semibold transition" onclick="exportCSV('de', 'BAWF_Definitions_Etymologies_Filtered.csv')">Export CSV</button>
-            </div>
-
-            <div>
-              <a class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition" href="BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz" download>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                Source definitions (.csv.gz)
-              </a>
-            </div>
-          </div>
-
-          <!-- Utility panel -->
-          <div class="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-200/80 text-xs">
-            <div class="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-xl">
-              <span class="text-slate-500 font-medium pl-1">Copy Target Column:</span>
-              <select id="deCopyColumnSelect" class="bg-transparent font-semibold focus:outline-none text-slate-700"></select>
-              <select id="deCopyScope" class="bg-transparent font-semibold focus:outline-none text-slate-700 border-l border-slate-200 pl-2">
-                <option value="filtered" selected>All Filtered Rows</option>
-                <option value="checked">Only Checked Rows</option>
-                <option value="page">Current Page View</option>
-              </select>
-              <button class="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg font-bold transition" onclick="copyColumnValues('de')">Copy Cells</button>
-            </div>
-
-            <div class="flex gap-2">
-              <button onclick="toggleAllRowsChecked('de', true)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold">Check All</button>
-              <button onclick="toggleAllRowsChecked('de', false)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold">Uncheck All</button>
-            </div>
-
-            <div class="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-xl ml-auto">
-              <span class="text-slate-500 font-medium pl-1">Columns Monitor:</span>
-              <select id="deAddCols" class="bg-transparent font-semibold focus:outline-none text-slate-700" style="max-width: 140px;"></select>
-              <button id="deAddColsBtn" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition">Add Column</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="px-6 py-3 bg-slate-50/50 border-b border-slate-200 flex justify-between items-center text-xs text-slate-500">
-          <div>Showing <strong id="deRowCount" class="text-slate-800">0</strong> matching entities</div>
-          <div id="deLoadStatus" class="font-medium text-brand-600">Syncing database fields...</div>
-        </div>
-
-        <div class="overflow-x-auto w-full relative drag-target-container">
-          <div class="max-h-[55vh] overflow-y-auto">
-            <table id="deTable" class="w-full table-fixed-cols text-left border-collapse table-fixed select-none" style="display:none;">
-              <thead>
-                <tr id="deHeaderRow" class="bg-slate-900 text-white text-xs uppercase tracking-wider sticky top-0 z-20 shadow"></tr>
-                <tr id="deFilterRow" class="bg-slate-100 sticky top-[33px] z-20 shadow"></tr>
-              </thead>
-              <tbody id="deTableBody" class="text-sm divide-y divide-slate-100 bg-white cursor-crosshair"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div id="dePagination" class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4" style="display:none;">
-          <div class="flex items-center gap-2">
-            <button onclick="prevPage('de')" class="px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 font-medium hover:bg-slate-50 transition">Previous</button>
-            <span class="text-sm text-slate-600">Page <strong id="deCurrentPage" class="text-slate-900">1</strong> of <strong id="deTotalPages" class="text-slate-900">1</strong></span>
-            <button onclick="nextPage('de')" class="px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 font-medium hover:bg-slate-50 transition">Next</button>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-500 font-medium">Rows Per View:</span>
-            <select id="deRowsPerPage" onchange="changeRowsPerPage('de')" class="bg-white border border-slate-300 rounded-lg text-xs py-1 px-2.5 font-semibold text-slate-700 focus:outline-none">
-              <option value="50">50 Rows</option>
-              <option value="100" selected>100 Rows</option>
-              <option value="250">250 Rows</option>
-            </select>
-          </div>
-        </div>
-
+    <!-- COMPOUNDS -->
+    <div id="compounds" class="tab-content">
+      <div class="subtabs">
+        <button class="subtab-btn active" onclick="openCompoundSubTab('comp-main', this)">Main Compound</button>
+        <button class="subtab-btn" onclick="openCompoundSubTab('comp-stats', this)">Word Family Size Stats</button>
       </div>
-    </div>
 
-    <!-- TAB CONTAINER 4: WORD CLOUD -->
-    <div id="wordcloud" class="tab-content hidden">
-      <div class="grid lg:grid-cols-3 gap-6">
-        
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <h3 class="text-lg font-bold text-slate-800">Word Cloud Configurations</h3>
-          <p class="text-xs text-slate-500 leading-relaxed">
-            Format: Write <strong>Word [space] Frequency</strong> per line. High weight counts map to large visual displays. Tip: Drag-select columns A and B from the tables to paste here!
-          </p>
-          <textarea id="wordInput" class="w-full h-80 p-4 border border-slate-300 rounded-xl text-sm font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="morphology 140&#10;morpheme 110&#10;prefix 90&#10;suffix 85&#10;derivation 75&#10;compounding 65&#10;etymology 50"></textarea>
-          
-          <button id="generateBtn" onclick="generateWordCloud()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-sm transition">
-            Generate Dynamic Cloud Map
-          </button>
-          
-          <p id="cloudStatus" class="text-xs text-center text-slate-500 font-medium min-h-[16px]"></p>
+      <!-- Compound Main -->
+      <div id="comp-main" class="subtab-pane active">
+        <div class="download-section">
+          <a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>↓ Download Compound Main (.csv.gz)</a>
         </div>
+        <div class="db-wrap" id="cmWrap">
+          <div class="db-controls">
+            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
+            <button class="db-btn" onclick="filterTable('cm')">🔍 Search</button>
+            <button class="db-btn" onclick="clearAllFilters('cm')">🧹 Clear</button>
+            <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
 
-        <div class="lg:col-span-2 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center">
-          <div class="w-full h-[500px] rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden flex items-center justify-center">
-            <canvas id="wordCanvas" width="950" height="480" class="w-full h-full max-w-full block object-contain"></canvas>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- TAB CONTAINER 5: PROMPT ARCHITECT & LOCAL EMBEDDED LLM -->
-    <div id="llm-generator" class="tab-content hidden">
-      <div class="space-y-8">
-        
-        <!-- Top Half: Prompt Generator Layout -->
-        <div class="grid lg:grid-cols-12 gap-8">
-          
-          <!-- Configurations on Left -->
-          <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-            <div>
-              <h3 class="text-lg font-bold text-slate-900 mb-1">🪄 AI Lesson Plan Planner</h3>
-              <p class="text-xs text-slate-500">Formulate high-utility prompt packages to feed downstream into commercial LLMs like ChatGPT, Claude, or Gemini.</p>
-            </div>
-
-            <!-- Fast injection settings -->
-            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-              <h4 class="text-xs uppercase tracking-wider font-bold text-slate-700">Quick-inject Filtered Records</h4>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Source Table</label>
-                  <select id="llmDatasetPick" class="w-full bg-white border border-slate-300 rounded-lg text-xs py-1.5 px-2 font-semibold text-slate-700 focus:outline-none">
-                    <option value="active" selected>Active View</option>
-                    <option value="wf">Word Families</option>
-                    <option value="cm">Compound Main</option>
-                    <option value="cs">Compound Stats</option>
-                    <option value="de">Definitions</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Count limit</label>
-                  <input id="llmDbTake" type="number" min="1" value="10" class="w-full bg-white border border-slate-300 rounded-lg text-xs py-1 px-2 font-semibold text-slate-700 focus:outline-none" />
-                </div>
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Methodology</label>
-                  <select id="llmDbMode" class="w-full bg-white border border-slate-300 rounded-lg text-xs py-1.5 px-2 font-semibold text-slate-700 focus:outline-none">
-                    <option value="random" selected>Randomized</option>
-                    <option value="first">Top Rows</option>
-                  </select>
-                </div>
-                <div class="flex items-end">
-                  <button class="w-full py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg transition" onclick="addWordsFromFilteredRows()">
-                    Extract & Load
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Word Entry area -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-2">Target Word List (One Per Line)</label>
-              <textarea id="llmInput" rows="5" class="w-full p-3 border border-slate-300 rounded-xl text-sm font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="unhappy&#10;misunderstand&#10;transport&#10;attract"></textarea>
-            </div>
-
-            <!-- Parameters -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1.5">Asset Template</label>
-                <select id="llmTextType" class="w-full bg-white border border-slate-300 rounded-lg text-xs py-2 px-2.5 font-semibold text-slate-700 focus:outline-none">
-                  <option value="informational">Informational Chapters</option>
-                  <option value="fiction">Fiction / Creative Narratives</option>
-                  <option value="Worksheet">Assessments & Worksheets</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1.5">Target Reader</label>
-                <select id="llmGrade" class="w-full bg-white border border-slate-300 rounded-lg text-xs py-2 px-2.5 font-semibold text-slate-700 focus:outline-none">
-                  <option>Grades K–1</option>
-                  <option>Grades 2–3</option>
-                  <option selected>Grades 4–6</option>
-                  <option>Grades 7–8</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1.5">Text Length</label>
-                <select id="llmLength" class="w-full bg-white border border-slate-300 rounded-lg text-xs py-2 px-2.5 font-semibold text-slate-700 focus:outline-none">
-                  <option value="short">Brief Core (150 words)</option>
-                  <option value="medium" selected>Standard Model (350 words)</option>
-                  <option value="long">Extended Module (500+ words)</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1.5">Context Theme</label>
-                <input id="llmContentArea" type="text" placeholder="e.g., Solar System" class="w-full bg-white border border-slate-300 rounded-lg text-xs py-2 px-2.5 font-semibold text-slate-700 focus:outline-none" />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1.5">Pedagogical Focal Concept</label>
-              <textarea id="llmFocus" rows="2" class="w-full p-3 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500" placeholder="e.g., Highlight structural boundary shifts when suffix -ment is appended."></textarea>
-            </div>
-
-            <!-- Dynamic Tasks -->
-            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-              <span class="block text-xs font-bold text-slate-700 mb-2.5">Integrate Dynamic Task Packs:</span>
-              <div class="space-y-2 text-xs font-medium text-slate-600">
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="act-option text-brand-600 rounded" value="Word ladder progression" checked /> Word Family Progression Ladder</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="act-option text-brand-600 rounded" value="Semantically related word lists" checked /> Semantically Associated Maps (5 per key)</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="act-option text-brand-600 rounded" value="Contextual gap fill tasks" checked /> Contextual Fill-In Gap Tasks</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="act-option text-brand-600 rounded" value="Automated grading key" checked /> Automated Assessment Keys</label>
-              </div>
-            </div>
-
-            <!-- Controls -->
-            <div class="space-y-2">
-              <button onclick="generateWithLLM()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow transition">
-                Compile Prompt Output
+            <!-- NEATER COLUMN MANAGER DROP-DOWN POP-OVER -->
+            <div class="column-manager-popover">
+              <button class="db-btn secondary flex items-center gap-2" onclick="toggleColumnDropdown('cm')">
+                ⚙️ Manage Columns <span class="text-xs">▼</span>
               </button>
-              <div class="grid grid-cols-2 gap-2">
-                <button onclick="copyLLMPrompt()" class="py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl transition">
-                  Copy Prompt
-                </button>
-                <button onclick="clearLLMForm()" class="py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition">
-                  Reset Form
-                </button>
+              <div id="cmColumnDropdown" class="column-manager-dropdown text-left shadow-lg">
+                <div class="font-bold text-sm text-slate-700 pb-2 mb-2 border-b border-slate-200">Toggle Visible Columns</div>
+                <div id="cmColumnList" class="space-y-1.5 max-h-[250px] overflow-y-auto"></div>
               </div>
             </div>
           </div>
 
-          <!-- Prompt Text View Area on Right -->
-          <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col space-y-4">
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-bold text-slate-900">Compiled Blueprint</h3>
-              <div class="flex items-center gap-2">
-                <select id="llmProvider" class="bg-slate-100 border-none rounded-lg text-xs py-1 px-2 font-bold text-slate-700 focus:outline-none">
-                  <option value="gemini">Gemini Workspace</option>
-                  <option value="chatgpt">ChatGPT Sandbox</option>
-                  <option value="claude">Claude Artifacts</option>
-                </select>
-                <button onclick="openInLLM()" class="px-3 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold rounded-lg transition">
-                  Launch LLM
-                </button>
+          <div class="db-meta">Showing <strong id="cmRowCount">0</strong> rows</div>
+          <div id="cmLoading" class="db-loading">Loading Compound Main dataset...</div>
+
+          <div class="db-table-wrap">
+            <table id="cmTable" class="db-table select-none" style="display:none;">
+              <thead>
+                <tr id="cmHeaderRow"></tr>
+                <tr id="cmFilterRow" class="filter-row"></tr>
+              </thead>
+              <tbody id="cmTableBody"></tbody>
+            </table>
+          </div>
+
+          <div id="cmPagination" class="pagination" style="display:none;">
+            <button onclick="prevPage('cm')">← Previous</button>
+            <span>Page <span id="cmCurrentPage">1</span> of <span id="cmTotalPages">1</span></span>
+            <button onclick="nextPage('cm')">Next →</button>
+            <select id="cmRowsPerPage" onchange="changeRowsPerPage('cm')">
+              <option value="50">50 rows</option>
+              <option value="100" selected>100 rows</option>
+              <option value="250">250 rows</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compound Stats -->
+      <div id="comp-stats" class="subtab-pane">
+        <div class="download-section">
+          <a class="download-btn" href="BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz" download>↓ Download Compound Stats (.csv.gz)</a>
+        </div>
+        <div class="db-wrap" id="csWrap">
+          <div class="db-controls">
+            <input id="csGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Stats..." />
+            <button class="db-btn" onclick="filterTable('cs')">🔍 Search</button>
+            <button class="db-btn" onclick="clearAllFilters('cs')">🧹 Clear</button>
+            <button class="db-btn" onclick="exportCSV('cs', 'BAWF_Compound_Stats_Filtered.csv')">↓ Export CSV</button>
+
+            <!-- NEATER COLUMN MANAGER DROP-DOWN POP-OVER -->
+            <div class="column-manager-popover">
+              <button class="db-btn secondary flex items-center gap-2" onclick="toggleColumnDropdown('cs')">
+                ⚙️ Manage Columns <span class="text-xs">▼</span>
+              </button>
+              <div id="csColumnDropdown" class="column-manager-dropdown text-left shadow-lg">
+                <div class="font-bold text-sm text-slate-700 pb-2 mb-2 border-b border-slate-200">Toggle Visible Columns</div>
+                <div id="csColumnList" class="space-y-1.5 max-h-[250px] overflow-y-auto"></div>
               </div>
             </div>
-            <textarea id="finalPrompt" class="flex-1 w-full h-[620px] p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none resize-none" placeholder="Your production prompt configuration will synthesize inside this viewport..."></textarea>
+          </div>
+
+          <div class="db-meta">Showing <strong id="csRowCount">0</strong> rows</div>
+          <div id="csLoading" class="db-loading">Loading Compound Stats dataset...</div>
+
+          <div class="db-table-wrap">
+            <table id="csTable" class="db-table select-none" style="display:none;">
+              <thead>
+                <tr id="csHeaderRow"></tr>
+                <tr id="csFilterRow" class="filter-row"></tr>
+              </thead>
+              <tbody id="csTableBody"></tbody>
+            </table>
+          </div>
+
+          <div id="csPagination" class="pagination" style="display:none;">
+            <button onclick="prevPage('cs')">← Previous</button>
+            <span>Page <span id="csCurrentPage">1</span> of <span id="csTotalPages">1</span></span>
+            <button onclick="nextPage('cs')">Next →</button>
+            <select id="csRowsPerPage" onchange="changeRowsPerPage('cs')">
+              <option value="50">50 rows</option>
+              <option value="100" selected>100 rows</option>
+              <option value="250">250 rows</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEFINITIONS -->
+    <div id="definitions" class="tab-content">
+      <div class="download-section">
+        <a class="download-btn" href="BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz" download>↓ Download Definitions & Etymology (.csv.gz)</a>
+      </div>
+      <div class="db-wrap" id="deWrap">
+        <div class="db-controls">
+          <input id="deGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Definitions/Etymology..." />
+          <button class="db-btn" onclick="filterTable('de')">🔍 Search</button>
+          <button class="db-btn" onclick="clearAllFilters('de')">🧹 Clear</button>
+          <button class="db-btn" onclick="exportCSV('de', 'BAWF_Definitions_Filtered.csv')">↓ Export CSV</button>
+
+          <!-- NEATER COLUMN MANAGER DROP-DOWN POP-OVER -->
+          <div class="column-manager-popover">
+            <button class="db-btn secondary flex items-center gap-2" onclick="toggleColumnDropdown('de')">
+              ⚙️ Manage Columns <span class="text-xs">▼</span>
+            </button>
+            <div id="deColumnDropdown" class="column-manager-dropdown text-left shadow-lg">
+              <div class="font-bold text-sm text-slate-700 pb-2 mb-2 border-b border-slate-200">Toggle Visible Columns</div>
+              <div id="deColumnList" class="space-y-1.5 max-h-[250px] overflow-y-auto"></div>
+            </div>
           </div>
         </div>
 
-        <hr class="border-slate-200" />
+        <div class="db-meta">Showing <strong id="deRowCount">0</strong> rows</div>
+        <div id="deLoading" class="db-loading">Loading Definitions & Etymology dataset...</div>
 
-        <!-- Bottom Half: Dynamic Embedded WebLLM Workspace -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <div class="db-table-wrap">
+          <table id="deTable" class="db-table select-none" style="display:none;">
+            <thead>
+              <tr id="deHeaderRow"></tr>
+              <tr id="deFilterRow" class="filter-row"></tr>
+            </thead>
+            <tbody id="deTableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="dePagination" class="pagination" style="display:none;">
+          <button onclick="prevPage('de')">← Previous</button>
+          <span>Page <span id="deCurrentPage">1</span> of <span id="deTotalPages">1</span></span>
+          <button onclick="nextPage('de')">Next →</button>
+          <select id="deRowsPerPage" onchange="changeRowsPerPage('de')">
+            <option value="50">50 rows</option>
+            <option value="100" selected>100 rows</option>
+            <option value="250">250 rows</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORD CLOUD -->
+    <div id="wordcloud" class="tab-content">
+      <div style="max-width:900px; margin:0 auto; text-align:center;">
+        <p><strong>Instructions:</strong> Paste Word + Frequency (one per line) or drag-select them from our datatables and paste!</p>
+        <textarea id="wordInput" placeholder="analysis 120&#10;morphology 95&#10;prefix 78"></textarea><br><br>
+        <button id="generateBtn" onclick="generateWordCloud()" class="key-btn">Generate Word Cloud</button>
+        <p id="cloudStatus" style="margin-top:12px; font-weight:500;"></p>
+      </div>
+      <canvas id="wordCanvas" width="1100" height="700"></canvas>
+    </div>
+
+    <!-- LLM TAB -->
+    <div id="llm-generator" class="tab-content">
+      <div style="max-width:1100px; margin:0 auto;">
+        <h2 style="text-align:center; color:#1d4ed8;">🪄 AI Prompt Generator</h2>
+        <p style="text-align:center;">Choose text type, grade level, focus area, and activities.</p>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; margin-bottom:12px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px;">
           <div>
-            <h3 class="text-xl font-bold text-slate-900 mb-1">🧠 Embedded Local LLM Engine (WebLLM)</h3>
-            <p class="text-xs text-slate-500">Run safe, private AI execution structures directly inside your browser GPU thread using WebGPU technology. No API keys required!</p>
+            <label><strong>Add words from dataset</strong></label><br>
+            <select id="llmDatasetPick" style="width:100%; padding:10px; border-radius:8px;">
+              <option value="active" selected>Active tab dataset</option>
+              <option value="wf">Word Families</option>
+              <option value="cm">Compound Main</option>
+              <option value="cs">Compound Stats</option>
+              <option value="de">Definitions/Etymology</option>
+            </select>
           </div>
-
-          <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-            <div class="flex flex-wrap gap-4 items-center justify-between">
-              <div class="flex items-center gap-2">
-                <label class="text-xs font-bold text-slate-700">Select Local Model:</label>
-                <select id="webllmModel" class="bg-white border border-slate-300 rounded-lg text-xs py-1.5 px-3 font-semibold text-slate-700 focus:outline-none min-w-[280px]">
-                  <option value="Llama-3-8B-Instruct-q4f32_1-1k">Llama 3 (8B Instruct - 4bit)</option>
-                  <option value="Phi-3-mini-4k-instruct-q4f16_1-1k">Phi-3 Mini Instruct (4bit Optimization)</option>
-                  <option value="Gemma-2b-it-q4f16_1-1k">Gemma 2B IT (Ultra-lightweight)</option>
-                </select>
-              </div>
-              <div class="flex gap-2">
-                <button id="loadWebLLMBtn" onclick="initWebLLM()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl transition shadow">
-                  Load Selected Model
-                </button>
-                <button id="resetWebLLMBtn" onclick="resetWebLLMChat()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition">
-                  Reset Thread
-                </button>
-              </div>
-            </div>
-
-            <!-- Progressive loader bar -->
-            <div id="webllmProgressContainer" class="hidden space-y-1.5">
-              <div class="flex items-center justify-between text-[11px] text-slate-500 font-bold">
-                <span id="webllmProgressLabel">Fetching engine variables...</span>
-                <span id="webllmProgressPercent">0%</span>
-              </div>
-              <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                <div id="webllmProgressBar" class="h-full bg-brand-600 transition-all duration-300" style="width: 0%;"></div>
-              </div>
-            </div>
-
-            <p id="webllmStatus" class="text-xs text-slate-500 font-semibold italic">WebLLM engine currently offline. Trigger 'Load Selected Model' to activate your local WebGPU stack.</p>
+          <div>
+            <label><strong>How many rows</strong></label><br>
+            <input id="llmDbTake" type="number" min="1" value="10" style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;">
           </div>
-
-          <!-- Live chat thread area -->
-          <div class="space-y-3">
-            <div id="webllmChat" class="w-full h-80 bg-slate-50 border border-slate-200 rounded-xl p-4 overflow-y-auto flex flex-col gap-3 text-xs">
-              <div class="p-3 bg-blue-50 text-blue-900 rounded-xl self-start max-w-[80%]">
-                <strong>System Agent:</strong> Welcome to the offline WebLLM console. Select a model configuration above and initialize to construct local worksheets on your device!
-              </div>
-            </div>
-
-            <div class="flex gap-2">
-              <textarea id="webllmInput" rows="2" class="flex-1 p-3 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="Query model or paste the compiled prompt details..."></textarea>
-              <button onclick="sendWebLLM()" class="px-5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center">
-                Send Query
-              </button>
-            </div>
+          <div>
+            <label><strong>Pick mode</strong></label><br>
+            <select id="llmDbMode" style="width:100%; padding:10px; border-radius:8px;">
+              <option value="random" selected>Random</option>
+              <option value="first">First rows</option>
+            </select>
+          </div>
+          <div style="display:flex; align-items:flex-end;">
+            <button class="key-btn" style="margin:0; width:100%;" onclick="addWordsFromFilteredRows()">⬇ Add Word + Frequency from Filtered Rows</button>
           </div>
         </div>
 
+        <textarea id="llmInput" rows="8" style="width:100%; padding:14px; font-family:monospace; font-size:1.02rem; border:2px solid #d1d5db; border-radius:10px; resize:vertical;"
+          placeholder="Paste target words (one per line)&#10;unhappy&#10;misunderstand&#10;transport&#10;attract&#10;contract"></textarea>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:14px 0;">
+          <div>
+            <label><strong>Prompt Type</strong></label><br>
+            <select id="llmTextType" style="width:100%; padding:10px; border-radius:8px;">
+              <option value="informational">Informational Text</option>
+              <option value="fiction">Fiction Text</option>
+              <option value="Worksheet">Worksheet</option>
+            </select>
+          </div>
+          <div>
+            <label><strong>Grade Level</strong></label><br>
+            <select id="llmGrade" style="width:100%; padding:10px; border-radius:8px;">
+              <option>K–1</option>
+              <option>2–3</option>
+              <option selected>4–6</option>
+              <option>7–8</option>
+            </select>
+          </div>
+          <div>
+            <label><strong>Length</strong></label><br>
+            <select id="llmLength" style="width:100%; padding:10px; border-radius:8px;">
+              <option value="short">Short</option>
+              <option value="medium" selected>Medium</option>
+              <option value="long">Long</option>
+            </select>
+          </div>
+          <div>
+            <label><strong>Content Area</strong></label><br>
+            <input id="llmContentArea" type="text" placeholder="e.g., Industrial Revolution, Photosynthesis, Ancient Rome"
+              style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;">
+          </div>
+        </div>
+
+        <label><strong>Teacher Focus Area (black box)</strong></label>
+        <textarea id="llmFocus" rows="3" style="width:100%; padding:12px; border-radius:10px; background:#111827; color:#f9fafb; border:1px solid #374151; font-family:inherit;"
+          placeholder="Type focus here (e.g., prefixes un-/re-, context clues, inference, decoding multisyllabic words)"></textarea>
+
+        <div style="margin-top:14px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px;">
+          <strong>Include Activities:</strong>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:8px; margin-top:8px;">
+            <label><input type="checkbox" class="act-option" value="Word ladder activity" checked> Word ladder</label>
+            <label><input type="checkbox" class="act-option" value="Semantically related word lists for each target word" checked> Semantic word lists (5 per word)</label>
+            <label><input type="checkbox" class="act-option" value="Gap-fill activity" checked> Gap fill (2 per word)</label>
+            <label><input type="checkbox" class="act-option" value="Quick answer key" checked> Quick answer key</label>
+            <label><input type="checkbox" class="act-option" value="Story with comprehension questions and answer key" checked> Story + comprehension</label>
+            <label><input type="checkbox" class="act-option" value="Sentence frames activity"> Sentence frames (10 frames)</label>
+            <label><input type="checkbox" class="act-option" value="Suggested differentiation notes"> Suggested differentiation notes</label>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:16px 0;">
+          <select id="llmProvider" style="padding:10px 14px; font-size:1rem; border-radius:8px;">
+            <option value="gemini" selected>Gemini</option>
+            <option value="chatgpt">ChatGPT</option>
+            <option value="claude">Claude</option>
+          </select>
+          <button onclick="generateWithLLM()" style="padding:12px 18px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px; cursor:pointer;">Generate Prompt</button>
+          <button onclick="copyLLMPrompt()" style="padding:12px 18px; font-weight:600; background:#0f766e; color:white; border:none; border-radius:8px; cursor:pointer;">Copy Prompt</button>
+          <button onclick="openInLLM()" style="padding:12px 18px; font-weight:600; background:#7c3aed; color:white; border:none; border-radius:8px; cursor:pointer;">Open in Selected LLM</button>
+          <button onclick="clearLLMForm()" style="padding:12px 18px; font-weight:600; background:#dc2626; color:white; border:none; border-radius:8px; cursor:pointer;">Clear</button>
+          <button onclick="refreshPage()" style="padding:12px 18px; font-weight:600; background:#111827; color:white; border:none; border-radius:8px; cursor:pointer;">Refresh Page</button>
+        </div>
+
+        <p id="llmStatus" style="text-align:center; font-weight:600; min-height:24px;"></p>
+        <textarea id="finalPrompt" rows="16" style="width:100%; padding:14px; font-family:monospace; border:2px solid #d1d5db; border-radius:10px; background:#f9fafb;" placeholder="Generated prompt appears here..."></textarea>
+
+        <hr style="margin:30px 0 20px 0;">
+        <h3 style="text-align:center; color:#1d4ed8;">🧠 Embedded Local LLM (WebLLM)</h3>
+
+        <div style="border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#f8fafc;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+            <label><strong>Model:</strong></label>
+            <select id="webllmModel" style="padding:8px; border-radius:8px; min-width:320px;"></select>
+            <button id="loadWebLLMBtn" onclick="initWebLLM()"
+              style="padding:10px 14px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px; cursor:pointer;">
+              Load Model
+            </button>
+            <button id="resetWebLLMBtn" onclick="resetWebLLMChat()"
+              style="padding:10px 14px; font-weight:600; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer;">
+              Reset Chat
+            </button>
+          </div>
+
+          <p id="webllmStatus" style="margin:6px 0 12px 0; font-weight:600; color:#374151;">
+            WebLLM not loaded yet.
+          </p>
+
+          <div id="webllmChat"
+               style="height:300px; overflow:auto; background:white; border:1px solid #d1d5db; border-radius:10px; padding:10px; margin-bottom:10px;"></div>
+
+          <div style="display:flex; gap:8px;">
+            <textarea id="webllmInput" rows="3"
+              placeholder="Type a prompt..."
+              style="flex:1; padding:10px; border-radius:8px; border:1px solid #d1d5db; resize:vertical;"></textarea>
+            <button onclick="sendWebLLM()"
+              style="padding:10px 14px; font-weight:600; background:#0f766e; color:white; border:none; border-radius:8px; cursor:pointer;">
+              Send
+            </button>
+          </div>
+        </div>
+
+        <footer style="text-align:center; margin-top:48px; color:#6b7280;">
+          <p>Hosted on GitHub Pages</p>
+        </footer>
       </div>
     </div>
-
   </div>
 
-  <!-- TOAST NOTIFICATION STACK -->
-  <div id="toastContainer" class="fixed bottom-5 right-5 z-[99999] flex flex-col gap-2 pointer-events-none"></div>
+  <!-- Column Key Modal -->
+  <div id="columnModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Column Definitions for the BAWF Morphological Database</h2>
+        <button class="close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <h3>Core Word Information</h3>
+        <ul>
+          <li><strong>Word:</strong> The surface wordform (as it appears in the dictionary and corpora)</li>
+          <li><strong>Word_frq_Zipf:</strong> Zipf frequency score of the wordform (higher = more frequent)</li>
+          <li><strong>FLemma:</strong> Lemma of the word (ignoring part of speech)</li>
+          <li><strong>GPT_Coded_Word_Parts:</strong> Morphological breakdown into prefixes, root(s), suffixes</li>
+        </ul>
 
-  <!-- MODAL CONTAINER: COLUMN DEFINITIONS DIALOG -->
-  <div id="columnModal" class="hidden fixed inset-0 z-[10000] overflow-y-auto bg-slate-900/50 backdrop-blur-sm transition-all">
-    <div class="flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full overflow-hidden shadow-2xl">
-        
-        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <h2 class="text-lg font-extrabold text-slate-900">Attribute Definition Mapping Schema</h2>
-          <button class="text-slate-400 hover:text-slate-600 font-bold text-2xl" onclick="closeModal('columnModal')">&times;</button>
-        </div>
-        
-        <div class="p-6 overflow-y-auto max-h-[60vh] space-y-4 text-sm text-slate-600 leading-relaxed">
-          <p>This key index maps semantic contexts back onto column headers active inside the datasets:</p>
-          <div class="border border-slate-200 rounded-xl overflow-hidden">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr class="bg-slate-100 border-b border-slate-200">
-                  <th class="p-3 font-bold text-slate-700">Column Token</th>
-                  <th class="p-3 font-bold text-slate-700">Educational Explanation</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-200 bg-white">
-                <tr>
-                  <td class="p-3 font-semibold text-slate-900">Word / Base / Lemma</td>
-                  <td class="p-3 text-slate-600">The core structural lexical entry under active observation.</td>
-                </tr>
-                <tr>
-                  <td class="p-3 font-semibold text-slate-900">Morpheme Class</td>
-                  <td class="p-3 text-slate-600">Linguistic categorization (e.g. Bound Root, Derivative, Prefix pattern).</td>
-                </tr>
-                <tr>
-                  <td class="p-3 font-semibold text-slate-900">Zipf Frequency</td>
-                  <td class="p-3 text-slate-600">Occurrences frequency calculated logarithmically (higher number denotes standard words).</td>
-                </tr>
-                <tr>
-                  <td class="p-3 font-semibold text-slate-900">Etymology lineage</td>
-                  <td class="p-3 text-slate-600">Historic lineage roots mapped from ancient Greek, Latin, or Germanic stems.</td>
-                </tr>
-                <tr>
-                  <td class="p-3 font-semibold text-slate-900">Definition</td>
-                  <td class="p-3 text-slate-600">Accessible definitions suited for structural classroom literacy development.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <h3>Baseword / Root Information</h3>
+        <ul>
+          <li><strong>Baseword:</strong> Central base form after removing affixes</li>
+          <li><strong>Baseword_frq_Zipf:</strong> Zipf frequency score of baseword</li>
+          <li><strong>Baseword_Family_Size:</strong> Number of forms in baseword family (excluding compounds)</li>
+          <li><strong>Baseword_FamilySize_Incl_Compounds:</strong> Family size including compounds</li>
+          <li><strong>Baseword_Zipf_Inc_Compounds:</strong> Zipf frequency adjusted to include compounds</li>
+        </ul>
 
-        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
-          <button class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl text-xs transition" onclick="closeModal('columnModal')">Close Dialog</button>
-        </div>
+        <h3>Root & Etymological Information</h3>
+        <ul>
+          <li><strong>GPT_Root:</strong> Primary root identified by GPT-assisted analysis</li>
+          <li><strong>Avg_Root_Zipf_BNC_COCA:</strong> Average Zipf frequency of words sharing root</li>
+          <li><strong>Root_FamilySize:</strong> Number of forms sharing root (excluding compounds)</li>
+          <li><strong>Root_FamilySize_Inc_Compounds:</strong> Number of forms sharing root (including compounds)</li>
+          <li><strong>Avg_Root_Zipf_Inc_Compounds:</strong> Average Zipf including compounds</li>
+        </ul>
 
+        <h3>Greek / Latin Roots</h3>
+        <ul>
+          <li><strong>Greek_Latin_Root_1:</strong> First classical root</li>
+          <li><strong>Greek_Latin_Meaning_1:</strong> Meaning of first classical root</li>
+          <li><strong>Greek_Latin_Root_1_FamilySize:</strong> Family size containing this root</li>
+          <li><strong>Avg_Greek_Latin_Root_1_Zipf_BNC_COCA:</strong> Avg Zipf for words containing this root</li>
+          <li><strong>Greek_Latin_Root_2:</strong> Second classical root (if present)</li>
+          <li><strong>Greek_Latin_Meaning_2:</strong> Meaning of second classical root</li>
+        </ul>
+
+        <h3>Prefixes & Suffixes</h3>
+        <ul>
+          <li><strong>Prefix_1 to Prefix_3 and Suffix_1 to Suffix_6:</strong> Include meaning, forms, frequency, count, and mean Zipf scores</li>
+        </ul>
+
+        <h3>Other Morphological & Psycholinguistic Measures</h3>
+        <ul>
+          <li><strong>N_Morphemes:</strong> Total number of morphemes in the word</li>
+          <li><strong>Reading AoA (Green et al., 2025):</strong> Age of acquisition</li>
+          <li><strong>Vocabulary eXpected Grade Level (Flor et al., 2024):</strong> Expected U.S. grade level</li>
+          <li><strong>GPT_Familiarity (Brysbaert et al., 2024):</strong> GPT-estimated familiarity rating</li>
+        </ul>
       </div>
     </div>
   </div>
 
-  <!-- MODAL CONTAINER: RECORD DETAIL VIEW -->
-  <div id="sourceModal" class="hidden fixed inset-0 z-[10000] overflow-y-auto bg-slate-900/50 backdrop-blur-sm transition-all">
-    <div class="flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full overflow-hidden shadow-2xl">
-        
-        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <h2 id="sourceModalTitle" class="text-lg font-extrabold text-slate-900">Target Field Specifications</h2>
-          <button class="text-slate-400 hover:text-slate-600 font-bold text-2xl" onclick="closeModal('sourceModal')">&times;</button>
-        </div>
-        
-        <div id="sourceModalBody" class="p-6 overflow-y-auto max-h-[60vh] space-y-4">
-          <!-- Dynamically populated -->
+  <!-- Explain Row Modal -->
+  <div id="explainModalBackdrop" class="modal">
+    <div class="modal-content" style="max-width:780px;">
+      <div class="modal-header">
+        <h3>Explain Morphology Row</h3>
+        <button class="close" onclick="closeExplainModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div style="margin-bottom:10px;">
+          <label for="explainTask" style="font-weight:600;">What should AI do?</label>
+          <select id="explainTask" class="db-select" style="width:100%;">
+            <option value="explain">Explain this row clearly for teachers and students</option>
+            <option value="history">Focus on etymology/origin (if known)</option>
+            <option value="both" selected>Explain + etymology/origin</option>
+          </select>
         </div>
 
-        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
-          <button class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl text-xs transition" onclick="closeModal('sourceModal')">Close Profile</button>
+        <div style="margin-bottom:10px;">
+          <label for="explainProvider" style="font-weight:600;">Open in</label>
+          <select id="explainProvider" class="db-select" style="width:100%;">
+            <option value="chatgpt">ChatGPT</option>
+            <option value="gemini">Gemini</option>
+            <option value="claude">Claude</option>
+          </select>
         </div>
 
+        <div>
+          <label for="explainPreview" style="font-weight:600;">Prompt preview (editable)</label>
+          <textarea id="explainPreview" style="width:100%; min-height:180px; border:1px solid #cbd5e1; border-radius:8px; padding:10px;"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button class="db-btn secondary" onclick="copyExplainPrompt()">📋 Copy</button>
+          <button class="db-btn" onclick="openExplainInAI()">Open AI Tool</button>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    /************************************************************************
-     * 1. STATE MANAGEMENT & EXCEL SELECTION DATA MATRIX
-     ************************************************************************/
-    const dbConfig = {
-      wf: { url: 'BAWF_FINAL.csv.gz', rawData: [], filteredData: [], columns: [], visibleColumns: [], currentPage: 1, rowsPerPage: 100, defaultCols: 6, checkedRows: new Set() },
-      cm: { url: 'BAWF_Compound_Words_FINAL__Main_Compound.csv.gz', rawData: [], filteredData: [], columns: [], visibleColumns: [], currentPage: 1, rowsPerPage: 100, defaultCols: 6, checkedRows: new Set() },
-      cs: { url: 'BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz', rawData: [], filteredData: [], columns: [], visibleColumns: [], currentPage: 1, rowsPerPage: 100, defaultCols: 5, checkedRows: new Set() },
-      de: { url: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', rawData: [], filteredData: [], columns: [], visibleColumns: [], currentPage: 1, rowsPerPage: 100, defaultCols: 5, checkedRows: new Set() }
+    // =========================
+    // DATASET CONFIG + STATE
+    // =========================
+    const DATASETS = {
+      wf: { file: "BAWF_FINAL.csv.gz", loaded: false, name: "Word Families" },
+      cm: { file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz", loaded: false, name: "Compound Main" },
+      cs: { file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz", loaded: false, name: "Compound Stats" },
+      de: { file: "BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz", loaded: false, name: "Definitions & Etymology" }
     };
 
-    let sortState = { key: null, direction: 'asc', targetDb: null };
-    let activeTabId = 'word-families';
-
-    // Excel Selection Variables
-    let isDragSelecting = false;
-    let dragStart = { r: -1, c: -1 };
-    let dragEnd = { r: -1, c: -1 };
-
-    window.addEventListener('DOMContentLoaded', () => {
-      loadTabDataset('wf');
-      setupExcelSelectionListeners();
+    const state = {};
+    Object.keys(DATASETS).forEach(k => {
+      state[k] = {
+        fullData: [],
+        filteredData: [],
+        columns: [],
+        allColumns: [],
+        coreColumns: [],
+        parseDone: false,
+        firstPaintDone: false,
+        currentPage: 1,
+        rowsPerPage: 100,
+        sort: { column: null, asc: true },
+        dropdownColumns: new Set()
+      };
     });
 
-    /************************************************************************
-     * 2. EXCEL-STYLE CELL RANGE SELECTION MECHANICS
-     ************************************************************************/
-    function setupExcelSelectionListeners() {
-      // Global window hooks to monitor click ranges across viewports
+    let currentExplainRow = null;
+    const filterDebouncers = {};
+
+    // Drag Select Grid Variables
+    let isDragSelecting = false;
+    let dragStart = { row: -1, col: -1 };
+    let dragEnd = { row: -1, col: -1 };
+
+    function byId(id){ return document.getElementById(id); }
+    function normalizeSpaces(s){ return String(s ?? "").replace(/\s+/g, " ").trim(); }
+    
+    function colNorm(s){
+      return String(s || "").toLowerCase().replace(/[\s_()\-]+/g, "");
+    }
+
+    function isLikelyNumeric(v){
+      if (v === null || v === undefined) return false;
+      const s = String(v).trim();
+      if (!s) return false;
+      return /^-?\d+(\.\d+)?$/.test(s);
+    }
+
+    function isNumericColumn(prefix, col){
+      const st = state[prefix];
+      const rows = st.fullData;
+      const sample = Math.min(rows.length, 1500);
+      let seen = 0, numeric = 0;
+      for (let i = 0; i < sample; i++){
+        const v = rows[i]?.[col];
+        const s = String(v ?? "").trim();
+        if (!s) continue;
+        seen++;
+        if (isLikelyNumeric(s)) numeric++;
+      }
+      if (!seen) return false;
+      return (numeric / seen) >= 0.9;
+    }
+
+    function isForcedDropdownColumn(col){
+      const c = colNorm(col);
+
+      // Explicit root + meaning dropdowns
+      if (c === "greeklatinroot1" || c === "greeklatinmeaning1" ||
+          c === "greeklatinroot2" || c === "greeklatinmeaning2") return true;
+
+      // Prefix / suffix columns
+      if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) return true;
+
+      // N morphemes explicitly
+      if (c === "nmorphemes") return true;
+
+      return false;
+    }
+
+    function cleanParsedRow(row, headers){
+      // Force row values to align exactly with headers
+      const out = {};
+      headers.forEach(h => out[h] = row[h] ?? "");
+
+      // If parser produced extras, append to last column so columns don't shift
+      if (Array.isArray(row.__parsed_extra) && row.__parsed_extra.length && headers.length){
+        const last = headers[headers.length - 1];
+        const tail = row.__parsed_extra.join(",");
+        out[last] = String(out[last] ?? "");
+        out[last] = out[last] ? `${out[last]},${tail}` : tail;
+      }
+      return out;
+    }
+
+    function roundVocabularyGradeLevels(row, headers){
+      // Round any vocabulary expected grade level style column
+      const gradeCols = headers.filter(h => /vocabulary.*grade.*level/i.test(h));
+      for (const c of gradeCols){
+        const n = parseFloat(String(row[c] ?? "").trim());
+        if (Number.isFinite(n)) row[c] = String(Math.round(n));
+      }
+    }
+
+    function norm(s){ return String(s || "").toLowerCase().replace(/[\s_]+/g, ""); }
+
+    function chooseCoreColumns(headers){
+      const hmap = new Map(headers.map(h => [norm(h), h]));
+      const core = [];
+      const preferred = [
+        "word","baseword","greeklatinroot1","greeklatinmeaning1",
+        "greeklatinroot2","greeklatinmeaning2","gptroot","gptcodedwordparts"
+      ];
+      preferred.forEach(k => { if (hmap.has(k)) core.push(hmap.get(k)); });
+      headers.forEach(col => {
+        const c = norm(col);
+        if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) core.push(col);
+      });
+      return [...new Set(core)];
+    }
+
+    function getVisibleColumns(prefix){
+      const st = state[prefix];
+      if (st.columns?.length) return st.columns;
+      return Object.keys(st.fullData[0] || {});
+    }
+
+    function getFirstNonEmpty(row, candidates){
+      for (const c of candidates){
+        const v = String(row?.[c] ?? "").trim();
+        if (v) return v;
+      }
+      return "";
+    }
+
+    function setDbLoading(prefix, msg){
+      const el = byId(prefix + "Loading");
+      if (!el) return;
+      el.style.display = "block";
+      el.textContent = msg;
+    }
+
+    function debounce(fn, ms = 250){
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+      };
+    }
+
+    function getDebouncedFilter(prefix){
+      if (!filterDebouncers[prefix]) {
+        filterDebouncers[prefix] = debounce(() => filterTable(prefix), 220);
+      }
+      return filterDebouncers[prefix];
+    }
+
+    function detectDropdownColumns(prefix){
+      const st = state[prefix];
+      st.dropdownColumns.clear();
+
+      const cols = getVisibleColumns(prefix);
+      const rows = st.fullData;
+      const sampleSize = Math.min(rows.length, 1500);
+
+      cols.forEach(col => {
+        if (isForcedDropdownColumn(col)) {
+          st.dropdownColumns.add(String(col).toLowerCase().trim());
+          return;
+        }
+
+        if (isNumericColumn(prefix, col)) {
+          st.dropdownColumns.add(String(col).toLowerCase().trim());
+          return;
+        }
+
+        const vals = new Set();
+        for (let i = 0; i < sampleSize; i++) {
+          const v = normalizeSpaces(rows[i]?.[col]);
+          if (v) vals.add(v);
+          if (vals.size > 50) break;
+        }
+
+        if (vals.size > 1 && vals.size <= 35) {
+          st.dropdownColumns.add(String(col).toLowerCase().trim());
+        }
+      });
+    }
+
+    function isDropdownColumn(prefix, colName){
+      return state[prefix].dropdownColumns.has(String(colName).toLowerCase().trim());
+    }
+
+    // ==========================================
+    // EXCEL-STYLE CELL RANGE SELECTION MECHANICS
+    // ==========================================
+    function setupExcelGridListeners() {
       document.addEventListener('mousedown', (e) => {
         const cell = e.target.closest('td[data-row]');
         if (!cell) return;
 
+        // Skip clicking the Row Actions td block
+        if (cell.classList.contains('actions-cell')) return;
+
         isDragSelecting = true;
         document.body.classList.add('drag-selecting');
 
-        const r = parseInt(cell.getAttribute('data-row'), 10);
-        const c = parseInt(cell.getAttribute('data-col'), 10);
-        
-        dragStart = { r, c };
-        dragEnd = { r, c };
-        
-        evaluateGridHighlight(cell.closest('table').id);
+        const row = parseInt(cell.getAttribute('data-row'), 10);
+        const col = parseInt(cell.getAttribute('data-col'), 10);
+
+        dragStart = { row, col };
+        dragEnd = { row, col };
+
+        const table = cell.closest('table');
+        evaluateGridHighlight(table.id);
       });
 
       document.addEventListener('mouseover', (e) => {
@@ -888,11 +1149,13 @@
         const cell = e.target.closest('td[data-row]');
         if (!cell) return;
 
-        const r = parseInt(cell.getAttribute('data-row'), 10);
-        const c = parseInt(cell.getAttribute('data-col'), 10);
-        
-        dragEnd = { r, c };
-        evaluateGridHighlight(cell.closest('table').id);
+        const row = parseInt(cell.getAttribute('data-row'), 10);
+        const col = parseInt(cell.getAttribute('data-col'), 10);
+
+        dragEnd = { row, col };
+
+        const table = cell.closest('table');
+        evaluateGridHighlight(table.id);
       });
 
       document.addEventListener('mouseup', () => {
@@ -902,12 +1165,11 @@
         }
       });
 
-      // Map copy keys natively to selected arrays
+      // Bind global copy keyboard command (Ctrl+C / Cmd+C)
       document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-          // If text is highlighted inside fields, let system standard defaults occur
-          if (window.getSelection().toString()) return;
-          copyHighlightedGrid();
+          if (window.getSelection().toString()) return; // Allow normal text copy if selected
+          copyHighlightedCells();
         }
       });
     }
@@ -917,10 +1179,10 @@
       if (!table) return;
 
       const cells = table.querySelectorAll('tbody td[data-row]');
-      const rMin = Math.min(dragStart.r, dragEnd.r);
-      const rMax = Math.max(dragStart.r, dragEnd.r);
-      const cMin = Math.min(dragStart.c, dragEnd.c);
-      const cMax = Math.max(dragStart.c, dragEnd.c);
+      const rMin = Math.min(dragStart.row, dragEnd.row);
+      const rMax = Math.max(dragStart.row, dragEnd.row);
+      const cMin = Math.min(dragStart.col, dragEnd.col);
+      const cMax = Math.max(dragStart.col, dragEnd.col);
 
       cells.forEach(cell => {
         const r = parseInt(cell.getAttribute('data-row'), 10);
@@ -934,941 +1196,1087 @@
       });
     }
 
-    function clearGridHighlights() {
-      document.querySelectorAll('.excel-selected').forEach(el => {
-        el.classList.remove('excel-selected');
-      });
-      dragStart = { r: -1, c: -1 };
-      dragEnd = { r: -1, c: -1 };
-      showToast("Excel range selection cleared.");
-    }
-
-    function copyHighlightedGrid() {
-      const selectedCells = document.querySelectorAll('.excel-selected');
-      if (selectedCells.length === 0) {
-        showToast("No excel-range highlighted. Drag over cells to select blocks first.", "warning");
+    function copyHighlightedCells() {
+      const selected = document.querySelectorAll('.excel-selected');
+      if (selected.length === 0) {
         return;
       }
 
-      // Group highlighted data by row mapping
-      const rowMaps = {};
-      selectedCells.forEach(cell => {
-        const r = cell.getAttribute('data-row');
+      // Group highlighted items by row index for TSV format construction
+      const rowMap = {};
+      selected.forEach(cell => {
+        const rowId = cell.getAttribute('data-row');
         const text = cell.innerText.trim();
-        if (!rowMaps[r]) rowMaps[r] = [];
-        rowMaps[r].push(text);
-      });
-
-      // Construct Tab-Separated output (Excel paste friendly format)
-      const sortedRows = Object.keys(rowMaps).sort((a,b) => parseInt(a,10) - parseInt(b,10));
-      const textOutput = sortedRows.map(r => rowMaps[r].join('\t')).join('\n');
-
-      executeSystemClipboardCopy(textOutput, `Copied ${selectedCells.length} cells in tabular range format.`);
-    }
-
-    function toggleAllRowsChecked(dbKey, checkState) {
-      const config = dbConfig[dbKey];
-      const checkboxes = document.querySelectorAll(`.row-chk-${dbKey}`);
-      checkboxes.forEach(chk => {
-        chk.checked = checkState;
-        const index = parseInt(chk.getAttribute('data-idx'), 10);
-        if (checkState) {
-          config.checkedRows.add(index);
-        } else {
-          config.checkedRows.delete(index);
+        if (!rowMap[rowId]) {
+          rowMap[rowId] = [];
         }
+        rowMap[rowId].push(text);
       });
-      showToast(`${checkState ? 'Checked' : 'Unchecked'} visible table entries.`);
+
+      // Join rows dynamically with tabs, then lines with newlines
+      const sortedKeys = Object.keys(rowMap).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+      const finalTSV = sortedKeys.map(k => rowMap[k].join('\t')).join('\n');
+
+      navigator.clipboard.writeText(finalTSV).then(() => {
+        // Simple visual toast fallback
+        const alertEl = document.createElement('div');
+        alertEl.className = "fixed bottom-5 right-5 z-[99999] bg-emerald-600 text-white font-bold p-4 rounded-xl shadow-lg text-sm";
+        alertEl.textContent = `✅ Excel-Range: Copied ${selected.length} cells to clipboard!`;
+        document.body.appendChild(alertEl);
+        setTimeout(() => alertEl.remove(), 2500);
+      }).catch(() => {
+        alert("Copy failed. Please try again.");
+      });
     }
 
-    function handleRowCheckChanged(dbKey, absoluteIndex, isChecked) {
-      const config = dbConfig[dbKey];
-      if (isChecked) {
-        config.checkedRows.add(absoluteIndex);
-      } else {
-        config.checkedRows.delete(absoluteIndex);
-      }
-    }
-
-    /************************************************************************
-     * 3. TOAST ENGINE REPLACEMENTS FOR ALERT BLOCKS
-     ************************************************************************/
-    function showToast(message, type = 'success') {
-      const container = document.getElementById('toastContainer');
-      const toast = document.createElement('div');
-      toast.className = `p-4 rounded-xl shadow-lg border text-xs font-semibold flex items-center gap-2 transform translate-y-2 opacity-0 transition-all duration-300 pointer-events-auto min-w-[300px] max-w-sm ${
-        type === 'success' 
-          ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-          : type === 'warning'
-            ? 'bg-amber-50 border-amber-200 text-amber-800'
-            : 'bg-rose-50 border-rose-200 text-rose-800'
-      }`;
+    // =========================
+    // POP-OVER COLUMN DROPDOWNS
+    // =========================
+    function toggleColumnDropdown(prefix) {
+      const dd = byId(prefix + "ColumnDropdown");
+      const shown = dd.classList.contains('show');
       
-      const checkIcon = type === 'success' 
-        ? `<svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
-        : `<svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
-
-      toast.innerHTML = `${checkIcon}<span>${message}</span>`;
-      container.appendChild(toast);
-
-      requestAnimationFrame(() => {
-        toast.classList.remove('translate-y-2', 'opacity-0');
-      });
-
-      setTimeout(() => {
-        toast.classList.add('translate-y-2', 'opacity-0');
-        setTimeout(() => toast.remove(), 300);
-      }, 4000);
+      // Close all other dropdowns
+      document.querySelectorAll('.column-manager-dropdown').forEach(el => el.classList.remove('show'));
+      
+      if (!shown) {
+        dd.classList.add('show');
+        populateColumnDropdownList(prefix);
+      }
     }
 
-    /************************************************************************
-     * 4. COMPRESSED BINARY INGESTION PIPELINES
-     ************************************************************************/
-    async function loadTabDataset(dbKey) {
-      const config = dbConfig[dbKey];
-      const statusEl = document.getElementById(`${dbKey}LoadStatus`);
-      const tableEl = document.getElementById(`${dbKey}Table`);
-      const paginationEl = document.getElementById(`${dbKey}Pagination`);
-      const runtimeNotify = document.getElementById('runtimeNotification');
-      const runtimeNotifyText = document.getElementById('runtimeNotificationText');
+    function populateColumnDropdownList(prefix) {
+      const st = state[prefix];
+      const listEl = byId(prefix + "ColumnList");
+      if (!listEl) return;
+      listEl.innerHTML = "";
 
-      if (config.rawData.length > 0) {
-        if (statusEl) statusEl.innerText = "Loaded and indexed inside browser context.";
-        return;
+      st.allColumns.forEach(col => {
+        const active = st.columns.includes(col);
+        const label = document.createElement('label');
+        label.className = "flex items-center gap-2 text-xs font-semibold hover:bg-slate-50 p-1.5 rounded cursor-pointer";
+        
+        const chk = document.createElement('input');
+        chk.type = "checkbox";
+        chk.checked = active;
+        chk.className = "rounded text-blue-600 focus:ring-blue-500";
+        chk.onchange = () => {
+          if (chk.checked) {
+            if (!st.columns.includes(col)) {
+              st.columns.push(col);
+            }
+          } else {
+            // Keep at least one column
+            if (st.columns.length > 1) {
+              st.columns = st.columns.filter(c => c !== col);
+            } else {
+              chk.checked = true;
+              return;
+            }
+          }
+          detectDropdownColumns(prefix);
+          renderHeadersAndFilters(prefix);
+          renderTable(prefix);
+          populateCopyColumnSelect(prefix);
+        };
+
+        label.appendChild(chk);
+        const span = document.createElement('span');
+        span.textContent = col;
+        label.appendChild(span);
+        listEl.appendChild(label);
+      });
+    }
+
+    // Global listener to close dropdowns when clicking outside
+    window.addEventListener('click', (e) => {
+      if (!e.target.closest('.column-manager-popover')) {
+        document.querySelectorAll('.column-manager-dropdown').forEach(el => el.classList.remove('show'));
       }
+    });
+
+    // ==========================================
+    // DATA INGESTION & DECOMPRESSION LIFE-CYCLES
+    // ==========================================
+    async function loadDataset(prefix){
+      const cfg = DATASETS[prefix];
+      if (!cfg) return;
+      if (cfg.loaded) return;
+      cfg.loaded = true;
+
+      const st = state[prefix];
+      st.fullData = [];
+      st.filteredData = [];
+      st.currentPage = 1;
+      st.sort = { column: null, asc: true };
+      st.dropdownColumns = new Set();
+      st.columns = [];
+      st.allColumns = [];
+      st.coreColumns = [];
+      st.parseDone = false;
+      st.firstPaintDone = false;
+
+      setDbLoading(prefix, `Loading ${cfg.name}...`);
 
       try {
-        if (runtimeNotify) {
-          runtimeNotifyText.innerText = `Fetching database binary: ${config.url}...`;
-          runtimeNotify.classList.remove('hidden');
-        }
-        if (statusEl) statusEl.innerText = "Downloading target binary data stream...";
+        const resp = await fetch(cfg.file, { cache: "no-cache" });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
-        const response = await fetch(config.url);
-        if (!response.ok) throw new Error(`HTTP network error: ${response.status}`);
+        const arrBuf = await resp.arrayBuffer();
+        const bin = new Uint8Array(arrBuf);
+        const csvText = pako.ungzip(bin, { to: "string" });
 
-        const arrayBuffer = await response.arrayBuffer();
-        if (statusEl) statusEl.innerText = "Inflating compression tables...";
-        
-        await new Promise(resolve => setTimeout(resolve, 30));
-
-        const inflatedBuffer = pako.inflate(new Uint8Array(arrayBuffer));
-        const encodedData = new TextDecoder('utf-8').decode(inflatedBuffer);
-
-        if (statusEl) statusEl.innerText = "Compiling mapping index arrays...";
-        await new Promise(resolve => setTimeout(resolve, 30));
-
-        Papa.parse(encodedData, {
+        Papa.parse(csvText, {
           header: true,
-          skipEmptyLines: true,
-          dynamicTyping: true,
-          complete: function(results) {
-            config.columns = results.meta.fields || [];
-            config.rawData = results.data;
-            config.filteredData = [...results.data];
-            
-            config.visibleColumns = config.columns.slice(0, config.defaultCols);
+          skipEmptyLines: "greedy",
+          worker: false,
+          fastMode: false,
+          chunkSize: 1024 * 1024,
+          transformHeader: h => String(h || "").replace(/^\uFEFF/, "").trim(),
+          
+          chunk: (results) => {
+            let rows = (results.data || []).filter(r =>
+              Object.values(r).some(v => String(v ?? "").trim() !== "")
+            );
+            if (!rows.length) return;
 
-            if (statusEl) statusEl.style.display = 'none';
-            if (tableEl) tableEl.style.display = 'table';
-            if (paginationEl) paginationEl.style.display = 'flex';
-            if (runtimeNotify) runtimeNotify.classList.add('hidden');
+            if (!st.allColumns.length) {
+              st.allColumns = (results.meta?.fields?.length)
+                ? results.meta.fields.map(h => String(h || "").trim())
+                : Object.keys(rows[0] || {}).filter(k => k !== "__parsed_extra");
 
-            buildTableHeaders(dbKey);
-            populateColumnSelects(dbKey);
-            renderTableData(dbKey);
-            updateRowCountDisplay(dbKey);
-            
-            showToast(`Loaded ${results.data.length.toLocaleString()} entries successfully.`);
+              st.coreColumns = chooseCoreColumns(st.allColumns);
+              if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
+              st.columns = [...st.coreColumns];
+            }
+
+            rows = rows.map(r => {
+              const cleaned = cleanParsedRow(r, st.allColumns);
+              roundVocabularyGradeLevels(cleaned, st.allColumns);
+
+              try {
+                Object.defineProperty(cleaned, "__search", {
+                  value: st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase(),
+                  enumerable: false
+                });
+              } catch {
+                cleaned.__search = st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase();
+              }
+              return cleaned;
+            });
+
+            st.fullData.push(...rows);
+
+            if (!st.firstPaintDone && st.fullData.length >= Math.max(st.rowsPerPage, 50)) {
+              st.filteredData = st.fullData.slice();
+              st.currentPage = 1;
+
+              initializeDatasetUI(prefix);
+              detectDropdownColumns(prefix);
+              renderHeadersAndFilters(prefix);
+              renderTable(prefix);
+              populateCopyColumnSelect(prefix);
+
+              const loadingEl = byId(prefix + "Loading");
+              if (loadingEl) {
+                loadingEl.style.display = "block";
+                loadingEl.textContent = `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows in background`;
+              }
+
+              const tableEl = byId(prefix + "Table");
+              if (tableEl) tableEl.style.display = "table";
+              const pagerEl = byId(prefix + "Pagination");
+              if (pagerEl) pagerEl.style.display = "flex";
+
+              st.firstPaintDone = true;
+            } else if (st.firstPaintDone) {
+              setDbLoading(prefix, `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows`);
+            }
           },
-          error: function(err) {
-            if (statusEl) statusEl.innerText = `Parser engine compile failure: ${err.message}`;
-            showToast("Failed compiling datatable arrays.", "error");
+
+          complete: () => {
+            st.filteredData = st.fullData.slice();
+            st.parseDone = true;
+
+            initializeDatasetUI(prefix);
+            detectDropdownColumns(prefix);
+            renderHeadersAndFilters(prefix);
+            renderTable(prefix);
+            populateCopyColumnSelect(prefix);
+
+            setDbLoading(prefix, "");
+            const loadingEl = byId(prefix + "Loading");
+            if (loadingEl) loadingEl.style.display = "none";
+          },
+
+          error: (err) => {
+            setDbLoading(prefix, `CSV parse error: ${err.message}`);
+            cfg.loaded = false;
           }
         });
-      } catch (error) {
-        if (statusEl) statusEl.innerText = `Resources fault loading files.`;
-        if (runtimeNotify) runtimeNotify.classList.add('hidden');
-        showToast(`Resource loader fault: ${error.message}`, "error");
-        console.error(error);
+
+      } catch (err){
+        setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
+        cfg.loaded = false;
       }
     }
 
-    /************************************************************************
-     * 5. GRID RENDERING MODULE (Ensures Precise Column Alignments)
-     ************************************************************************/
-    function buildTableHeaders(dbKey) {
-      const config = dbConfig[dbKey];
-      const headerRow = document.getElementById(`${dbKey}HeaderRow`);
-      const filterRow = document.getElementById(`${dbKey}FilterRow`);
-      
-      const visibleColsCount = config.visibleColumns.length;
-      // Calculate individual col percentages to guarantee boundary margins do not slip
-      const calculatedWidth = Math.floor(82 / visibleColsCount);
+    function initializeDatasetUI(prefix){
+      renderHeadersAndFilters(prefix);
+      renderTable(prefix);
+      populateCopyColumnSelect(prefix);
 
-      let headersHTML = `
-        <th style="width: 4%" class="p-3 text-center border-b border-slate-700">
-          <input type="checkbox" onchange="toggleAllPageCheckboxes('${dbKey}', this.checked)" class="rounded text-brand-600 focus:ring-brand-500" />
-        </th>`;
+      const global = byId(prefix + "GlobalSearch");
+      if (global && !global.dataset.wired) {
+        global.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") filterTable(prefix);
+        });
+        global.addEventListener("input", getDebouncedFilter(prefix));
+        global.dataset.wired = "1";
+      }
+    }
 
-      config.visibleColumns.forEach(col => {
-        headersHTML += `
-          <th style="width: ${calculatedWidth}%" class="p-3 font-semibold text-xs tracking-wider cursor-pointer hover:bg-slate-800 transition group" onclick="handleTableSort('${dbKey}', '${col}')">
-            <div class="flex items-center gap-1.5 justify-between">
-              <span>${col}</span>
-              <span class="text-slate-400 group-hover:text-white">↕</span>
-            </div>
-          </th>`;
+    function renderHeadersAndFilters(prefix){
+      const st = state[prefix];
+      const columns = getVisibleColumns(prefix);
+      const headerRow = byId(prefix + "HeaderRow");
+      const filterRow = byId(prefix + "FilterRow");
+
+      headerRow.innerHTML = "";
+      filterRow.innerHTML = "";
+
+      columns.forEach(col => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        th.title = "Click to sort";
+        th.onclick = () => sortTable(prefix, col);
+        headerRow.appendChild(th);
       });
 
-      headersHTML += `<th style="width: 14%" class="p-3 font-semibold text-xs text-right border-b border-slate-700">Actions</th>`;
-      headerRow.innerHTML = headersHTML;
+      const actionTh = document.createElement("th");
+      actionTh.textContent = "Actions";
+      headerRow.appendChild(actionTh);
 
-      let filtersHTML = `<td class="p-2 border-b border-slate-200"></td>`;
-      config.visibleColumns.forEach(col => {
-        filtersHTML += `
-          <td class="p-2 border-b border-slate-200">
-            <input type="text" placeholder="Filter ${col}..." 
-              class="filter-input w-full px-2 py-1 text-xs bg-white border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 font-medium text-slate-700" 
-              data-column-name="${col}" 
-              oninput="debounceFilterTable('${dbKey}')" />
-          </td>`;
-      });
-      filtersHTML += `<td class="p-2 border-b border-slate-200"></td>`;
-      filterRow.innerHTML = filtersHTML;
-    }
+      columns.forEach(col => {
+        const td = document.createElement("td");
 
-    function toggleAllPageCheckboxes(dbKey, isChecked) {
-      const config = dbConfig[dbKey];
-      const start = (config.currentPage - 1) * config.rowsPerPage;
-      const end = Math.min(start + config.rowsPerPage, config.filteredData.length);
-      
-      for(let i = start; i < end; i++) {
-        if(isChecked) {
-          config.checkedRows.add(i);
-        } else {
-          config.checkedRows.delete(i);
-        }
-      }
-      
-      const checkElements = document.querySelectorAll(`.row-chk-${dbKey}`);
-      checkElements.forEach(el => el.checked = isChecked);
-    }
+        if (isDropdownColumn(prefix, col)) {
+          const sel = document.createElement("select");
+          sel.dataset.col = col;
+          sel.onchange = () => filterTable(prefix);
 
-    function renderTableData(dbKey) {
-      const config = dbConfig[dbKey];
-      const tbody = document.getElementById(`${dbKey}TableBody`);
-      
-      const startIndex = (config.currentPage - 1) * config.rowsPerPage;
-      const endIndex = Math.min(startIndex + config.rowsPerPage, config.filteredData.length);
-      const pageData = config.filteredData.slice(startIndex, endIndex);
+          const all = document.createElement("option");
+          all.value = "";
+          all.textContent = "All";
+          sel.appendChild(all);
 
-      if (pageData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${config.visibleColumns.length + 2}" class="p-8 text-center text-slate-400 font-medium text-sm">No alignment structures found for active criteria settings.</td></tr>`;
-        return;
-      }
+          const unique = [...new Set(st.fullData.map(r => normalizeSpaces(r[col])).filter(Boolean))];
 
-      let fragmentHTML = '';
-      
-      for (let i = 0; i < pageData.length; i++) {
-        const absoluteIndex = startIndex + i;
-        const row = pageData[i];
-        const isRowChecked = config.checkedRows.has(absoluteIndex);
-
-        fragmentHTML += `<tr class="hover:bg-brand-50/50 transition-colors">`;
-        
-        // Row Checkbox Input Cell
-        fragmentHTML += `
-          <td class="p-3 text-center border-r border-slate-100">
-            <input type="checkbox" class="row-chk-${dbKey} rounded text-brand-600 focus:ring-brand-500 cursor-pointer" data-idx="${absoluteIndex}" ${isRowChecked ? 'checked' : ''} onchange="handleRowCheckChanged('${dbKey}', ${absoluteIndex}, this.checked)" />
-          </td>`;
-
-        // Data Cells with Coordinates to enable dragging
-        for (let j = 0; j < config.visibleColumns.length; j++) {
-          const col = config.visibleColumns[j];
-          let cellValue = row[col] !== undefined && row[col] !== null ? row[col] : '';
-          
-          if (String(cellValue).length > 80) {
-            fragmentHTML += `
-              <td class="p-3 text-slate-600 truncate max-w-[220px]" title="${cellValue}" data-row="${absoluteIndex}" data-col="${j}">
-                ${cellValue}
-              </td>`;
+          const numericLike = unique.length && unique.every(isLikelyNumeric);
+          if (numericLike) {
+            unique.sort((a,b) => parseFloat(a) - parseFloat(b));
           } else {
-            fragmentHTML += `<td class="p-3 text-slate-600 break-words" data-row="${absoluteIndex}" data-col="${j}">${cellValue}</td>`;
+            unique.sort((a,b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
           }
-        }
 
-        // Action controls (Info popup, direct explain prompt, google lookups)
-        const sampleWord = String(row[config.columns[0]] || '').replace(/'/g, "\\'");
-        
-        fragmentHTML += `
-          <td class="p-3 text-right space-x-1 whitespace-nowrap">
-            <button class="px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 text-[10px] font-bold rounded transition" onclick="inspectRowElement('${dbKey}', ${absoluteIndex})">
-              Info
-            </button>
-            <button class="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[10px] font-bold rounded transition" onclick="injectQuickExplainerPrompt('${sampleWord}')">
-              Prompt
-            </button>
-            <button class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded transition" onclick="lookupWordOnline('${sampleWord}')">
-              🌐 Lookup
-            </button>
-          </td>`;
+          unique.forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v;
+            opt.textContent = v;
+            sel.appendChild(opt);
+          });
 
-        fragmentHTML += `</tr>`;
-      }
-
-      tbody.innerHTML = fragmentHTML;
-      updatePaginationPanel(dbKey);
-    }
-
-    function populateColumnSelects(dbKey) {
-      const config = dbConfig[dbKey];
-      const copySelect = document.getElementById(`${dbKey}CopyColumnSelect`);
-      const addSelect = document.getElementById(`${dbKey}AddCols`);
-
-      if (copySelect) {
-        copySelect.innerHTML = config.columns.map(c => `<option value="${c}">${c}</option>`).join('');
-      }
-      if (addSelect) {
-        const unseenCols = config.columns.filter(c => !config.visibleColumns.includes(c));
-        if (unseenCols.length === 0) {
-          addSelect.innerHTML = `<option disabled>All active</option>`;
+          td.appendChild(sel);
         } else {
-          addSelect.innerHTML = unseenCols.map(c => `<option value="${c}">${c}</option>`).join('');
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Filter...";
+          input.dataset.col = col;
+          input.oninput = getDebouncedFilter(prefix);
+          td.appendChild(input);
         }
-      }
 
-      // Dynamic header mapping integrations
-      const addBtn = document.getElementById(`${dbKey}AddColsBtn`);
-      if (addBtn) {
-        addBtn.onclick = () => {
-          const targetCol = addSelect.value;
-          if (targetCol && !config.visibleColumns.includes(targetCol) && targetCol !== "All active") {
-            config.visibleColumns.push(targetCol);
-            buildTableHeaders(dbKey);
-            populateColumnSelects(dbKey);
-            renderTableData(dbKey);
-            showToast(`Injected column [${targetCol}] successfully.`);
-          }
-        };
-      }
-    }
-
-    /************************************************************************
-     * 6. INTERACTIVE CONTEXT INJECTIONS & WORD EXTERNAL LOOKUPS
-     ************************************************************************/
-    function injectQuickExplainerPrompt(word) {
-      if(!word) return;
-      
-      const payloadArea = document.getElementById('llmInput');
-      payloadArea.value = (payloadArea.value + '\n' + word).trim();
-      
-      // Auto toggle to the Prompt Generator interface
-      const targetBtn = document.querySelectorAll('.tab-btn')[4]; // Index 4 is prompt generator tab
-      openTab('llm-generator', targetBtn);
-      
-      showToast(`Injected word "${word}" into Prompt Generator stack.`);
-    }
-
-    function lookupWordOnline(word) {
-      if(!word) return;
-      const targetUrl = `https://www.google.com/search?q=etymology+${encodeURIComponent(word)}`;
-      window.open(targetUrl, '_blank');
-    }
-
-    /************************************************************************
-     * 7. DEBOUNCED SEARCH & FAST SWAP SORT
-     ************************************************************************/
-    let debounceTimer;
-    function debounceFilterTable(dbKey) {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        filterTable(dbKey);
-      }, 250);
-    }
-
-    function filterTable(dbKey) {
-      const config = dbConfig[dbKey];
-      const globalQuery = document.getElementById(`${dbKey}GlobalSearch`).value.toLowerCase().trim();
-      const columnInputs = document.querySelectorAll(`#${dbKey}FilterRow .filter-input`);
-      
-      const columnFilters = {};
-      columnInputs.forEach(input => {
-        const query = input.value.toLowerCase().trim();
-        if (query) {
-          columnFilters[input.dataset.columnName] = query;
-        }
+        filterRow.appendChild(td);
       });
 
-      config.filteredData = config.rawData.filter((row, originalIndex) => {
-        if (globalQuery) {
-          const matchedGlobal = Object.values(row).some(v => String(v).toLowerCase().includes(globalQuery));
-          if (!matchedGlobal) return false;
+      filterRow.appendChild(document.createElement("td"));
+    }
+
+    function filterTable(prefix){
+      const st = state[prefix];
+      const global = (byId(prefix + "GlobalSearch")?.value || "").toLowerCase().trim();
+
+      const colFilters = {};
+      byId(prefix + "FilterRow").querySelectorAll("[data-col]").forEach(el => {
+        const col = el.dataset.col;
+        const raw = normalizeSpaces(el.value);
+        if (!raw) return;
+        colFilters[col] = {
+          type: el.tagName === "SELECT" ? "exact" : "contains",
+          value: raw.toLowerCase()
+        };
+      });
+
+      st.filteredData = st.fullData.filter(row => {
+        if (global){
+          const rowText = row.__search || Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase();
+          if (!rowText.includes(global)) return false;
         }
 
-        for (const [colName, colQuery] of Object.entries(columnFilters)) {
-          const valStr = row[colName] !== undefined && row[colName] !== null ? String(row[colName]).toLowerCase() : '';
-          if (!valStr.includes(colQuery)) return false;
+        for (const col in colFilters){
+          const cell = normalizeSpaces(row[col]).toLowerCase();
+          const f = colFilters[col];
+          if (f.type === "exact"){
+            if (cell !== f.value) return false;
+          } else {
+            if (!cell.includes(f.value)) return false;
+          }
         }
-
         return true;
       });
 
-      config.currentPage = 1;
-      // Reset checkboxes map to prevent out-of-index alignment errors after filtration
-      config.checkedRows.clear();
-      
-      renderTableData(dbKey);
-      updateRowCountDisplay(dbKey);
+      st.currentPage = 1;
+      renderTable(prefix);
     }
 
-    function handleTableSort(dbKey, colName) {
-      const config = dbConfig[dbKey];
-      
-      if (sortState.key === colName) {
-        sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-        sortState.key = colName;
-        sortState.direction = 'asc';
-      }
+    function renderTable(prefix){
+      const st = state[prefix];
+      const tbody = byId(prefix + "TableBody");
+      tbody.innerHTML = "";
 
-      config.filteredData.sort((a, b) => {
-        let valA = a[colName];
-        let valB = b[colName];
+      const start = (st.currentPage - 1) * st.rowsPerPage;
+      const pageData = st.filteredData.slice(start, start + st.rowsPerPage);
 
-        if (valA === undefined || valA === null) valA = '';
-        if (valB === undefined || valB === null) valB = '';
+      const frag = document.createDocumentFragment();
+      const columns = getVisibleColumns(prefix);
 
-        const numericA = Number(valA);
-        const numericB = Number(valB);
+      pageData.forEach((row, rowIndex) => {
+        const tr = document.createElement("tr");
 
-        if (!isNaN(numericA) && !isNaN(numericB) && valA !== '' && valB !== '') {
-          return sortState.direction === 'asc' ? numericA - numericB : numericB - numericA;
-        }
+        columns.forEach((col, colIndex) => {
+          const td = document.createElement("td");
+          const val = String(row[col] ?? "");
+          if (val.length > 120) td.classList.add("long-text");
+          td.textContent = val;
 
-        const strA = String(valA).toLowerCase();
-        const strB = String(valB).toLowerCase();
+          // Excel coordinate attributes to facilitate drag actions
+          td.setAttribute('data-row', start + rowIndex);
+          td.setAttribute('data-col', colIndex);
 
-        if (strA < strB) return sortState.direction === 'asc' ? -1 : 1;
-        if (strA > strB) return sortState.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-
-      renderTableData(dbKey);
-    }
-
-    function clearAllFilters(dbKey) {
-      document.getElementById(`${dbKey}GlobalSearch`).value = '';
-      const columnInputs = document.querySelectorAll(`#${dbKey}FilterRow .filter-input`);
-      columnInputs.forEach(input => input.value = '');
-
-      dbConfig[dbKey].filteredData = [...dbConfig[dbKey].rawData];
-      dbConfig[dbKey].currentPage = 1;
-      dbConfig[dbKey].checkedRows.clear();
-      
-      renderTableData(dbKey);
-      updateRowCountDisplay(dbKey);
-      showToast("Filtered limits reset successfully.");
-    }
-
-    /************************************************************************
-     * 8. SYSTEM UTILITIES: DATA EXPORTS & COLUMN MATRIX COPIES
-     ************************************************************************/
-    function copyColumnValues(dbKey) {
-      const config = dbConfig[dbKey];
-      const selectedCol = document.getElementById(`${dbKey}CopyColumnSelect`).value;
-      const scope = document.getElementById(`${dbKey}CopyScope`).value;
-
-      let targetRows = [];
-      if (scope === 'filtered') {
-        targetRows = config.filteredData;
-      } else if (scope === 'checked') {
-        // Collect checked indices
-        const indices = Array.from(config.checkedRows).sort((a,b) => a - b);
-        indices.forEach(idx => {
-          if (config.filteredData[idx]) targetRows.push(config.filteredData[idx]);
+          tr.appendChild(td);
         });
-      } else {
-        const start = (config.currentPage - 1) * config.rowsPerPage;
-        targetRows = config.filteredData.slice(start, start + config.rowsPerPage);
-      }
 
-      if (targetRows.length === 0) {
-        showToast("No active data elements captured. Adjust checkmarks/filters.", "warning");
-        return;
-      }
+        const actionTd = document.createElement("td");
+        actionTd.className = "actions-cell";
+        const wrap = document.createElement("div");
+        wrap.className = "row-actions";
 
-      const stringPayload = targetRows
-        .map(r => r[selectedCol])
-        .filter(v => v !== undefined && v !== null)
-        .join('\n');
+        const gbtn = document.createElement("button");
+        gbtn.className = "source-btn";
+        gbtn.textContent = "🔎 Google Word";
+        gbtn.onclick = () => {
+          const q = buildGoogleQueryForRow(row);
+          if (!q) return;
+          window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
+        };
+        wrap.appendChild(gbtn);
 
-      executeSystemClipboardCopy(stringPayload, `Copied ${targetRows.length} cells down to clipboard.`);
-    }
+        const ebtn = document.createElement("button");
+        ebtn.className = "explain-btn";
+        ebtn.textContent = "✨ Explain";
+        ebtn.onclick = () => showExplainModal(prefix, row);
+        wrap.appendChild(ebtn);
 
-    function executeSystemClipboardCopy(text, successMessage) {
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text)
-          .then(() => showToast(successMessage))
-          .catch(() => fallbackCopyEngine(text));
-      } else {
-        fallbackCopyEngine(text);
-      }
-    }
-
-    function fallbackCopyEngine(text) {
-      const tempArea = document.createElement("textarea");
-      tempArea.value = text;
-      tempArea.style.position = "fixed"; 
-      document.body.appendChild(tempArea);
-      tempArea.focus();
-      tempArea.select();
-      try {
-        document.execCommand('copy');
-        showToast("Copied data successfully.");
-      } catch (err) {
-        showToast("System denied clipboard access permissions.", "error");
-      }
-      document.body.removeChild(tempArea);
-    }
-
-    function exportCSV(dbKey, filename) {
-      const config = dbConfig[dbKey];
-      if (config.filteredData.length === 0) {
-        showToast("No data configurations to export.", "warning");
-        return;
-      }
-
-      const csvContent = Papa.unparse({
-        fields: config.visibleColumns,
-        data: config.filteredData
+        actionTd.appendChild(wrap);
+        tr.appendChild(actionTd);
+        frag.appendChild(tr);
       });
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const dlLink = document.createElement("a");
-      
-      if (dlLink.download !== undefined) {
-        const blobUrl = URL.createObjectURL(blob);
-        dlLink.setAttribute("href", blobUrl);
-        dlLink.setAttribute("download", filename);
-        dlLink.style.visibility = 'hidden';
-        document.body.appendChild(dlLink);
-        dlLink.click();
-        document.body.removeChild(dlLink);
-        showToast("CSV exported successfully.");
+      tbody.appendChild(frag);
+
+      const totalPages = Math.max(1, Math.ceil(st.filteredData.length / st.rowsPerPage));
+      if (st.currentPage > totalPages) st.currentPage = totalPages;
+
+      byId(prefix + "RowCount").textContent = st.filteredData.length.toLocaleString();
+      byId(prefix + "CurrentPage").textContent = st.currentPage;
+      byId(prefix + "TotalPages").textContent = totalPages;
+    }
+
+    function sortTable(prefix, column){
+      const st = state[prefix];
+      if (st.sort.column === column) st.sort.asc = !st.sort.asc;
+      else {
+        st.sort.column = column;
+        st.sort.asc = true;
+      }
+
+      st.filteredData.sort((a,b) => {
+        const av = String(a[column] ?? "").toLowerCase();
+        const bv = String(b[column] ?? "").toLowerCase();
+        const cmp = av.localeCompare(bv, undefined, { numeric:true, sensitivity:"base" });
+        return st.sort.asc ? cmp : -cmp;
+      });
+
+      st.currentPage = 1;
+      renderTable(prefix);
+    }
+
+    function prevPage(prefix){
+      const st = state[prefix];
+      if (st.currentPage > 1){
+        st.currentPage--;
+        renderTable(prefix);
       }
     }
 
-    /************************************************************************
-     * 9. PAGINATION MANAGEMENT
-     ************************************************************************/
-    function updatePaginationPanel(dbKey) {
-      const config = dbConfig[dbKey];
-      const maxPages = Math.ceil(config.filteredData.length / config.rowsPerPage) || 1;
-      
-      document.getElementById(`${dbKey}CurrentPage`).innerText = config.currentPage;
-      document.getElementById(`${dbKey}TotalPages`).innerText = maxPages;
-    }
-
-    function prevPage(dbKey) {
-      const config = dbConfig[dbKey];
-      if (config.currentPage > 1) {
-        config.currentPage--;
-        renderTableData(dbKey);
+    function nextPage(prefix){
+      const st = state[prefix];
+      const max = Math.max(1, Math.ceil(st.filteredData.length / st.rowsPerPage));
+      if (st.currentPage < max){
+        st.currentPage++;
+        renderTable(prefix);
       }
     }
 
-    function nextPage(dbKey) {
-      const config = dbConfig[dbKey];
-      const maxPages = Math.ceil(config.filteredData.length / config.rowsPerPage) || 1;
-      if (config.currentPage < maxPages) {
-        config.currentPage++;
-        renderTableData(dbKey);
+    function changeRowsPerPage(prefix){
+      const st = state[prefix];
+      st.rowsPerPage = parseInt(byId(prefix + "RowsPerPage").value, 10) || 100;
+      st.currentPage = 1;
+      renderTable(prefix);
+    }
+
+    function clearAllFilters(prefix){
+      byId(prefix + "GlobalSearch").value = "";
+      byId(prefix + "FilterRow").querySelectorAll("input[data-col]").forEach(i => i.value = "");
+      byId(prefix + "FilterRow").querySelectorAll("select[data-col]").forEach(s => s.value = "");
+      state[prefix].filteredData = [...state[prefix].fullData];
+      state[prefix].currentPage = 1;
+      renderTable(prefix);
+    }
+
+    function exportCSV(prefix, filename){
+      const st = state[prefix];
+      if (!st.filteredData.length) return;
+
+      const headers = getVisibleColumns(prefix);
+      let csv = headers.join(",") + "\n";
+      st.filteredData.forEach(row => {
+        const values = headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`);
+        csv += values.join(",") + "\n";
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename || `${prefix}_filtered.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function populateCopyColumnSelect(prefix){
+      const sel = byId(prefix + "CopyColumnSelect");
+      if (!sel) return;
+      sel.innerHTML = "";
+
+      const cols = getVisibleColumns(prefix);
+      cols.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        sel.appendChild(opt);
+      });
+    }
+
+    function copyColumnValues(prefix){
+      const st = state[prefix];
+      const sel = byId(prefix + "CopyColumnSelect");
+      const scope = byId(prefix + "CopyScope")?.value || "filtered";
+
+      if (!sel || !sel.value){
+        alert("Choose a column first.");
+        return;
       }
+
+      const col = sel.value;
+      let rows = [];
+      if (scope === "page"){
+        const start = (st.currentPage - 1) * st.rowsPerPage;
+        rows = st.filteredData.slice(start, start + st.rowsPerPage);
+      } else {
+        rows = st.filteredData;
+      }
+
+      const lines = rows.map(r => String(r[col] ?? "").trim());
+      navigator.clipboard.writeText(lines.join("\n")).then(() => {
+        alert(`Copied ${lines.length} cells from "${col}".`);
+      }).catch(() => {
+        alert("Copy failed. Please copy manually.");
+      });
     }
 
-    function changeRowsPerPage(dbKey) {
-      const config = dbConfig[dbKey];
-      config.rowsPerPage = parseInt(document.getElementById(`${dbKey}RowsPerPage`).value, 10);
-      config.currentPage = 1;
-      renderTableData(dbKey);
+    function buildGoogleQueryForRow(row){
+      const w = getFirstNonEmpty(row, [
+        "Word","word","FLemma","Lemma","Baseword","GPT_Root","Root","Greek_Latin_Root_1","Compound"
+      ]);
+      return w ? `${w} meaning etymology morphology` : "";
     }
 
-    function updateRowCountDisplay(dbKey) {
-      document.getElementById(`${dbKey}RowCount`).innerText = dbConfig[dbKey].filteredData.length.toLocaleString();
+    // =========================
+    // MAIN TABS + SUBTABS
+    // =========================
+    function openTab(tabName, btnEl){
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      byId(tabName)?.classList.add("active");
+      btnEl?.classList.add("active");
+
+      if (tabName === "word-families") ensureLoaded("wf");
+      if (tabName === "compounds"){
+        const activeSub = document.querySelector("#compounds .subtab-btn.active");
+        if (!activeSub || activeSub.textContent.includes("Main")) ensureLoaded("cm");
+        else ensureLoaded("cs");
+      }
+      if (tabName === "definitions") ensureLoaded("de");
     }
 
-    /************************************************************************
-     * 10. WORD CLOUD ENGINE
-     ************************************************************************/
+    function openCompoundSubTab(id, btnEl){
+      document.querySelectorAll("#compounds .subtab-pane").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll("#compounds .subtab-btn").forEach(b => b.classList.remove("active"));
+      byId(id)?.classList.add("active");
+      btnEl?.classList.add("active");
+
+      if (id === "comp-main") ensureLoaded("cm");
+      if (id === "comp-stats") ensureLoaded("cs");
+    }
+
+    async function ensureLoaded(prefix){
+      if (!DATASETS[prefix].loaded) await loadDataset(prefix);
+    }
+
+    // =========================
+    // COLUMN KEY MODAL
+    // =========================
+    function showColumnKey() {
+      byId("columnModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+    function closeModal() {
+      byId("columnModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
+    // =========================
+    // EXPLAIN MODAL
+    // =========================
+    function buildExplainPrompt(row, task="both"){
+      const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
+      const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
+      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
+      const definition = getFirstNonEmpty(row, ["Definition","Definitions","Etymology","Meaning"]);
+
+      let instruction = "";
+      if (task === "explain") {
+        instruction = "Explain this morphology entry clearly for teachers and students.";
+      } else if (task === "history") {
+        instruction = "Focus on etymology/history if available; if uncertain, say so clearly and avoid guessing.";
+      } else {
+        instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
+      }
+
+      return `You are a literacy and morphology expert supporting teachers.
+
+${instruction}
+
+Row details:
+- Word/Entry: ${word || "(not provided)"}
+- Root: ${root || "(not provided)"}
+- Morphological parts: ${parts || "(not provided)"}
+- Definition/Etymology: ${definition || "(not provided)"}
+
+Please return:
+- Student-friendly explanation
+- Morphology breakdown (prefix/base/suffix where relevant)
+- Meaning connection to root(s)
+- Teaching tip for classroom use
+- 2 quick discussion/check-for-understanding questions`;
+    }
+
+    function showExplainModal(prefix, row){
+      currentExplainRow = row;
+      const task = byId("explainTask").value;
+      byId("explainPreview").value = buildExplainPrompt(row, task);
+      byId("explainModalBackdrop").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function closeExplainModal(){
+      byId("explainModalBackdrop").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
+    function copyExplainPrompt(){
+      const p = byId("explainPreview").value.trim();
+      if (!p){ alert("No prompt to copy."); return; }
+      navigator.clipboard.writeText(p).then(() => alert("Prompt copied.")).catch(() => alert("Copy failed."));
+    }
+
+    function openExplainInAI(){
+      const provider = byId("explainProvider").value;
+      const prompt = byId("explainPreview").value.trim();
+      if (!prompt) return;
+
+      const encoded = encodeURIComponent(prompt);
+      let url = "https://chatgpt.com/";
+      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
+      if (provider === "chatgpt") url = `https://chatgpt.com/?q=${encoded}`;
+      if (provider === "claude") url = "https://claude.ai/new";
+
+      const w = window.open(url, "_blank");
+      if (!w){ alert("Popup blocked. Allow popups and try again."); return; }
+      navigator.clipboard.writeText(prompt).catch(() => {});
+      closeExplainModal();
+    }
+
+    document.addEventListener("change", (e) => {
+      if (e.target && e.target.id === "explainTask" && currentExplainRow){
+        byId("explainPreview").value = buildExplainPrompt(currentExplainRow, e.target.value);
+      }
+    });
+
+    window.addEventListener("click", (e) => {
+      const colModal = byId("columnModal");
+      const exModal = byId("explainModalBackdrop");
+      if (e.target === colModal) closeModal();
+      if (e.target === exModal) closeExplainModal();
+    });
+
+    // =========================
+    // WORD CLOUD
+    // =========================
     function generateWordCloud() {
-      const textVal = document.getElementById('wordInput').value.trim();
-      const canvas = document.getElementById('wordCanvas');
-      const status = document.getElementById('cloudStatus');
+      const status = byId("cloudStatus");
+      const inputEl = byId("wordInput");
+      const canvas = byId("wordCanvas");
 
-      if (!textVal) {
-        showToast("Write or paste dataset arrays first.", "warning");
+      const input = inputEl.value.trim();
+      status.style.color = "#6b7280";
+      status.textContent = "Processing...";
+
+      if (!input) {
+        status.style.color = "red";
+        status.textContent = "Please paste word-frequency data first.";
         return;
       }
 
-      status.innerText = "Reconstructing cloud coordinates...";
-
-      const targetLines = textVal.split('\n');
-      const vectorDataMap = [];
-
-      targetLines.forEach(line => {
-        const sections = line.trim().split(/\s+/);
-        if (sections.length >= 2) {
-          const valueWeight = parseFloat(sections[sections.length - 1]);
-          const keyWord = sections.slice(0, sections.length - 1).join(' ');
-          if (!isNaN(valueWeight)) {
-            vectorDataMap.push([keyWord, valueWeight]);
-          }
-        } else if (sections[0].length > 0) {
-          vectorDataMap.push([sections[0], 25]);
-        }
-      });
-
-      if (vectorDataMap.length === 0) {
-        status.innerText = "Error scanning formatting matrices.";
+      if (typeof window.WordCloud !== "function") {
+        status.style.color = "red";
+        status.textContent = "❌ WordCloud library failed to load.";
         return;
       }
 
-      WordCloud(canvas, {
-        list: vectorDataMap,
-        gridSize: Math.round(15 * canvas.width / 1000),
-        weightFactor: function (size) {
-          return Math.pow(size, 0.72) * (canvas.width / 850);
-        },
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        color: function () {
-          const colors = ['#1d4ed8', '#2563eb', '#3b82f6', '#4f46e5', '#6366f1', '#8b5cf6'];
-          return colors[Math.floor(Math.random() * colors.length)];
-        },
-        rotateRatio: 0.3,
-        rotationSteps: 2,
-        backgroundColor: '#f8fafc',
-        drawOutOfBound: false
-      });
+      const list = [];
+      const lines = input.split(/\r?\n/);
 
-      status.innerText = `Compiled ${vectorDataMap.length} nodes successfully.`;
-      showToast("Word Cloud compiled.");
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        const match = line.match(/^(.*?)\s+(-?\d*\.?\d+)$/);
+        if (!match) continue;
+
+        const word = match[1].trim();
+        const freq = parseFloat(match[2]);
+        if (word && Number.isFinite(freq) && freq > 0) list.push([word, freq]);
+      }
+
+      if (!list.length) {
+        status.style.color = "red";
+        status.textContent = "No valid data. Example: analysis 120";
+        return;
+      }
+
+      list.sort((a, b) => b[1] - a[1]);
+      canvas.width = 1100;
+      canvas.height = 700;
+
+      status.style.color = "#6b7280";
+      status.textContent = `Generating cloud with ${list.length} words...`;
+
+      setTimeout(() => {
+        window.WordCloud(canvas, {
+          list,
+          gridSize: 8,
+          weightFactor: 22,
+          fontFamily: "Segoe UI, Arial, sans-serif",
+          color: "random-dark",
+          rotateRatio: 0.3,
+          backgroundColor: "#ffffff",
+          minSize: 10,
+          shrinkToFit: true
+        });
+        status.style.color = "#15803d";
+        status.textContent = `✅ Success! ${list.length} words generated.`;
+      }, 80);
     }
 
-    /************************************************************************
-     * 11. LLM WORKFLOW PIPELINES
-     ************************************************************************/
-    function addWordsFromFilteredRows() {
-      let currentActiveDb = 'wf';
-      if (activeTabId === 'compounds') {
-        currentActiveDb = document.getElementById('comp-main').classList.contains('active') ? 'cm' : 'cs';
-      } else if (activeTabId === 'definitions') {
-        currentActiveDb = 'de';
+    // =========================
+    // LLM PROMPT BUILDER
+    // =========================
+    function getActiveDatasetPrefix(){
+      const activeMain = document.querySelector(".tab-content.active")?.id;
+      if (activeMain === "word-families") return "wf";
+      if (activeMain === "definitions") return "de";
+      if (activeMain === "compounds"){
+        const sub = document.querySelector("#compounds .subtab-pane.active")?.id;
+        return sub === "comp-stats" ? "cs" : "cm";
       }
+      return "wf";
+    }
 
-      const explicitSelectDb = document.getElementById('llmDatasetPick').value;
-      const finalDbTarget = explicitSelectDb === 'active' ? currentActiveDb : explicitSelectDb;
-      const config = dbConfig[finalDbTarget];
+    function sampleRows(arr, n, mode = "random") {
+      if (!Array.isArray(arr) || !arr.length || n <= 0) return [];
+      if (n >= arr.length) return [...arr];
+      if (mode === "first") return arr.slice(0, n);
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy.slice(0, n);
+    }
 
-      if (!config || config.filteredData.length === 0) {
-        showToast("No active data targets found to extract.", "warning");
+    function addWordsFromFilteredRows(){
+      const status = byId("llmStatus");
+      const pick = byId("llmDatasetPick").value;
+      const prefix = pick === "active" ? getActiveDatasetPrefix() : pick;
+
+      if (!DATASETS[prefix]?.loaded){
+        status.style.color = "red";
+        status.textContent = "❌ Selected dataset is not loaded yet. Open that tab first.";
         return;
       }
 
-      const targetCount = parseInt(document.getElementById('llmDbTake').value, 10) || 10;
-      const selectStrategy = document.getElementById('llmDbMode').value;
-
-      let selections = [];
-      if (selectStrategy === 'random') {
-        const shuffler = [...config.filteredData].sort(() => 0.5 - Math.random());
-        selections = shuffler.slice(0, targetCount);
-      } else {
-        selections = config.filteredData.slice(0, targetCount);
+      const st = state[prefix];
+      const rows = st.filteredData;
+      if (!rows.length){
+        status.style.color = "red";
+        status.textContent = "❌ No filtered rows available.";
+        return;
       }
 
-      const mappingKey = config.columns[0];
-      const wordPayload = selections.map(row => row[mappingKey]).filter(Boolean);
+      const n = Math.max(1, parseInt(byId("llmDbTake").value, 10) || 10);
+      const mode = byId("llmDbMode").value || "random";
+      const picked = sampleRows(rows, n, mode);
 
-      const payloadInput = document.getElementById('llmInput');
-      payloadInput.value = (payloadInput.value + '\n' + wordPayload.join('\n')).trim();
-      
-      showToast(`Injected ${wordPayload.length} tokens into Prompt Workspace.`);
+      const lines = [];
+      const seen = new Set();
+      for (const row of picked){
+        const word = getFirstNonEmpty(row, ["Word","word","FLemma","Lemma","Baseword","Compound"]);
+        const zipf = getFirstNonEmpty(row, ["Word_frq_Zipf","Zipf","Baseword_frq_Zipf","Frequency"]);
+        if (!word) continue;
+        const line = zipf ? `${word} ${zipf}` : word;
+        const key = line.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        lines.push(line);
+      }
+
+      byId("llmInput").value = lines.join("\n");
+      status.style.color = "#15803d";
+      status.textContent = `✅ Added ${lines.length} items from ${DATASETS[prefix].name}.`;
+    }
+
+    function buildPromptText(words, cfg) {
+      const lenMap = {
+        short: "150–250 words per text",
+        medium: "250–450 words per text",
+        long: "450–700 words per text"
+      };
+
+      let prompt = `You are an expert literacy teacher and curriculum writer specializing in morphology instruction.\n\n`;
+      prompt += `TARGET WORDS (use ALL naturally and repeatedly):\n${words.join("\n")}\n\n`;
+      prompt += `SETTINGS:\n`;
+      prompt += `- Text type: ${cfg.textType}\n`;
+      prompt += `- Grade band: ${cfg.grade}\n`;
+      prompt += `- Length: ${lenMap[cfg.length] || lenMap.medium}\n`;
+      prompt += `- Content area/theme: ${cfg.contentArea || "General"}\n`;
+      prompt += `- Teacher focus area: ${cfg.focus || "Morphology, meaning, and usage"}\n\n`;
+
+      prompt += `REQUIRED OUTPUT:\n`;
+
+      if (cfg.activities.some(a => a.includes("Story with comprehension"))) {
+        if (cfg.textType === "informational") prompt += `1) Write one engaging informational text.\n`;
+        else if (cfg.textType === "fiction") prompt += `1) Write one engaging fiction story.\n`;
+        else prompt += `1) Write one worksheet-focused output.\n`;
+      } else if (cfg.textType !== "Worksheet") {
+        prompt += `1) Write one ${cfg.textType} text incorporating the target words.\n`;
+      }
+
+      prompt += `2) For EACH target word include:\n`;
+      prompt += `   - Morphological breakdown (prefix/base/suffix when relevant)\n`;
+      prompt += `   - Student-friendly meaning\n`;
+      prompt += `   - One usage sentence\n\n`;
+
+      if (cfg.activities.length) {
+        prompt += `3) Create these activities:\n`;
+        cfg.activities.forEach((a, i) => {
+          if (a.includes("Word ladder")) prompt += `   ${i + 1}. Word ladder activity.\n`;
+          else if (a.includes("Gap-fill")) prompt += `   ${i + 1}. Gap-fill with 2 gaps per target word.\n`;
+          else if (a.includes("Sentence frames")) prompt += `   ${i + 1}. 10 sentence frames.\n`;
+          else prompt += `   ${i + 1}. ${a}\n`;
+        });
+        prompt += "\n";
+      }
+
+      prompt += `4) Include teacher supports:\n`;
+      prompt += `   - Suggested differentiation (below/on/above level)\n`;
+      prompt += `   - Printable-friendly headings and sections\n\n`;
+      prompt += `Use clear, engaging, classroom-ready language appropriate to the grade level.`;
+
+      return prompt;
     }
 
     function generateWithLLM() {
-      const sourceWordsStr = document.getElementById('llmInput').value.trim();
-      const formatSelection = document.getElementById('llmTextType').value;
-      const gradeTarget = document.getElementById('llmGrade').value;
-      const lengthSelection = document.getElementById('llmLength').value;
-      const contentContext = document.getElementById('llmContentArea').value.trim() || 'General Science Context';
-      const methodologyFocus = document.getElementById('llmFocus').value.trim() || 'identifying roots and stems';
+      const raw = byId("llmInput").value.trim();
+      const status = byId("llmStatus");
+      const out = byId("finalPrompt");
 
-      const taskPackSelections = Array.from(document.querySelectorAll('.act-option:checked')).map(el => el.value);
-
-      if (!sourceWordsStr) {
-        showToast("Target word list empty. Put words in list first.", "warning");
+      if (!raw) {
+        status.style.color = "red";
+        status.textContent = "❌ Please paste target words first.";
         return;
       }
 
-      const wordsArray = sourceWordsStr.split('\n').map(w => w.trim()).filter(Boolean);
+      const words = raw.split(/\r?\n|,\s*/).map(w => w.trim()).filter(Boolean);
+      const activities = Array.from(document.querySelectorAll(".act-option:checked")).map(el => el.value);
 
-      const generatedTemplate = `You are an expert morphological literacy instructor.
-Design an explicit instructional module according to these parameters:
+      const cfg = {
+        textType: byId("llmTextType").value || "informational",
+        grade: byId("llmGrade").value || "4–6",
+        length: byId("llmLength").value || "medium",
+        contentArea: byId("llmContentArea").value.trim() || "",
+        focus: byId("llmFocus").value.trim() || "",
+        activities
+      };
 
-[PARAMETERS]
-- Target Vocabulary: ${wordsArray.join(', ')}
-- Grade target: ${gradeTarget}
-- Primary Format: ${formatSelection} (${lengthSelection} model)
-- Content Area Theme: ${contentContext}
-- Pedagogical Mastery Focus: ${methodologyFocus}
-
-[SCHEMA DIRECTIVES]
-1. Explicit Narrative Text: Create a ${formatSelection} set inside the "${contentContext}" framework. Emphasize target terms by bolding them throughout.
-2. Direct Morphological Breakdown: Provide a table mapping prefix, bound root, base, and suffixes.
-3. Extension Activities:
-${taskPackSelections.map((act, idx) => `   ${idx + 1}. Complete structural design of: ${act}`).join('\n')}
-
-Deliver clean markdown syntax free of conversational preambles.`;
-
-      document.getElementById('finalPrompt').value = generatedTemplate;
-      showToast("Educational Prompt compiled.");
+      out.value = buildPromptText(words, cfg);
+      status.style.color = "#15803d";
+      status.textContent = `✅ Prompt ready (${words.length} words, ${activities.length} activities).`;
     }
 
     function copyLLMPrompt() {
-      const promptText = document.getElementById('finalPrompt').value;
-      if (!promptText) {
-        showToast("No compiled prompt text to copy.", "warning");
+      const out = byId("finalPrompt");
+      const status = byId("llmStatus");
+      const text = out.value.trim();
+      if (!text) {
+        status.style.color = "red";
+        status.textContent = "❌ Generate a prompt first.";
         return;
       }
-      executeSystemClipboardCopy(promptText, "Copied prompt to clipboard.");
+
+      navigator.clipboard.writeText(text).then(() => {
+        status.style.color = "#15803d";
+        status.textContent = "✅ Prompt copied.";
+      }).catch(() => {
+        status.style.color = "red";
+        status.textContent = "❌ Copy failed. Please copy manually.";
+      });
     }
 
     function openInLLM() {
-      const provider = document.getElementById('llmProvider').value;
-      const activePrompt = document.getElementById('finalPrompt').value;
+      const prompt = byId("finalPrompt").value.trim();
+      const provider = byId("llmProvider").value || "chatgpt";
+      const status = byId("llmStatus");
 
-      if (!activePrompt) {
-        showToast("Generate a prompt structure before proceeding.", "warning");
+      if (!prompt) {
+        status.style.color = "red";
+        status.textContent = "❌ Generate a prompt first.";
         return;
       }
 
-      let sandboxUrl = 'https://gemini.google.com/';
-      if (provider === 'chatgpt') sandboxUrl = 'https://chat.openai.com/';
-      if (provider === 'claude') sandboxUrl = 'https://claude.ai/';
+      const w = window.open("about:blank", "_blank");
+      if (!w) {
+        status.style.color = "red";
+        status.textContent = "❌ Popup blocked. Allow popups, then try again.";
+        return;
+      }
 
-      window.open(sandboxUrl, '_blank');
+      const encoded = encodeURIComponent(prompt);
+      let url = "https://chatgpt.com/";
+      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
+      if (provider === "chatgpt") url = `https://chatgpt.com/?q=${encoded}`;
+      if (provider === "claude") url = "https://claude.ai/new";
+      w.location.href = url;
+
+      navigator.clipboard.writeText(prompt).then(() => {
+        status.style.color = "#15803d";
+        status.textContent = "✅ Opened new tab. Prompt copied — paste if not auto-filled.";
+      }).catch(() => {
+        status.style.color = "#15803d";
+        status.textContent = "✅ Opened new tab. Paste prompt manually if needed.";
+      });
     }
 
     function clearLLMForm() {
-      document.getElementById('llmInput').value = '';
-      document.getElementById('finalPrompt').value = '';
-      document.getElementById('llmContentArea').value = '';
-      document.getElementById('llmFocus').value = '';
-      showToast("Workspace configuration reset.");
-    }
-
-    /************************************************************************
-     * 12. EMBEDDED LOCAL WEBLLM ENGINE PIPELINE (Actual & Dynamic Mock Fallback)
-     ************************************************************************/
-    let webLLEngine = null;
-
-    async function initWebLLM() {
-      const statusEl = document.getElementById('webllmStatus');
-      const progressContainer = document.getElementById('webllmProgressContainer');
-      const progressBar = document.getElementById('webllmProgressBar');
-      const progressLabel = document.getElementById('webllmProgressLabel');
-      const progressPercent = document.getElementById('webllmProgressPercent');
-      const selectedModel = document.getElementById('webllmModel').value;
-
-      statusEl.innerText = "Connecting to Local WebGPU context...";
-      progressContainer.classList.remove('hidden');
-
-      try {
-        // Attempt dynamically importing web-llm ESM modules
-        statusEl.innerText = "Loading ESM Module CDN links...";
-        progressBar.style.width = "20%";
-        progressPercent.innerText = "20%";
-        progressLabel.innerText = "Downloading ESM modules...";
-        
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Progress emulation sequence showing download pipelines safely
-        const steps = [
-          { p: 40, txt: "Initializing WebGPU adapters..." },
-          { p: 60, txt: "Allocating model dictionary schemas..." },
-          { p: 85, txt: "Compiling local WGSL shaders..." },
-          { p: 100, txt: "Model weights indexed successfully!" }
-        ];
-
-        for(const step of steps) {
-          progressBar.style.width = `${step.p}%`;
-          progressPercent.innerText = `${step.p}%`;
-          progressLabel.innerText = step.txt;
-          await new Promise(resolve => setTimeout(resolve, 700));
-        }
-
-        statusEl.innerText = `Llama local sandbox compiled. Mode: Running on WebGPU (${selectedModel}).`;
-        showToast("WebLLM Engine is now loaded and running locally.");
-      } catch (error) {
-        statusEl.innerText = "GPU thread allocation error. Falling back to simulated local pipeline...";
-        showToast("Local WebGPU error, using simulation.", "warning");
-      }
-    }
-
-    function sendWebLLM() {
-      const input = document.getElementById('webllmInput').value.trim();
-      const chat = document.getElementById('webllmChat');
-      if(!input) return;
-
-      // Append user prompt
-      const userBubble = document.createElement('div');
-      userBubble.className = "p-3 bg-slate-200 text-slate-800 rounded-xl self-end max-w-[80%]";
-      userBubble.innerHTML = `<strong>You:</strong> ${input}`;
-      chat.appendChild(userBubble);
-
-      document.getElementById('webllmInput').value = '';
-
-      // Simulated streaming model output
-      const modelBubble = document.createElement('div');
-      modelBubble.className = "p-3 bg-brand-50 text-brand-900 rounded-xl self-start max-w-[80%] italic";
-      modelBubble.innerHTML = `<strong>AI (Thinking...):</strong> Structuring offline morphological variables...`;
-      chat.appendChild(modelBubble);
-
-      setTimeout(() => {
-        modelBubble.classList.remove('italic');
-        modelBubble.innerHTML = `
-          <strong>AI (Local Llama-3):</strong> Generated Offline Worksheet for words listed:
-          <br/><br/>
-          <strong>1. Text Module:</strong> "Exploring structural patterns helps decipher vocabulary derivations."
-          <br/><br/>
-          <strong>2. Root Breakdown Chart:</strong>
-          <br/> - *Morphology* = morph (shape) + ology (study of)
-          <br/> - *Morpheme* = morph (shape) + eme (elemental unit)
-          <br/><br/>
-          <em>Offline pipeline computed safely on device.</em>`;
-        chat.scrollTop = chat.scrollHeight;
-      }, 1500);
-
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    function resetWebLLMChat() {
-      const chat = document.getElementById('webllmChat');
-      chat.innerHTML = `
-        <div class="p-3 bg-blue-50 text-blue-900 rounded-xl self-start max-w-[80%]">
-          <strong>System Agent:</strong> Chat thread cleared. Write a query to synthesize structured offline lesson items.
-        </div>`;
-      showToast("Chat thread reset successfully.");
-    }
-
-    /************************************************************************
-     * 13. NAVIGATION & POPUP INTERACTION LAYERS
-     ************************************************************************/
-    function openTab(tabId, targetBtn) {
-      activeTabId = tabId;
-
-      const tabContainers = document.querySelectorAll('.tab-content');
-      tabContainers.forEach(container => {
-        container.classList.add('hidden');
-        container.classList.remove('block');
+      ["llmInput", "llmContentArea", "llmFocus", "finalPrompt"].forEach(id => {
+        const el = byId(id);
+        if (el) el.value = "";
       });
-
-      const buttons = document.querySelectorAll('.tab-btn');
-      buttons.forEach(btn => {
-        btn.className = "tab-btn flex-1 min-w-[130px] py-3 px-4 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/50 tab-transition";
-      });
-
-      const selectedContainer = document.getElementById(tabId);
-      if (selectedContainer) {
-        selectedContainer.classList.remove('hidden');
-        selectedContainer.classList.add('block');
-      }
-
-      targetBtn.className = "tab-btn flex-1 min-w-[130px] py-3 px-4 rounded-xl text-sm font-semibold tab-transition bg-white text-brand-700 shadow-sm";
-
-      if (tabId === 'word-families') loadTabDataset('wf');
-      if (tabId === 'compounds') loadTabDataset('cm');
-      if (tabId === 'definitions') loadTabDataset('de');
+      byId("llmStatus").textContent = "";
     }
 
-    function openCompoundSubTab(paneId, targetBtn) {
-      const subtabContainer = targetBtn.closest('.tab-content');
-      
-      const panes = subtabContainer.querySelectorAll('.subtab-pane');
-      panes.forEach(pane => {
-        pane.classList.add('hidden');
-        pane.classList.remove('block');
-      });
+    function refreshPage() { location.reload(); }
 
-      const subButtons = subtabContainer.querySelectorAll('.subtab-btn');
-      subButtons.forEach(btn => {
-        btn.className = "subtab-btn flex-1 py-2 px-3 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white/40";
-      });
-
-      const selectedPane = document.getElementById(paneId);
-      if (selectedPane) {
-        selectedPane.classList.remove('hidden');
-        selectedPane.classList.add('block');
-      }
-
-      targetBtn.className = "subtab-btn flex-1 py-2 px-3 text-xs font-bold rounded-lg bg-white text-brand-700 shadow-sm";
-
-      if (paneId === 'comp-main') loadTabDataset('cm');
-      if (paneId === 'comp-stats') loadTabDataset('cs');
-    }
-
-    function inspectRowElement(dbKey, absoluteIndex) {
-      const config = dbConfig[dbKey];
-      const dataEntity = config.filteredData[absoluteIndex];
-      if (!dataEntity) return;
-
-      document.getElementById('sourceModalTitle').innerText = String(dataEntity[config.columns[0]] || "Record Specs View");
-      
-      let htmlPayload = `
-        <div class="border border-slate-200 rounded-xl overflow-hidden shadow-inner">
-          <table class="w-full text-xs text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-100 border-b border-slate-200">
-                <th class="p-3 font-bold text-slate-700 w-1/3">Linguistic Field</th>
-                <th class="p-3 font-bold text-slate-700">Database Entry Value</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 bg-white">`;
-
-      for (const [key, value] of Object.entries(dataEntity)) {
-        htmlPayload += `
-          <tr>
-            <td class="p-3 font-bold text-slate-900 bg-slate-50/50">${key}</td>
-            <td class="p-3 text-slate-600 whitespace-pre-wrap break-all">${value !== null && value !== undefined ? value : ''}</td>
-          </tr>`;
-      }
-
-      htmlPayload += `</tbody></table></div>`;
-
-      document.getElementById('sourceModalBody').innerHTML = htmlPayload;
-      openModal('sourceModal');
-    }
-
-    function openModal(modalId) {
-      const targetModal = document.getElementById(modalId);
-      if (targetModal) {
-        targetModal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-      }
-    }
-
-    function closeModal(modalId) {
-      const targetModal = document.getElementById(modalId);
-      if (targetModal) {
-        targetModal.classList.add('hidden');
-        document.body.style.overflow = '';
-      }
-    }
-
-    window.addEventListener('click', function(e) {
-      if (e.target.id === 'columnModal') closeModal('columnModal');
-      if (e.target.id === 'sourceModal') closeModal('sourceModal');
+    // ===================================
+    // IN-MEMORY FIRST LOAD CYCLE MOUNT
+    // ===================================
+    window.addEventListener("load", async () => {
+      await ensureLoaded("wf");
+      setupExcelGridListeners();
     });
   </script>
+
+<script type="module">
+  import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+  let engine = null;
+  let messages = [
+    { role: "system", content: "You are a helpful literacy assistant for teachers." }
+  ];
+
+  const statusEl = () => document.getElementById("webllmStatus");
+  const modelEl = () => document.getElementById("webllmModel");
+  const chatEl = () => document.getElementById("webllmChat");
+  const inputEl = () => document.getElementById("webllmInput");
+  const loadBtnEl = () => document.getElementById("loadWebLLMBtn");
+
+  function isChatCapableModelId(id = "") {
+    const s = id.toLowerCase();
+    return !s.includes("embed") && !s.includes("embedding") && !s.includes("rerank");
+  }
+
+  function addChat(role, text) {
+    const wrap = document.createElement("div");
+    wrap.style.margin = "8px 0";
+    wrap.innerHTML = `<strong>${role}:</strong> <span></span>`;
+    wrap.querySelector("span").textContent = text;
+    chatEl().appendChild(wrap);
+    chatEl().scrollTop = chatEl().scrollHeight;
+    return wrap.querySelector("span");
+  }
+
+  function setStatus(msg, color = "#374151") {
+    const el = statusEl();
+    if (el) { el.textContent = msg; el.style.color = color; }
+  }
+
+  function populateModels() {
+    const list = (webllm.prebuiltAppConfig?.model_list || [])
+      .filter(m => isChatCapableModelId(m.model_id));
+
+    const select = modelEl();
+    select.innerHTML = "";
+
+    if (!list.length) {
+      const opt = document.createElement("option");
+      opt.textContent = "No chat models available";
+      select.appendChild(opt);
+      return;
+    }
+
+    const sorted = [...list].sort((a, b) => {
+      const getSize = m => parseFloat(m.model_id.match(/(\d+\.?\d*)/)?.[1] || 999);
+      return getSize(a) - getSize(b);
+    });
+
+    sorted.forEach(model => {
+      const opt = document.createElement("option");
+      opt.value = model.model_id;
+      const vram = model.vram_required_MB ? ` ~${Math.round(model.vram_required_MB / 1024)}GB` : "";
+      opt.textContent = `${model.model_id}${vram}`;
+      select.appendChild(opt);
+    });
+  }
+
+  async function initWebLLMInternal() {
+    if (!window.isSecureContext) { setStatus("❌ WebLLM needs HTTPS (or localhost)", "red"); return; }
+    if (!navigator.gpu) { setStatus("❌ WebGPU not available in this browser/device", "red"); return; }
+
+    const selected = modelEl().value;
+    if (!selected) { setStatus("❌ Please select a model first", "red"); return; }
+    if (!isChatCapableModelId(selected)) { setStatus("❌ Select a chat/instruct model.", "red"); return; }
+
+    loadBtnEl().disabled = true;
+    setStatus("Loading model... (first time can take 30–180 seconds)", "#1d4ed8");
+
+    try {
+      engine = await webllm.CreateMLCEngine(selected, {
+        initProgressCallback: (report) => {
+          const pct = report.progress ? ` ${(report.progress * 100).toFixed(0)}%` : "";
+          setStatus(`Loading ${selected}... ${report.text || ""}${pct}`, "#1d4ed8");
+        }
+      });
+      setStatus(`✅ Model loaded: ${selected}`, "#15803d");
+      addChat("System", `Model ready: ${selected}`);
+    } catch (err) {
+      console.error(err);
+      setStatus(`❌ Failed to load model: ${err?.message || err}`, "red");
+    } finally {
+      loadBtnEl().disabled = false;
+    }
+  }
+
+  async function sendWebLLMInternal() {
+    if (!engine) { setStatus("❌ Load a model first.", "red"); return; }
+
+    const userText = inputEl().value.trim();
+    if (!userText) return;
+
+    inputEl().value = "";
+    addChat("You", userText);
+    messages.push({ role: "user", content: userText });
+
+    const assistantSpan = addChat("AI", "");
+    let acc = "";
+
+    try {
+      const stream = await engine.chat.completions.create({
+        messages,
+        stream: true,
+        temperature: 0.7
+      });
+
+      for await (const chunk of stream) {
+        const token = chunk?.choices?.[0]?.delta?.content || "";
+        acc += token;
+        assistantSpan.textContent = acc;
+        chatEl().scrollTop = chatEl().scrollHeight;
+      }
+
+      messages.push({ role: "assistant", content: acc || "(No output)" });
+      setStatus("✅ Response complete.", "#15803d");
+    } catch (err) {
+      console.error("WebLLM generation error:", err);
+      setStatus(`❌ Generation failed: ${err?.message || err}`, "red");
+    }
+  }
+
+  function resetWebLLMChatInternal() {
+    messages = [{ role: "system", content: "You are a helpful literacy assistant for teachers." }];
+    chatEl().innerHTML = "";
+    setStatus("Chat reset.", "#374151");
+  }
+
+  window.initWebLLM = initWebLLMInternal;
+  window.sendWebLLM = sendWebLLMInternal;
+  window.resetWebLLMChat = resetWebLLMChatInternal;
+
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      populateModels();
+      setStatus("Select a model, then click 'Load Model'.", "#374151");
+    }, 600);
+  });
+</script>
 </body>
 </html>
