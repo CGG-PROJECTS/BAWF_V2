@@ -1264,28 +1264,35 @@ function detectDropdownColumns(prefix){
       columns.forEach(col => {
         const td = document.createElement("td");
 
-        if (isDropdownColumn(prefix, col)) {
-          const sel = document.createElement("select");
-          sel.dataset.col = col;
-          sel.onchange = () => filterTable(prefix);
+   if (isDropdownColumn(prefix, col)) {
+  const sel = document.createElement("select");
+  sel.dataset.col = col;
+  sel.onchange = () => filterTable(prefix);
 
-          const all = document.createElement("option");
-          all.value = "";
-          all.textContent = "All";
-          sel.appendChild(all);
+  const all = document.createElement("option");
+  all.value = "";
+  all.textContent = "All";
+  sel.appendChild(all);
 
-const unique = [...new Set(st.fullData.map(r => normalizeSpaces(r[col])).filter(Boolean))];
+  const unique = [...new Set(st.fullData.map(r => normalizeSpaces(r[col])).filter(Boolean))];
 
-const numericLike = unique.length && unique.every(isLikelyNumeric);
-if (numericLike) {
-  unique.sort((a,b) => parseFloat(a) - parseFloat(b));
-} else {
-  unique.sort((a,b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  const numericLike = unique.length && unique.every(isLikelyNumeric);
+  if (numericLike) {
+    unique.sort((a,b) => parseFloat(a) - parseFloat(b));
+  } else {
+    unique.sort((a,b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }
+
+  unique.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+
+  td.appendChild(sel);
 }
-
-
-          td.appendChild(sel);
-        } else {
+ else {
           const input = document.createElement("input");
           input.type = "text";
           input.placeholder = "Filter...";
