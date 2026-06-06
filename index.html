@@ -588,26 +588,17 @@ const DATASETS = {
     sortBy: "",
     sortDesc: false
   }
-  const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
+};
+
+const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
 
 function chooseDefaultColumns(key, headers){
-  // compounds: show all real headers
   if (key === "cm" || key === "cs") return [...headers];
-
-  // word families: prefer useful starter columns
-  const preferred = [
-    "Word",
-    "Word_frq_Zipf",
-    "FLemma",
-    "Baseword",
-    "Baseword_frq_Zipf",
-    "GPT_Root",
-    "Greek_Latin_Root_1"
-  ];
-
+  const preferred = ["Word","Word_frq_Zipf","FLemma","Baseword","Baseword_frq_Zipf","GPT_Root","Greek_Latin_Root_1"];
   const found = preferred.filter(col => headers.includes(col));
   return found.length ? found : headers.slice(0, 12);
 }
+
 
 };
 
@@ -650,11 +641,18 @@ function openTab(tabName, btnEl){
   byId(tabName)?.classList.add("active");
   btnEl?.classList.add("active");
 
- if (tabName === "word-families") activeKey = "wf";
-if (tabName === "compounds") {
-  const activeSub = document.querySelector("#compounds .subtab-pane.active")?.id;
-  activeKey = activeSub === "comp-stats" ? "cs" : "cm";
+  if (tabName === "word-families") {
+    activeKey = "wf";
+    ensureLoaded("wf");
+  }
+
+  if (tabName === "compounds") {
+    const activeSub = document.querySelector("#compounds .subtab-pane.active")?.id;
+    activeKey = activeSub === "comp-stats" ? "cs" : "cm";
+    ensureLoaded(activeKey);
+  }
 }
+
 
 }
 
@@ -689,6 +687,8 @@ if (tabName === "compounds") {
 config.filtered = [];
 config.all = [];
 config.visible = [];
+        config.loaded = true;
+
 
         Papa.parse(blob, {
           header: true,
