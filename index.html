@@ -5,32 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BAWF Morphological Database</title>
 
-  <!-- Data parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 
-  <!-- Word cloud -->
   <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
-
-  <!-- Tailwind CSS (For neat, robust, clean controls layouts and polished elements) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#f0f4f8',
-              100: '#dbeafe',
-              600: '#1d4ed8',
-              700: '#1e40af',
-              800: '#1e40af',
-            }
-          }
-        }
-      }
-    }
-  </script>
 
   <style>
     body {
@@ -39,7 +17,7 @@
       background: linear-gradient(to bottom, #fdfdfd, #f8f8f8);
       color:#111827;
     }
-    .container-xl {
+    .container {
       max-width:2800px;
       margin:30px auto;
       padding:32px 34px;
@@ -283,13 +261,15 @@
       display:inline-flex; align-items:center; gap:10px;
       padding:10px 20px;
       font-size:1rem; font-weight:600;
-      background:#1d4ed8; color:white; text-decoration:none;
+      background:#1d4ed8; color:white;
+      text-decoration:none;
       border-radius:9px;
     }
     .download-btn:hover { background:#1e40af; }
 
     .subtabs {
-      display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+      display:flex;
+      gap:10px; justify-content:center; flex-wrap:wrap;
       margin: 4px 0 18px;
     }
     .subtab-btn {
@@ -314,7 +294,8 @@
     }
     #wordCanvas {
       display:block; margin:24px auto 0; max-width:100%;
-      border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.08); background:#fff;
+      border-radius:12px;
+      box-shadow:0 6px 20px rgba(0,0,0,0.08); background:#fff;
     }
 
     .modal {
@@ -367,44 +348,10 @@
     }
 
     body.modal-open { overflow:hidden; }
-
-    /* Excel Drag Selection Highlight styles */
-    .excel-selected {
-      background-color: #dbeafe !important;
-      outline: 2px solid #2563eb;
-      outline-offset: -2px;
-    }
-    .drag-selecting {
-      user-select: none;
-    }
-
-    /* Column dropdown popover button layout */
-    .column-manager-popover {
-      position: relative;
-      display: inline-block;
-    }
-    .column-manager-dropdown {
-      display: none;
-      position: absolute;
-      right: 0;
-      top: 100%;
-      z-index: 100;
-      width: 280px;
-      max-height: 350px;
-      overflow-y: auto;
-      background: white;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      padding: 10px;
-    }
-    .column-manager-dropdown.show {
-      display: block;
-    }
   </style>
 </head>
 <body>
-  <div class="container-xl">
+  <div class="container">
     <header>
       <h1>BAWF Morphological Database</h1>
       <div class="tagline">Morphology, roots, affixes, compounds, and etymology</div>
@@ -416,15 +363,6 @@
       <img src="https://upload.wikimedia.org/wikipedia/commons/3/3b/Sign_word_matrix.png" alt="Word matrix showing family relationships" class="visual-aid">
       <img src="https://www.the74million.org/wp-content/uploads/2019/05/Classroom-library.jpg" alt="Group of children reading books in a circle on the floor" class="visual-aid">
       <img src="https://as1.ftcdn.net/jpg/03/08/88/54/1000_F_308885463_Y68hiTN0ZpcqBOLPARkMawFvhFut3N7S.jpg" alt="Teacher and young children reading a colorful book together" class="visual-aid">
-    </div>
-
-    <!-- Instructions for Excel Select Functionality -->
-    <div class="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl p-4 mb-4 flex items-center justify-between gap-4 text-sm max-w-[1850px] mx-auto w-[96%]">
-      <div class="flex items-center gap-2">
-        <span class="font-bold">✨ Excel Selection Active:</span>
-        <span>Click and drag across any table cells to highlight a range. Press <kbd class="bg-white border border-blue-300 px-1.5 py-0.5 rounded text-xs font-mono">Ctrl+C</kbd> / <kbd class="bg-white border border-blue-300 px-1.5 py-0.5 rounded text-xs font-mono">Cmd+C</kbd> or click <strong>Copy Selected Cells</strong> to grab highlighted values instantly!</span>
-      </div>
-      <button onclick="copyHighlightedCells()" class="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition">Copy Selected Cells</button>
     </div>
 
     <div class="info-card">
@@ -453,7 +391,6 @@
       <button class="key-btn" onclick="showColumnKey()">📋 Column Information Key</button>
     </div>
 
-    <!-- Main Tabs -->
     <div class="tabs">
       <button class="tab-btn active" onclick="openTab('word-families', this)">Word Families</button>
       <button class="tab-btn" onclick="openTab('compounds', this)">Compound Words</button>
@@ -462,7 +399,6 @@
       <button class="tab-btn" onclick="openTab('llm-generator', this)">🪄 Generate AI Stories & Worksheets!</button>
     </div>
 
-    <!-- WORD FAMILIES -->
     <div id="word-families" class="tab-content active">
       <div class="download-section">
         <a class="download-btn" href="BAWF_FINAL.csv.gz" download>↓ Download Word Families (.csv.gz)</a>
@@ -474,23 +410,22 @@
           <button class="db-btn" onclick="clearAllFilters('wf')">🧹 Clear</button>
           <button class="db-btn" onclick="exportCSV('wf', 'BAWF_Word_Families_Filtered.csv')">↓ Export CSV</button>
 
-          <!-- NEATER COLUMN MANAGER DROP-DOWN POP-OVER -->
-          <div class="column-manager-popover">
-            <button class="db-btn secondary flex items-center gap-2" onclick="toggleColumnDropdown('wf')">
-              ⚙️ Manage Columns <span class="text-xs">▼</span>
-            </button>
-            <div id="wfColumnDropdown" class="column-manager-dropdown text-left shadow-lg">
-              <div class="font-bold text-sm text-slate-700 pb-2 mb-2 border-b border-slate-200">Toggle Visible Columns</div>
-              <div id="wfColumnList" class="space-y-1.5 max-h-[250px] overflow-y-auto"></div>
-            </div>
-          </div>
+          <select id="wfCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+          <select id="wfCopyScope" class="db-select">
+            <option value="filtered" selected>Copy all filtered rows</option>
+            <option value="page">Copy current page only</option>
+          </select>
+          <button class="db-btn secondary" onclick="copyColumnValues('wf')">📋 Copy Column Cells</button>
+
+          <select id="wfAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+          <button id="wfAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
         </div>
 
         <div class="db-meta">Showing <strong id="wfRowCount">0</strong> rows</div>
         <div id="wfLoading" class="db-loading">Loading Word Families dataset...</div>
 
         <div class="db-table-wrap">
-          <table id="wfTable" class="db-table select-none" style="display:none;">
+          <table id="wfTable" class="db-table" style="display:none;">
             <thead>
               <tr id="wfHeaderRow"></tr>
               <tr id="wfFilterRow" class="filter-row"></tr>
@@ -512,14 +447,12 @@
       </div>
     </div>
 
-    <!-- COMPOUNDS -->
     <div id="compounds" class="tab-content">
       <div class="subtabs">
         <button class="subtab-btn active" onclick="openCompoundSubTab('comp-main', this)">Main Compound</button>
         <button class="subtab-btn" onclick="openCompoundSubTab('comp-stats', this)">Word Family Size Stats</button>
       </div>
 
-      <!-- Compound Main -->
       <div id="comp-main" class="subtab-pane active">
         <div class="download-section">
           <a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>↓ Download Compound Main (.csv.gz)</a>
@@ -531,23 +464,22 @@
             <button class="db-btn" onclick="clearAllFilters('cm')">🧹 Clear</button>
             <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
 
-            <!-- NEATER COLUMN MANAGER DROP-DOWN POP-OVER -->
-            <div class="column-manager-popover">
-              <button class="db-btn secondary flex items-center gap-2" onclick="toggleColumnDropdown('cm')">
-                ⚙️ Manage Columns <span class="text-xs">▼</span>
-              </button>
-              <div id="cmColumnDropdown" class="column-manager-dropdown text-left shadow-lg">
-                <div class="font-bold text-sm text-slate-700 pb-2 mb-2 border-b border-slate-200">Toggle Visible Columns</div>
-                <div id="cmColumnList" class="space-y-1.5 max-h-[250px] overflow-y-auto"></div>
-              </div>
-            </div>
+            <select id="cmCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+            <select id="cmCopyScope" class="db-select">
+              <option value="filtered" selected>Copy all filtered rows</option>
+              <option value="page">Copy current page only</option>
+            </select>
+            <button class="db-btn secondary" onclick="copyColumnValues('cm')">📋 Copy Column Cells</button>
+
+            <select id="cmAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+            <button id="cmAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
           </div>
 
           <div class="db-meta">Showing <strong id="cmRowCount">0</strong> rows</div>
           <div id="cmLoading" class="db-loading">Loading Compound Main dataset...</div>
 
           <div class="db-table-wrap">
-            <table id="cmTable" class="db-table select-none" style="display:none;">
+            <table id="cmTable" class="db-table" style="display:none;">
               <thead>
                 <tr id="cmHeaderRow"></tr>
                 <tr id="cmFilterRow" class="filter-row"></tr>
@@ -569,7 +501,6 @@
         </div>
       </div>
 
-      <!-- Compound Stats -->
       <div id="comp-stats" class="subtab-pane">
         <div class="download-section">
           <a class="download-btn" href="BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz" download>↓ Download Compound Stats (.csv.gz)</a>
@@ -581,23 +512,22 @@
             <button class="db-btn" onclick="clearAllFilters('cs')">🧹 Clear</button>
             <button class="db-btn" onclick="exportCSV('cs', 'BAWF_Compound_Stats_Filtered.csv')">↓ Export CSV</button>
 
-            <!-- NEATER COLUMN MANAGER DROP-DOWN POP-OVER -->
-            <div class="column-manager-popover">
-              <button class="db-btn secondary flex items-center gap-2" onclick="toggleColumnDropdown('cs')">
-                ⚙️ Manage Columns <span class="text-xs">▼</span>
-              </button>
-              <div id="csColumnDropdown" class="column-manager-dropdown text-left shadow-lg">
-                <div class="font-bold text-sm text-slate-700 pb-2 mb-2 border-b border-slate-200">Toggle Visible Columns</div>
-                <div id="csColumnList" class="space-y-1.5 max-h-[250px] overflow-y-auto"></div>
-              </div>
-            </div>
+            <select id="csCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+            <select id="csCopyScope" class="db-select">
+              <option value="filtered" selected>Copy all filtered rows</option>
+              <option value="page">Copy current page only</option>
+            </select>
+            <button class="db-btn secondary" onclick="copyColumnValues('cs')">📋 Copy Column Cells</button>
+
+            <select id="csAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+            <button id="csAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
           </div>
 
           <div class="db-meta">Showing <strong id="csRowCount">0</strong> rows</div>
           <div id="csLoading" class="db-loading">Loading Compound Stats dataset...</div>
 
           <div class="db-table-wrap">
-            <table id="csTable" class="db-table select-none" style="display:none;">
+            <table id="csTable" class="db-table" style="display:none;">
               <thead>
                 <tr id="csHeaderRow"></tr>
                 <tr id="csFilterRow" class="filter-row"></tr>
@@ -620,7 +550,6 @@
       </div>
     </div>
 
-    <!-- DEFINITIONS -->
     <div id="definitions" class="tab-content">
       <div class="download-section">
         <a class="download-btn" href="BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz" download>↓ Download Definitions & Etymology (.csv.gz)</a>
@@ -632,23 +561,22 @@
           <button class="db-btn" onclick="clearAllFilters('de')">🧹 Clear</button>
           <button class="db-btn" onclick="exportCSV('de', 'BAWF_Definitions_Filtered.csv')">↓ Export CSV</button>
 
-          <!-- NEATER COLUMN MANAGER DROP-DOWN POP-OVER -->
-          <div class="column-manager-popover">
-            <button class="db-btn secondary flex items-center gap-2" onclick="toggleColumnDropdown('de')">
-              ⚙️ Manage Columns <span class="text-xs">▼</span>
-            </button>
-            <div id="deColumnDropdown" class="column-manager-dropdown text-left shadow-lg">
-              <div class="font-bold text-sm text-slate-700 pb-2 mb-2 border-b border-slate-200">Toggle Visible Columns</div>
-              <div id="deColumnList" class="space-y-1.5 max-h-[250px] overflow-y-auto"></div>
-            </div>
-          </div>
+          <select id="deCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+          <select id="deCopyScope" class="db-select">
+            <option value="filtered" selected>Copy all filtered rows</option>
+            <option value="page">Copy current page only</option>
+          </select>
+          <button class="db-btn secondary" onclick="copyColumnValues('de')">📋 Copy Column Cells</button>
+
+          <select id="deAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+          <button id="deAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
         </div>
 
         <div class="db-meta">Showing <strong id="deRowCount">0</strong> rows</div>
         <div id="deLoading" class="db-loading">Loading Definitions & Etymology dataset...</div>
 
         <div class="db-table-wrap">
-          <table id="deTable" class="db-table select-none" style="display:none;">
+          <table id="deTable" class="db-table" style="display:none;">
             <thead>
               <tr id="deHeaderRow"></tr>
               <tr id="deFilterRow" class="filter-row"></tr>
@@ -670,10 +598,9 @@
       </div>
     </div>
 
-    <!-- WORD CLOUD -->
     <div id="wordcloud" class="tab-content">
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p><strong>Instructions:</strong> Paste Word + Frequency (one per line) or drag-select them from our datatables and paste!</p>
+        <p><strong>Instructions:</strong> Paste Word + Frequency (one per line)</p>
         <textarea id="wordInput" placeholder="analysis 120&#10;morphology 95&#10;prefix 78"></textarea><br><br>
         <button id="generateBtn" onclick="generateWordCloud()" class="key-btn">Generate Word Cloud</button>
         <p id="cloudStatus" style="margin-top:12px; font-weight:500;"></p>
@@ -681,7 +608,6 @@
       <canvas id="wordCanvas" width="1100" height="700"></canvas>
     </div>
 
-    <!-- LLM TAB -->
     <div id="llm-generator" class="tab-content">
       <div style="max-width:1100px; margin:0 auto;">
         <h2 style="text-align:center; color:#1d4ed8;">🪄 AI Prompt Generator</h2>
@@ -700,1583 +626,855 @@
           </div>
           <div>
             <label><strong>How many rows</strong></label><br>
-            <input id="llmDbTake" type="number" min="1" value="10" style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;">
+            <input id="llmRowCount" type="number" value="10" min="1" max="100" style="width:90%; padding:10px; border-radius:8px; border:1px solid #ccc;" />
           </div>
           <div>
-            <label><strong>Pick mode</strong></label><br>
-            <select id="llmDbMode" style="width:100%; padding:10px; border-radius:8px;">
-              <option value="random" selected>Random</option>
-              <option value="first">First rows</option>
-            </select>
-          </div>
-          <div style="display:flex; align-items:flex-end;">
-            <button class="key-btn" style="margin:0; width:100%;" onclick="addWordsFromFilteredRows()">⬇ Add Word + Frequency from Filtered Rows</button>
-          </div>
-        </div>
-
-        <textarea id="llmInput" rows="8" style="width:100%; padding:14px; font-family:monospace; font-size:1.02rem; border:2px solid #d1d5db; border-radius:10px; resize:vertical;"
-          placeholder="Paste target words (one per line)&#10;unhappy&#10;misunderstand&#10;transport&#10;attract&#10;contract"></textarea>
-
-        <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:14px 0;">
-          <div>
-            <label><strong>Prompt Type</strong></label><br>
-            <select id="llmTextType" style="width:100%; padding:10px; border-radius:8px;">
-              <option value="informational">Informational Text</option>
-              <option value="fiction">Fiction Text</option>
-              <option value="Worksheet">Worksheet</option>
+            <label><strong>Text Target Category</strong></label><br>
+            <select id="llmType" style="width:100%; padding:10px; border-radius:8px;">
+              <option value="Story with Target Vocabulary">Decodable / Controlled Story</option>
+              <option value="Reading Comprehension Passage">Passage with Comprehension Questions</option>
+              <option value="Vocabulary Match and Fill-in-the-blank Sheet">Worksheet (Match & Sentences)</option>
+              <option value="Morphological Analysis breakdown exercise">Morphological Breakdown Guide</option>
             </select>
           </div>
           <div>
-            <label><strong>Grade Level</strong></label><br>
+            <label><strong>Target Grade Level</strong></label><br>
             <select id="llmGrade" style="width:100%; padding:10px; border-radius:8px;">
-              <option>K–1</option>
-              <option>2–3</option>
-              <option selected>4–6</option>
-              <option>7–8</option>
+              <option value="Kindergarten">Kindergarten</option>
+              <option value="1st Grade">1st Grade</option>
+              <option value="2nd Grade" selected>2nd Grade</option>
+              <option value="3rd Grade">3rd Grade</option>
+              <option value="4th Grade">4th Grade</option>
+              <option value="5th Grade">5th Grade</option>
+              <option value="Middle School">Middle School</option>
             </select>
           </div>
-          <div>
-            <label><strong>Length</strong></label><br>
-            <select id="llmLength" style="width:100%; padding:10px; border-radius:8px;">
-              <option value="short">Short</option>
-              <option value="medium" selected>Medium</option>
-              <option value="long">Long</option>
-            </select>
-          </div>
-          <div>
-            <label><strong>Content Area</strong></label><br>
-            <input id="llmContentArea" type="text" placeholder="e.g., Industrial Revolution, Photosynthesis, Ancient Rome"
-              style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;">
-          </div>
         </div>
 
-        <label><strong>Teacher Focus Area (black box)</strong></label>
-        <textarea id="llmFocus" rows="3" style="width:100%; padding:12px; border-radius:10px; background:#111827; color:#f9fafb; border:1px solid #374151; font-family:inherit;"
-          placeholder="Type focus here (e.g., prefixes un-/re-, context clues, inference, decoding multisyllabic words)"></textarea>
-
-        <div style="margin-top:14px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px;">
-          <strong>Include Activities:</strong>
-          <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:8px; margin-top:8px;">
-            <label><input type="checkbox" class="act-option" value="Word ladder activity" checked> Word ladder</label>
-            <label><input type="checkbox" class="act-option" value="Semantically related word lists for each target word" checked> Semantic word lists (5 per word)</label>
-            <label><input type="checkbox" class="act-option" value="Gap-fill activity" checked> Gap fill (2 per word)</label>
-            <label><input type="checkbox" class="act-option" value="Quick answer key" checked> Quick answer key</label>
-            <label><input type="checkbox" class="act-option" value="Story with comprehension questions and answer key" checked> Story + comprehension</label>
-            <label><input type="checkbox" class="act-option" value="Sentence frames activity"> Sentence frames (10 frames)</label>
-            <label><input type="checkbox" class="act-option" value="Suggested differentiation notes"> Suggested differentiation notes</label>
-          </div>
+        <div style="text-align:center; margin-bottom:20px;">
+          <button class="key-btn" style="margin:0;" onclick="generateAIPrompt()">✨ Build Optimized Prompt</button>
         </div>
 
-        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:16px 0;">
-          <select id="llmProvider" style="padding:10px 14px; font-size:1rem; border-radius:8px;">
-            <option value="gemini" selected>Gemini</option>
-            <option value="chatgpt">ChatGPT</option>
-            <option value="claude">Claude</option>
-          </select>
-          <button onclick="generateWithLLM()" style="padding:12px 18px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px; cursor:pointer;">Generate Prompt</button>
-          <button onclick="copyLLMPrompt()" style="padding:12px 18px; font-weight:600; background:#0f766e; color:white; border:none; border-radius:8px; cursor:pointer;">Copy Prompt</button>
-          <button onclick="openInLLM()" style="padding:12px 18px; font-weight:600; background:#7c3aed; color:white; border:none; border-radius:8px; cursor:pointer;">Open in Selected LLM</button>
-          <button onclick="clearLLMForm()" style="padding:12px 18px; font-weight:600; background:#dc2626; color:white; border:none; border-radius:8px; cursor:pointer;">Clear</button>
-          <button onclick="refreshPage()" style="padding:12px 18px; font-weight:600; background:#111827; color:white; border:none; border-radius:8px; cursor:pointer;">Refresh Page</button>
-        </div>
-
-        <p id="llmStatus" style="text-align:center; font-weight:600; min-height:24px;"></p>
-        <textarea id="finalPrompt" rows="16" style="width:100%; padding:14px; font-family:monospace; border:2px solid #d1d5db; border-radius:10px; background:#f9fafb;" placeholder="Generated prompt appears here..."></textarea>
-
-        <hr style="margin:30px 0 20px 0;">
-        <h3 style="text-align:center; color:#1d4ed8;">🧠 Embedded Local LLM (WebLLM)</h3>
-
-        <div style="border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#f8fafc;">
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-            <label><strong>Model:</strong></label>
-            <select id="webllmModel" style="padding:8px; border-radius:8px; min-width:320px;"></select>
-            <button id="loadWebLLMBtn" onclick="initWebLLM()"
-              style="padding:10px 14px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px; cursor:pointer;">
-              Load Model
-            </button>
-            <button id="resetWebLLMBtn" onclick="resetWebLLMChat()"
-              style="padding:10px 14px; font-weight:600; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer;">
-              Reset Chat
-            </button>
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h4 style="margin:0; color:#1e40af;">Generated LLM Prompt</h4>
+            <button class="db-btn secondary" onclick="copyLLMPrompt()">📋 Copy Prompt</button>
           </div>
-
-          <p id="webllmStatus" style="margin:6px 0 12px 0; font-weight:600; color:#374151;">
-            WebLLM not loaded yet.
-          </p>
-
-          <div id="webllmChat"
-               style="height:300px; overflow:auto; background:white; border:1px solid #d1d5db; border-radius:10px; padding:10px; margin-bottom:10px;"></div>
-
-          <div style="display:flex; gap:8px;">
-            <textarea id="webllmInput" rows="3"
-              placeholder="Type a prompt..."
-              style="flex:1; padding:10px; border-radius:8px; border:1px solid #d1d5db; resize:vertical;"></textarea>
-            <button onclick="sendWebLLM()"
-              style="padding:10px 14px; font-weight:600; background:#0f766e; color:white; border:none; border-radius:8px; cursor:pointer;">
-              Send
-            </button>
+          <textarea id="llmPromptOutput" readonly style="width:100%; height:250px; font-family:inherit; font-size:0.95rem; padding:12px; border-radius:8px; border:1px solid #cbd5e1; box-sizing:border-box; background:#f8fafc; resize:vertical;"></textarea>
+          
+          <div style="margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
+            <h4 style="margin:0 0 10px 0; color:#8b5cf6;">🤖 Chat directly with Local WebLLM Assistant</h4>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+              <button class="db-btn" id="llmLoadModelBtn" onclick="initWebLLM()">1. Load WebLLM Model (Requires ~1.5GB Data)</button>
+              <button class="db-btn secondary" onclick="resetWebLLMChat()">Reset Chat</button>
+            </div>
+            <div id="llmStatus" style="font-size:0.88rem; color:#4b5563; margin-bottom:10px;">Local Model Status: Not loaded.</div>
+            
+            <div id="webllmChatArea" style="display:none;">
+              <div id="webllmChatLog" style="border:1px solid #cbd5e1; background:#fff; height:240px; overflow-y:auto; padding:10px; border-radius:8px; font-size:0.92rem; margin-bottom:10px; white-space:pre-wrap;"></div>
+              <div style="display:flex; gap:8px;">
+                <input id="webllmChatInput" type="text" placeholder="Type a request or paste your prompt..." style="flex:1; padding:10px; border-radius:8px; border:1px solid #cbd5e1;" onkeydown="if(event.key==='Enter') sendWebLLMMessage()"/>
+                <button class="db-btn" onclick="sendWebLLMMessage()">Send</button>
+              </div>
+            </div>
           </div>
         </div>
-
-        <footer style="text-align:center; margin-top:48px; color:#6b7280;">
-          <p>Hosted on GitHub Pages</p>
-        </footer>
       </div>
     </div>
-  </div>
 
-  <!-- Column Key Modal -->
-  <div id="columnModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Column Definitions for the BAWF Morphological Database</h2>
-        <button class="close" onclick="closeModal()">×</button>
-      </div>
-      <div class="modal-body">
-        <h3>Core Word Information</h3>
-        <ul>
-          <li><strong>Word:</strong> The surface wordform (as it appears in the dictionary and corpora)</li>
-          <li><strong>Word_frq_Zipf:</strong> Zipf frequency score of the wordform (higher = more frequent)</li>
-          <li><strong>FLemma:</strong> Lemma of the word (ignoring part of speech)</li>
-          <li><strong>GPT_Coded_Word_Parts:</strong> Morphological breakdown into prefixes, root(s), suffixes</li>
-        </ul>
-
-        <h3>Baseword / Root Information</h3>
-        <ul>
-          <li><strong>Baseword:</strong> Central base form after removing affixes</li>
-          <li><strong>Baseword_frq_Zipf:</strong> Zipf frequency score of baseword</li>
-          <li><strong>Baseword_Family_Size:</strong> Number of forms in baseword family (excluding compounds)</li>
-          <li><strong>Baseword_FamilySize_Incl_Compounds:</strong> Family size including compounds</li>
-          <li><strong>Baseword_Zipf_Inc_Compounds:</strong> Zipf frequency adjusted to include compounds</li>
-        </ul>
-
-        <h3>Root & Etymological Information</h3>
-        <ul>
-          <li><strong>GPT_Root:</strong> Primary root identified by GPT-assisted analysis</li>
-          <li><strong>Avg_Root_Zipf_BNC_COCA:</strong> Average Zipf frequency of words sharing root</li>
-          <li><strong>Root_FamilySize:</strong> Number of forms sharing root (excluding compounds)</li>
-          <li><strong>Root_FamilySize_Inc_Compounds:</strong> Number of forms sharing root (including compounds)</li>
-          <li><strong>Avg_Root_Zipf_Inc_Compounds:</strong> Average Zipf including compounds</li>
-        </ul>
-
-        <h3>Greek / Latin Roots</h3>
-        <ul>
-          <li><strong>Greek_Latin_Root_1:</strong> First classical root</li>
-          <li><strong>Greek_Latin_Meaning_1:</strong> Meaning of first classical root</li>
-          <li><strong>Greek_Latin_Root_1_FamilySize:</strong> Family size containing this root</li>
-          <li><strong>Avg_Greek_Latin_Root_1_Zipf_BNC_COCA:</strong> Avg Zipf for words containing this root</li>
-          <li><strong>Greek_Latin_Root_2:</strong> Second classical root (if present)</li>
-          <li><strong>Greek_Latin_Meaning_2:</strong> Meaning of second classical root</li>
-        </ul>
-
-        <h3>Prefixes & Suffixes</h3>
-        <ul>
-          <li><strong>Prefix_1 to Prefix_3 and Suffix_1 to Suffix_6:</strong> Include meaning, forms, frequency, count, and mean Zipf scores</li>
-        </ul>
-
-        <h3>Other Morphological & Psycholinguistic Measures</h3>
-        <ul>
-          <li><strong>N_Morphemes:</strong> Total number of morphemes in the word</li>
-          <li><strong>Reading AoA (Green et al., 2025):</strong> Age of acquisition</li>
-          <li><strong>Vocabulary eXpected Grade Level (Flor et al., 2024):</strong> Expected U.S. grade level</li>
-          <li><strong>GPT_Familiarity (Brysbaert et al., 2024):</strong> GPT-estimated familiarity rating</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- Explain Row Modal -->
-  <div id="explainModalBackdrop" class="modal">
-    <div class="modal-content" style="max-width:780px;">
-      <div class="modal-header">
-        <h3>Explain Morphology Row</h3>
-        <button class="close" onclick="closeExplainModal()">×</button>
-      </div>
-
-      <div class="modal-body">
-        <div style="margin-bottom:10px;">
-          <label for="explainTask" style="font-weight:600;">What should AI do?</label>
-          <select id="explainTask" class="db-select" style="width:100%;">
-            <option value="explain">Explain this row clearly for teachers and students</option>
-            <option value="history">Focus on etymology/origin (if known)</option>
-            <option value="both" selected>Explain + etymology/origin</option>
-          </select>
+    <div id="explainModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">Morphological Information</h2>
+          <button class="close" onclick="closeModal()">&times;</button>
         </div>
-
-        <div style="margin-bottom:10px;">
-          <label for="explainProvider" style="font-weight:600;">Open in</label>
-          <select id="explainProvider" class="db-select" style="width:100%;">
-            <option value="chatgpt">ChatGPT</option>
-            <option value="gemini">Gemini</option>
-            <option value="claude">Claude</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="explainPreview" style="font-weight:600;">Prompt preview (editable)</label>
-          <textarea id="explainPreview" style="width:100%; min-height:180px; border:1px solid #cbd5e1; border-radius:8px; padding:10px;"></textarea>
-        </div>
-
+        <div class="modal-body" id="modalBody"></div>
         <div class="modal-actions">
-          <button class="db-btn secondary" onclick="copyExplainPrompt()">📋 Copy</button>
-          <button class="db-btn" onclick="openExplainInAI()">Open AI Tool</button>
+          <button class="db-btn" onclick="closeModal()">Close</button>
         </div>
       </div>
     </div>
+
+    <div id="columnKeyModal" class="modal">
+      <div class="modal-content" style="max-width:1100px;">
+        <div class="modal-header">
+          <h2>Database Column Explanations & Key</h2>
+          <button class="close" onclick="closeColumnKey()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div>
+              <h4 style="color:#1d4ed8; margin:0 0 8px 0;">Word Families Fields</h4>
+              <ul style="font-size:0.88rem; padding-left:18px; line-height:1.4;">
+                <li><strong>Word / Lemma:</strong> The primary base form of the entry.</li>
+                <li><strong>Zipf_Frequency:</strong> Logarithmic baseline commonness score (3 to 7+).</li>
+                <li><strong>Bases_Variants:</strong> Root orthographic groups tracked.</li>
+                <li><strong>Affixes / Morphemes:</strong> Prefix/Suffix counts, structural sizes and individual properties.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 style="color:#1d4ed8; margin:0 0 8px 0;">Compounds & Definitions Fields</h4>
+              <ul style="font-size:0.88rem; padding-left:18px; line-height:1.4;">
+                <li><strong>Compound_Type:</strong> Categorization framework (Open, Closed, Hyphenated).</li>
+                <li><strong>Definition_Simplified:</strong> Primary pedagogical meanings target-optimized for early learning tiers.</li>
+                <li><strong>Etymology_Summary:</strong> Roots traced historically through Old English, Latin, Germanic, Greek, or French lines.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="db-btn" onclick="closeColumnKey()">Got it</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script>
-    // =========================
-    // DATASET CONFIG + STATE
-    // =========================
-    const DATASETS = {
-      wf: { file: "BAWF_FINAL.csv.gz", loaded: false, name: "Word Families" },
-      cm: { file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz", loaded: false, name: "Compound Main" },
-      cs: { file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz", loaded: false, name: "Compound Stats" },
-      de: { file: "BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz", loaded: false, name: "Definitions & Etymology" }
+    // ----------------------------------------------------
+    // GLOBAL STATE MANAGEMENT
+    // ----------------------------------------------------
+    const datasets = {
+      wf: { url: 'BAWF_FINAL.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], defaultCount: 15 },
+      cm: { url: 'BAWF_Compound_Words_FINAL__Main_Compound.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], defaultCount: 12 },
+      cs: { url: 'BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], defaultCount: 10 },
+      de: { url: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], defaultCount: 12 }
     };
 
-    const state = {};
-    Object.keys(DATASETS).forEach(k => {
-      state[k] = {
-        fullData: [],
-        filteredData: [],
-        columns: [],
-        allColumns: [],
-        coreColumns: [],
-        parseDone: false,
-        firstPaintDone: false,
-        currentPage: 1,
-        rowsPerPage: 100,
-        sort: { column: null, asc: true },
-        dropdownColumns: new Set()
-      };
+    const config = {
+      wf: { page: 1, limit: 100, sortCol: null, sortDesc: false },
+      cm: { page: 1, limit: 100, sortCol: null, sortDesc: false },
+      cs: { page: 1, limit: 100, sortCol: null, sortDesc: false },
+      de: { page: 1, limit: 100, sortCol: null, sortDesc: false }
+    };
+
+    // Initialize core structural columns
+    datasets.wf.core = ["Word","Zipf_Frequency","Morphological_Classification","Root_Word_Cleaned","Prefix_List","Suffix_List"];
+    datasets.cm.core = ["Compound_Word","Head_Word","Modifier_Word","Compound_Type","Zipf_Frequency"];
+    datasets.cs.core = ["Base_Word","Family_Size_Count","List_Of_Family_Members"];
+    datasets.de.core = ["Word","Part_Of_Speech","Definition_Simplified","Etymology_Summary","Morphology_Notes"];
+
+    // ----------------------------------------------------
+    // APPLICATION ENTRY & LIFECYCLE
+    // ----------------------------------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+      loadDataset('wf');
+      loadDataset('cm');
+      loadDataset('cs');
+      loadDataset('de');
+      setupAddColumnListeners();
     });
 
-    let currentExplainRow = null;
-    const filterDebouncers = {};
-
-    // Drag Select Grid Variables
-    let isDragSelecting = false;
-    let dragStart = { row: -1, col: -1 };
-    let dragEnd = { row: -1, col: -1 };
-
-    function byId(id){ return document.getElementById(id); }
-    function normalizeSpaces(s){ return String(s ?? "").replace(/\s+/g, " ").trim(); }
-    
-    function colNorm(s){
-      return String(s || "").toLowerCase().replace(/[\s_()\-]+/g, "");
+    function openTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
     }
 
-    function isLikelyNumeric(v){
-      if (v === null || v === undefined) return false;
-      const s = String(v).trim();
-      if (!s) return false;
-      return /^-?\d+(\.\d+)?$/.test(s);
+    function openCompoundSubTab(paneId, btn) {
+      document.querySelectorAll('#compounds .subtab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('#compounds .subtab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(paneId).classList.add('active');
+      btn.classList.add('active');
     }
 
-    function isNumericColumn(prefix, col){
-      const st = state[prefix];
-      const rows = st.fullData;
-      const sample = Math.min(rows.length, 1500);
-      let seen = 0, numeric = 0;
-      for (let i = 0; i < sample; i++){
-        const v = rows[i]?.[col];
-        const s = String(v ?? "").trim();
-        if (!s) continue;
-        seen++;
-        if (isLikelyNumeric(s)) numeric++;
-      }
-      if (!seen) return false;
-      return (numeric / seen) >= 0.9;
-    }
+    // ----------------------------------------------------
+    // SPEED OPTIMIZED DATA FETCHING & PARSING
+    // ----------------------------------------------------
+    async function loadDataset(id) {
+      const loadingEl = document.getElementById(`${id}Loading`);
+      try {
+        const response = await fetch(datasets[urlConfigKey(id)]);
+        if (!response.ok) throw new Error(`HTTP network fault code: ${response.status}`);
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const decompressed = pako.ungzip(new Uint8Array(arrayBuffer), { to: 'string' });
 
-    function isForcedDropdownColumn(col){
-      const c = colNorm(col);
+        // SPEED IMPROVEMENT: Use native PapaParse configuration instead of manually tracking lines
+        Papa.parse(decompressed, {
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: false, // Keep as strings to safely preserve formatting
+          complete: function(results) {
+            if (!results.data || results.data.length === 0) {
+              throw new Error("CSV dataset parsed flat or empty.");
+            }
 
-      // Explicit root + meaning dropdowns
-      if (c === "greeklatinroot1" || c === "greeklatinmeaning1" ||
-          c === "greeklatinroot2" || c === "greeklatinmeaning2") return true;
+            datasets[id].headers = Object.keys(results.data[0]);
+            datasets[id].raw = results.data;
+            datasets[id].filtered = [...results.data];
 
-      // Prefix / suffix columns
-      if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) return true;
+            // Build dynamic visibility profiles
+            datasets[id].visibleHeaders = datasets[id].headers.filter(h => 
+              datasets[id].core.includes(h) || datasets[id].headers.indexOf(h) < datasets[id].defaultCount
+            );
 
-      // N morphemes explicitly
-      if (c === "nmorphemes") return true;
+            if (loadingEl) loadingEl.style.display = 'none';
+            buildHeaderUI(id);
+            buildAddColumnDropdown(id);
+            buildCopyDropdown(id);
+            
+            const tableEl = document.getElementById(`${id}Table`);
+            const pagEl = document.getElementById(`${id}Pagination`);
+            if (tableEl) tableEl.style.display = 'table';
+            if (pagEl) pagEl.style.display = 'flex';
 
-      return false;
-    }
+            renderTableData(id);
+          },
+          error: function(err) {
+            throw new Error(err.message);
+          }
+        });
 
-    function cleanParsedRow(row, headers){
-      // Force row values to align exactly with headers
-      const out = {};
-      headers.forEach(h => out[h] = row[h] ?? "");
-
-      // If parser produced extras, append to last column so columns don't shift
-      if (Array.isArray(row.__parsed_extra) && row.__parsed_extra.length && headers.length){
-        const last = headers[headers.length - 1];
-        const tail = row.__parsed_extra.join(",");
-        out[last] = String(out[last] ?? "");
-        out[last] = out[last] ? `${out[last]},${tail}` : tail;
-      }
-      return out;
-    }
-
-    function roundVocabularyGradeLevels(row, headers){
-      // Round any vocabulary expected grade level style column
-      const gradeCols = headers.filter(h => /vocabulary.*grade.*level/i.test(h));
-      for (const c of gradeCols){
-        const n = parseFloat(String(row[c] ?? "").trim());
-        if (Number.isFinite(n)) row[c] = String(Math.round(n));
+      } catch (err) {
+        console.error(`Fault loading ${id}:`, err);
+        if (loadingEl) {
+          loadingEl.textContent = `❌ Initialization failed: ${err.message}. Try reloading pages.`;
+          loadingEl.style.color = '#ef4444';
+        }
       }
     }
 
-    function norm(s){ return String(s || "").toLowerCase().replace(/[\s_]+/g, ""); }
+    function urlConfigKey(id) {
+      return id; 
+    }
 
-    function chooseCoreColumns(headers){
-      const hmap = new Map(headers.map(h => [norm(h), h]));
-      const core = [];
-      const preferred = [
-        "word","baseword","greeklatinroot1","greeklatinmeaning1",
-        "greeklatinroot2","greeklatinmeaning2","gptroot","gptcodedwordparts"
-      ];
-      preferred.forEach(k => { if (hmap.has(k)) core.push(hmap.get(k)); });
-      headers.forEach(col => {
-        const c = norm(col);
-        if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) core.push(col);
+    // ----------------------------------------------------
+    // RENDERING & INTERFACE ENGINE (DOM-STABLE & VIRTUAL)
+    // ----------------------------------------------------
+    function buildHeaderUI(id) {
+      const headerRow = document.getElementById(`${id}HeaderRow`);
+      const filterRow = document.getElementById(`${id}FilterRow`);
+      if (!headerRow || !filterRow) return;
+
+      let headHtml = '';
+      let filtHtml = '';
+
+      // Action column
+      headHtml += `<th style="width: 140px; background:#1e3a8a;">Actions</th>`;
+      filtHtml += `<td></td>`;
+
+      datasets[id].visibleHeaders.forEach(col => {
+        let displayTitle = col.replace(/_/g, ' ');
+        let sortIndicator = '';
+        if (config[id].sortCol === col) {
+          sortIndicator = config[id].sortDesc ? ' 🔽' : ' 🔼';
+        }
+        headHtml += `<th onclick="handleSort('${id}', '${col}')">${displayTitle}${sortIndicator}</th>`;
+        filtHtml += `<td><input id="${id}_filter_${col}" type="text" placeholder="Filter..." oninput="debounceFilter('${id}')" /></td>`;
       });
-      return [...new Set(core)];
+
+      headerRow.innerHTML = headHtml;
+      filterRow.innerHTML = filtHtml;
     }
 
-    function getVisibleColumns(prefix){
-      const st = state[prefix];
-      if (st.columns?.length) return st.columns;
-      return Object.keys(st.fullData[0] || {});
-    }
-
-    function getFirstNonEmpty(row, candidates){
-      for (const c of candidates){
-        const v = String(row?.[c] ?? "").trim();
-        if (v) return v;
-      }
-      return "";
-    }
-
-    function setDbLoading(prefix, msg){
-      const el = byId(prefix + "Loading");
-      if (!el) return;
-      el.style.display = "block";
-      el.textContent = msg;
-    }
-
-    function debounce(fn, ms = 250){
-      let t;
-      return (...args) => {
-        clearTimeout(t);
-        t = setTimeout(() => fn(...args), ms);
-      };
-    }
-
-    function getDebouncedFilter(prefix){
-      if (!filterDebouncers[prefix]) {
-        filterDebouncers[prefix] = debounce(() => filterTable(prefix), 220);
-      }
-      return filterDebouncers[prefix];
-    }
-
-    function detectDropdownColumns(prefix){
-      const st = state[prefix];
-      st.dropdownColumns.clear();
-
-      const cols = getVisibleColumns(prefix);
-      const rows = st.fullData;
-      const sampleSize = Math.min(rows.length, 1500);
-
-      cols.forEach(col => {
-        if (isForcedDropdownColumn(col)) {
-          st.dropdownColumns.add(String(col).toLowerCase().trim());
-          return;
+    function buildAddColumnDropdown(id) {
+      const select = document.getElementById(`${id}AddCols`);
+      if (!select) return;
+      
+      let html = '';
+      datasets[id].headers.forEach(col => {
+        if (!datasets[id].visibleHeaders.includes(col)) {
+          html += `<option value="${col}">${col.replace(/_/g, ' ')}</option>`;
         }
+      });
+      select.innerHTML = html;
+    }
 
-        if (isNumericColumn(prefix, col)) {
-          st.dropdownColumns.add(String(col).toLowerCase().trim());
-          return;
-        }
+    function buildCopyDropdown(id) {
+      const select = document.getElementById(`${id}CopyColumnSelect`);
+      if (!select) return;
+      let html = '<option value="" disabled selected>Select Column to Copy...</option>';
+      datasets[id].visibleHeaders.forEach(col => {
+        html += `<option value="${col}">${col.replace(/_/g, ' ')}</option>`;
+      });
+      select.innerHTML = html;
+    }
 
-        const vals = new Set();
-        for (let i = 0; i < sampleSize; i++) {
-          const v = normalizeSpaces(rows[i]?.[col]);
-          if (v) vals.add(v);
-          if (vals.size > 50) break;
-        }
+    function setupAddColumnListeners() {
+      ['wf', 'cm', 'cs', 'de'].forEach(id => {
+        const btn = document.getElementById(`${id}AddColsBtn`);
+        if (!btn) return;
+        btn.onclick = () => {
+          const select = document.getElementById(`${id}AddCols`);
+          if (!select) return;
+          const selectedOptions = Array.from(select.selectedOptions).map(o => o.value);
+          if (selectedOptions.length === 0) return;
 
-        if (vals.size > 1 && vals.size <= 35) {
-          st.dropdownColumns.add(String(col).toLowerCase().trim());
-        }
+          datasets[id].visibleHeaders = [...datasets[id].visibleHeaders, ...selectedOptions];
+          buildHeaderUI(id);
+          buildAddColumnDropdown(id);
+          buildCopyDropdown(id);
+          renderTableData(id);
+        };
       });
     }
 
-    function isDropdownColumn(prefix, colName){
-      return state[prefix].dropdownColumns.has(String(colName).toLowerCase().trim());
-    }
+    // SPEED OPTIMIZED RENDERING LAYER
+    function renderTableData(id) {
+      const tbody = document.getElementById(`${id}TableBody`);
+      const rowCountEl = document.getElementById(`${id}RowCount`);
+      if (!tbody) return;
 
-    // ==========================================
-    // EXCEL-STYLE CELL RANGE SELECTION MECHANICS
-    // ==========================================
-    function setupExcelGridListeners() {
-      document.addEventListener('mousedown', (e) => {
-        const cell = e.target.closest('td[data-row]');
-        if (!cell) return;
+      const data = datasets[id].filtered;
+      rowCountEl.textContent = data.length.toLocaleString();
 
-        // Skip clicking the Row Actions td block
-        if (cell.classList.contains('actions-cell')) return;
+      const totalPages = Math.max(1, Math.ceil(data.length / config[id].limit));
+      if (config[id].page > totalPages) config[id].page = totalPages;
 
-        isDragSelecting = true;
-        document.body.classList.add('drag-selecting');
+      document.getElementById(`${id}CurrentPage`).textContent = config[id].page;
+      document.getElementById(`${id}TotalPages`).textContent = totalPages;
 
-        const row = parseInt(cell.getAttribute('data-row'), 10);
-        const col = parseInt(cell.getAttribute('data-col'), 10);
+      const startIndex = (config[id].page - 1) * config[id].limit;
+      const endIndex = Math.min(startIndex + config[id].limit, data.length);
 
-        dragStart = { row, col };
-        dragEnd = { row, col };
-
-        const table = cell.closest('table');
-        evaluateGridHighlight(table.id);
-      });
-
-      document.addEventListener('mouseover', (e) => {
-        if (!isDragSelecting) return;
-        const cell = e.target.closest('td[data-row]');
-        if (!cell) return;
-
-        const row = parseInt(cell.getAttribute('data-row'), 10);
-        const col = parseInt(cell.getAttribute('data-col'), 10);
-
-        dragEnd = { row, col };
-
-        const table = cell.closest('table');
-        evaluateGridHighlight(table.id);
-      });
-
-      document.addEventListener('mouseup', () => {
-        if (isDragSelecting) {
-          isDragSelecting = false;
-          document.body.classList.remove('drag-selecting');
-        }
-      });
-
-      // Bind global copy keyboard command (Ctrl+C / Cmd+C)
-      document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-          if (window.getSelection().toString()) return; // Allow normal text copy if selected
-          copyHighlightedCells();
-        }
-      });
-    }
-
-    function evaluateGridHighlight(tableId) {
-      const table = document.getElementById(tableId);
-      if (!table) return;
-
-      const cells = table.querySelectorAll('tbody td[data-row]');
-      const rMin = Math.min(dragStart.row, dragEnd.row);
-      const rMax = Math.max(dragStart.row, dragEnd.row);
-      const cMin = Math.min(dragStart.col, dragEnd.col);
-      const cMax = Math.max(dragStart.col, dragEnd.col);
-
-      cells.forEach(cell => {
-        const r = parseInt(cell.getAttribute('data-row'), 10);
-        const c = parseInt(cell.getAttribute('data-col'), 10);
-
-        if (r >= rMin && r <= rMax && c >= cMin && c <= cMax) {
-          cell.classList.add('excel-selected');
-        } else {
-          cell.classList.remove('excel-selected');
-        }
-      });
-    }
-
-    function copyHighlightedCells() {
-      const selected = document.querySelectorAll('.excel-selected');
-      if (selected.length === 0) {
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${datasets[id].visibleHeaders.length + 1}" style="text-align:center; padding:40px; color:#6b7280;">No records matched your search queries.</td></tr>`;
         return;
       }
 
-      // Group highlighted items by row index for TSV format construction
-      const rowMap = {};
-      selected.forEach(cell => {
-        const rowId = cell.getAttribute('data-row');
-        const text = cell.innerText.trim();
-        if (!rowMap[rowId]) {
-          rowMap[rowId] = [];
-        }
-        rowMap[rowId].push(text);
-      });
-
-      // Join rows dynamically with tabs, then lines with newlines
-      const sortedKeys = Object.keys(rowMap).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
-      const finalTSV = sortedKeys.map(k => rowMap[k].join('\t')).join('\n');
-
-      navigator.clipboard.writeText(finalTSV).then(() => {
-        // Simple visual toast fallback
-        const alertEl = document.createElement('div');
-        alertEl.className = "fixed bottom-5 right-5 z-[99999] bg-emerald-600 text-white font-bold p-4 rounded-xl shadow-lg text-sm";
-        alertEl.textContent = `✅ Excel-Range: Copied ${selected.length} cells to clipboard!`;
-        document.body.appendChild(alertEl);
-        setTimeout(() => alertEl.remove(), 2500);
-      }).catch(() => {
-        alert("Copy failed. Please try again.");
-      });
-    }
-
-    // =========================
-    // POP-OVER COLUMN DROPDOWNS
-    // =========================
-    function toggleColumnDropdown(prefix) {
-      const dd = byId(prefix + "ColumnDropdown");
-      const shown = dd.classList.contains('show');
-      
-      // Close all other dropdowns
-      document.querySelectorAll('.column-manager-dropdown').forEach(el => el.classList.remove('show'));
-      
-      if (!shown) {
-        dd.classList.add('show');
-        populateColumnDropdownList(prefix);
-      }
-    }
-
-    function populateColumnDropdownList(prefix) {
-      const st = state[prefix];
-      const listEl = byId(prefix + "ColumnList");
-      if (!listEl) return;
-      listEl.innerHTML = "";
-
-      st.allColumns.forEach(col => {
-        const active = st.columns.includes(col);
-        const label = document.createElement('label');
-        label.className = "flex items-center gap-2 text-xs font-semibold hover:bg-slate-50 p-1.5 rounded cursor-pointer";
+      // SPEED IMPROVEMENT: Build flat string array join maps instead of nested appendChild passes
+      let fragmentHtml = '';
+      for (let i = startIndex; i < endIndex; i++) {
+        const row = data[i];
+        fragmentHtml += `<tr>`;
         
-        const chk = document.createElement('input');
-        chk.type = "checkbox";
-        chk.checked = active;
-        chk.className = "rounded text-blue-600 focus:ring-blue-500";
-        chk.onchange = () => {
-          if (chk.checked) {
-            if (!st.columns.includes(col)) {
-              st.columns.push(col);
-            }
+        // Actions column
+        fragmentHtml += `<td>
+          <div class="row-actions">
+            <button class="source-btn" onclick="viewRowDetails('${id}', ${i})">View</button>
+            <button class="explain-btn" onclick="explainRow('${id}', ${i})">Explain</button>
+          </div>
+        </td>`;
+
+        // Visible values columns
+        datasets[id].visibleHeaders.forEach(col => {
+          const val = row[col] !== undefined && row[col] !== null ? row[col] : '';
+          const valStr = String(val);
+          if (valStr.length > 70 || col.toLowerCase().includes('list') || col.toLowerCase().includes('members')) {
+            fragmentHtml += `<td class="long-text">${escapeHtml(valStr)}</td>`;
           } else {
-            // Keep at least one column
-            if (st.columns.length > 1) {
-              st.columns = st.columns.filter(c => c !== col);
-            } else {
-              chk.checked = true;
-              return;
-            }
-          }
-          detectDropdownColumns(prefix);
-          renderHeadersAndFilters(prefix);
-          renderTable(prefix);
-          populateCopyColumnSelect(prefix);
-        };
-
-        label.appendChild(chk);
-        const span = document.createElement('span');
-        span.textContent = col;
-        label.appendChild(span);
-        listEl.appendChild(label);
-      });
-    }
-
-    // Global listener to close dropdowns when clicking outside
-    window.addEventListener('click', (e) => {
-      if (!e.target.closest('.column-manager-popover')) {
-        document.querySelectorAll('.column-manager-dropdown').forEach(el => el.classList.remove('show'));
-      }
-    });
-
-    // ==========================================
-    // DATA INGESTION & DECOMPRESSION LIFE-CYCLES
-    // ==========================================
-    async function loadDataset(prefix){
-      const cfg = DATASETS[prefix];
-      if (!cfg) return;
-      if (cfg.loaded) return;
-      cfg.loaded = true;
-
-      const st = state[prefix];
-      st.fullData = [];
-      st.filteredData = [];
-      st.currentPage = 1;
-      st.sort = { column: null, asc: true };
-      st.dropdownColumns = new Set();
-      st.columns = [];
-      st.allColumns = [];
-      st.coreColumns = [];
-      st.parseDone = false;
-      st.firstPaintDone = false;
-
-      setDbLoading(prefix, `Loading ${cfg.name}...`);
-
-      try {
-        const resp = await fetch(cfg.file, { cache: "no-cache" });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-        const arrBuf = await resp.arrayBuffer();
-        const bin = new Uint8Array(arrBuf);
-        const csvText = pako.ungzip(bin, { to: "string" });
-
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: "greedy",
-          worker: false,
-          fastMode: false,
-          chunkSize: 1024 * 1024,
-          transformHeader: h => String(h || "").replace(/^\uFEFF/, "").trim(),
-          
-          chunk: (results) => {
-            let rows = (results.data || []).filter(r =>
-              Object.values(r).some(v => String(v ?? "").trim() !== "")
-            );
-            if (!rows.length) return;
-
-            if (!st.allColumns.length) {
-              st.allColumns = (results.meta?.fields?.length)
-                ? results.meta.fields.map(h => String(h || "").trim())
-                : Object.keys(rows[0] || {}).filter(k => k !== "__parsed_extra");
-
-              st.coreColumns = chooseCoreColumns(st.allColumns);
-              if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
-              st.columns = [...st.coreColumns];
-            }
-
-            rows = rows.map(r => {
-              const cleaned = cleanParsedRow(r, st.allColumns);
-              roundVocabularyGradeLevels(cleaned, st.allColumns);
-
-              try {
-                Object.defineProperty(cleaned, "__search", {
-                  value: st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase(),
-                  enumerable: false
-                });
-              } catch {
-                cleaned.__search = st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase();
-              }
-              return cleaned;
-            });
-
-            st.fullData.push(...rows);
-
-            if (!st.firstPaintDone && st.fullData.length >= Math.max(st.rowsPerPage, 50)) {
-              st.filteredData = st.fullData.slice();
-              st.currentPage = 1;
-
-              initializeDatasetUI(prefix);
-              detectDropdownColumns(prefix);
-              renderHeadersAndFilters(prefix);
-              renderTable(prefix);
-              populateCopyColumnSelect(prefix);
-
-              const loadingEl = byId(prefix + "Loading");
-              if (loadingEl) {
-                loadingEl.style.display = "block";
-                loadingEl.textContent = `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows in background`;
-              }
-
-              const tableEl = byId(prefix + "Table");
-              if (tableEl) tableEl.style.display = "table";
-              const pagerEl = byId(prefix + "Pagination");
-              if (pagerEl) pagerEl.style.display = "flex";
-
-              st.firstPaintDone = true;
-            } else if (st.firstPaintDone) {
-              setDbLoading(prefix, `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows`);
-            }
-          },
-
-          complete: () => {
-            st.filteredData = st.fullData.slice();
-            st.parseDone = true;
-
-            initializeDatasetUI(prefix);
-            detectDropdownColumns(prefix);
-            renderHeadersAndFilters(prefix);
-            renderTable(prefix);
-            populateCopyColumnSelect(prefix);
-
-            setDbLoading(prefix, "");
-            const loadingEl = byId(prefix + "Loading");
-            if (loadingEl) loadingEl.style.display = "none";
-          },
-
-          error: (err) => {
-            setDbLoading(prefix, `CSV parse error: ${err.message}`);
-            cfg.loaded = false;
+            fragmentHtml += `<td>${escapeHtml(valStr)}</td>`;
           }
         });
-
-      } catch (err){
-        setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
-        cfg.loaded = false;
+        fragmentHtml += `</tr>`;
       }
+
+      tbody.innerHTML = fragmentHtml;
     }
 
-    function initializeDatasetUI(prefix){
-      renderHeadersAndFilters(prefix);
-      renderTable(prefix);
-      populateCopyColumnSelect(prefix);
-
-      const global = byId(prefix + "GlobalSearch");
-      if (global && !global.dataset.wired) {
-        global.addEventListener("keypress", (e) => {
-          if (e.key === "Enter") filterTable(prefix);
-        });
-        global.addEventListener("input", getDebouncedFilter(prefix));
-        global.dataset.wired = "1";
-      }
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    function renderHeadersAndFilters(prefix){
-      const st = state[prefix];
-      const columns = getVisibleColumns(prefix);
-      const headerRow = byId(prefix + "HeaderRow");
-      const filterRow = byId(prefix + "FilterRow");
+    // ----------------------------------------------------
+    // HIGH SPEED HIGH VOLUME DATA FILTERING ENGINE
+    // ----------------------------------------------------
+    let filterTimeout = null;
+    function debounceFilter(id) {
+      clearTimeout(filterTimeout);
+      filterTimeout = setTimeout(() => filterTable(id), 120);
+    }
 
-      headerRow.innerHTML = "";
-      filterRow.innerHTML = "";
-
-      columns.forEach(col => {
-        const th = document.createElement("th");
-        th.textContent = col;
-        th.title = "Click to sort";
-        th.onclick = () => sortTable(prefix, col);
-        headerRow.appendChild(th);
+    function filterTable(id) {
+      const globalSearch = document.getElementById(`${id}GlobalSearch`)?.value.trim().toLowerCase() || '';
+      
+      // Cache column filter references for speed loop
+      const activeFilters = [];
+      datasets[id].visibleHeaders.forEach(col => {
+        const inputVal = document.getElementById(`${id}_filter_${col}`)?.value.trim().toLowerCase();
+        if (inputVal) {
+          activeFilters.push({ col, token: inputVal });
+        }
       });
 
-      const actionTh = document.createElement("th");
-      actionTh.textContent = "Actions";
-      headerRow.appendChild(actionTh);
+      // SPEED OPTIMIZATION: Linear fast-filter array evaluation pass
+      datasets[id].filtered = datasets[id].raw.filter(row => {
+        // 1. Column filters loop
+        for (let i = 0; i < activeFilters.length; i++) {
+          const { col, token } = activeFilters[i];
+          const val = row[col];
+          if (!val || !String(val).toLowerCase().includes(token)) return false;
+        }
 
-      columns.forEach(col => {
-        const td = document.createElement("td");
-
-        if (isDropdownColumn(prefix, col)) {
-          const sel = document.createElement("select");
-          sel.dataset.col = col;
-          sel.onchange = () => filterTable(prefix);
-
-          const all = document.createElement("option");
-          all.value = "";
-          all.textContent = "All";
-          sel.appendChild(all);
-
-          const unique = [...new Set(st.fullData.map(r => normalizeSpaces(r[col])).filter(Boolean))];
-
-          const numericLike = unique.length && unique.every(isLikelyNumeric);
-          if (numericLike) {
-            unique.sort((a,b) => parseFloat(a) - parseFloat(b));
-          } else {
-            unique.sort((a,b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+        // 2. Global search matching pass
+        if (globalSearch) {
+          let matched = false;
+          const cols = datasets[id].visibleHeaders;
+          for (let j = 0; j < cols.length; j++) {
+            const val = row[cols[j]];
+            if (val && String(val).toLowerCase().includes(globalSearch)) {
+              matched = true;
+              break;
+            }
           }
-
-          unique.forEach(v => {
-            const opt = document.createElement("option");
-            opt.value = v;
-            opt.textContent = v;
-            sel.appendChild(opt);
-          });
-
-          td.appendChild(sel);
-        } else {
-          const input = document.createElement("input");
-          input.type = "text";
-          input.placeholder = "Filter...";
-          input.dataset.col = col;
-          input.oninput = getDebouncedFilter(prefix);
-          td.appendChild(input);
+          if (!matched) return false;
         }
 
-        filterRow.appendChild(td);
-      });
-
-      filterRow.appendChild(document.createElement("td"));
-    }
-
-    function filterTable(prefix){
-      const st = state[prefix];
-      const global = (byId(prefix + "GlobalSearch")?.value || "").toLowerCase().trim();
-
-      const colFilters = {};
-      byId(prefix + "FilterRow").querySelectorAll("[data-col]").forEach(el => {
-        const col = el.dataset.col;
-        const raw = normalizeSpaces(el.value);
-        if (!raw) return;
-        colFilters[col] = {
-          type: el.tagName === "SELECT" ? "exact" : "contains",
-          value: raw.toLowerCase()
-        };
-      });
-
-      st.filteredData = st.fullData.filter(row => {
-        if (global){
-          const rowText = row.__search || Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase();
-          if (!rowText.includes(global)) return false;
-        }
-
-        for (const col in colFilters){
-          const cell = normalizeSpaces(row[col]).toLowerCase();
-          const f = colFilters[col];
-          if (f.type === "exact"){
-            if (cell !== f.value) return false;
-          } else {
-            if (!cell.includes(f.value)) return false;
-          }
-        }
         return true;
       });
 
-      st.currentPage = 1;
-      renderTable(prefix);
-    }
-
-    function renderTable(prefix){
-      const st = state[prefix];
-      const tbody = byId(prefix + "TableBody");
-      tbody.innerHTML = "";
-
-      const start = (st.currentPage - 1) * st.rowsPerPage;
-      const pageData = st.filteredData.slice(start, start + st.rowsPerPage);
-
-      const frag = document.createDocumentFragment();
-      const columns = getVisibleColumns(prefix);
-
-      pageData.forEach((row, rowIndex) => {
-        const tr = document.createElement("tr");
-
-        columns.forEach((col, colIndex) => {
-          const td = document.createElement("td");
-          const val = String(row[col] ?? "");
-          if (val.length > 120) td.classList.add("long-text");
-          td.textContent = val;
-
-          // Excel coordinate attributes to facilitate drag actions
-          td.setAttribute('data-row', start + rowIndex);
-          td.setAttribute('data-col', colIndex);
-
-          tr.appendChild(td);
-        });
-
-        const actionTd = document.createElement("td");
-        actionTd.className = "actions-cell";
-        const wrap = document.createElement("div");
-        wrap.className = "row-actions";
-
-        const gbtn = document.createElement("button");
-        gbtn.className = "source-btn";
-        gbtn.textContent = "🔎 Google Word";
-        gbtn.onclick = () => {
-          const q = buildGoogleQueryForRow(row);
-          if (!q) return;
-          window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
-        };
-        wrap.appendChild(gbtn);
-
-        const ebtn = document.createElement("button");
-        ebtn.className = "explain-btn";
-        ebtn.textContent = "✨ Explain";
-        ebtn.onclick = () => showExplainModal(prefix, row);
-        wrap.appendChild(ebtn);
-
-        actionTd.appendChild(wrap);
-        tr.appendChild(actionTd);
-        frag.appendChild(tr);
-      });
-
-      tbody.appendChild(frag);
-
-      const totalPages = Math.max(1, Math.ceil(st.filteredData.length / st.rowsPerPage));
-      if (st.currentPage > totalPages) st.currentPage = totalPages;
-
-      byId(prefix + "RowCount").textContent = st.filteredData.length.toLocaleString();
-      byId(prefix + "CurrentPage").textContent = st.currentPage;
-      byId(prefix + "TotalPages").textContent = totalPages;
-    }
-
-    function sortTable(prefix, column){
-      const st = state[prefix];
-      if (st.sort.column === column) st.sort.asc = !st.sort.asc;
-      else {
-        st.sort.column = column;
-        st.sort.asc = true;
+      // Reset sequence sort tracking states if column configurations specified sort rules
+      if (config[id].sortCol) {
+        applySortExecution(id);
       }
 
-      st.filteredData.sort((a,b) => {
-        const av = String(a[column] ?? "").toLowerCase();
-        const bv = String(b[column] ?? "").toLowerCase();
-        const cmp = av.localeCompare(bv, undefined, { numeric:true, sensitivity:"base" });
-        return st.sort.asc ? cmp : -cmp;
-      });
-
-      st.currentPage = 1;
-      renderTable(prefix);
+      config[id].page = 1;
+      renderTableData(id);
     }
 
-    function prevPage(prefix){
-      const st = state[prefix];
-      if (st.currentPage > 1){
-        st.currentPage--;
-        renderTable(prefix);
+    function clearAllFilters(id) {
+      const gInput = document.getElementById(`${id}GlobalSearch`);
+      if (gInput) gInput.value = '';
+      
+      datasets[id].visibleHeaders.forEach(col => {
+        const cInput = document.getElementById(`${id}_filter_${col}`);
+        if (cInput) cInput.value = '';
+      });
+
+      datasets[id].filtered = [...datasets[id].raw];
+      if (config[id].sortCol) applySortExecution(id);
+      
+      config[id].page = 1;
+      renderTableData(id);
+    }
+
+    // ----------------------------------------------------
+    // HIGH SPEED DATA SORT ENGINE
+    // ----------------------------------------------------
+    function handleSort(id, col) {
+      if (config[id].sortCol === col) {
+        config[id].sortDesc = !config[id].sortDesc;
+      } else {
+        config[id].sortCol = col;
+        config[id].sortDesc = false;
+      }
+      buildHeaderUI(id);
+      applySortExecution(id);
+      renderTableData(id);
+    }
+
+    function applySortExecution(id) {
+      const col = config[id].sortCol;
+      const desc = config[id].sortDesc;
+      if (!col) return;
+
+      datasets[id].filtered.sort((a, b) => {
+        let v1 = a[col];
+        let v2 = b[col];
+
+        if (v1 === undefined || v1 === null) v1 = '';
+        if (v2 === undefined || v2 === null) v2 = '';
+
+        // Performance check: check if it parses cleanly as numeric floats
+        const n1 = parseFloat(v1);
+        const n2 = parseFloat(v2);
+        if (!isNaN(n1) && !isNaN(n2)) {
+          return desc ? n2 - n1 : n1 - n2;
+        }
+
+        const s1 = String(v1).toLowerCase();
+        const s2 = String(v2).toLowerCase();
+        if (s1 < s2) return desc ? 1 : -1;
+        if (s1 > s2) return desc ? -1 : 1;
+        return 0;
+      });
+    }
+
+    // ----------------------------------------------------
+    // PAGINATION LIFECYCLES
+    // ----------------------------------------------------
+    function prevPage(id) {
+      if (config[id].page > 1) {
+        config[id].page--;
+        renderTableData(id);
       }
     }
 
-    function nextPage(prefix){
-      const st = state[prefix];
-      const max = Math.max(1, Math.ceil(st.filteredData.length / st.rowsPerPage));
-      if (st.currentPage < max){
-        st.currentPage++;
-        renderTable(prefix);
+    function nextPage(id) {
+      const totalPages = Math.ceil(datasets[id].filtered.length / config[id].limit);
+      if (config[id].page < totalPages) {
+        config[id].page++;
+        renderTableData(id);
       }
     }
 
-    function changeRowsPerPage(prefix){
-      const st = state[prefix];
-      st.rowsPerPage = parseInt(byId(prefix + "RowsPerPage").value, 10) || 100;
-      st.currentPage = 1;
-      renderTable(prefix);
+    function changeRowsPerPage(id) {
+      const select = document.getElementById(`${id}RowsPerPage`);
+      if (!select) return;
+      config[id].limit = parseInt(select.value, 10);
+      config[id].page = 1;
+      renderTableData(id);
     }
 
-    function clearAllFilters(prefix){
-      byId(prefix + "GlobalSearch").value = "";
-      byId(prefix + "FilterRow").querySelectorAll("input[data-col]").forEach(i => i.value = "");
-      byId(prefix + "FilterRow").querySelectorAll("select[data-col]").forEach(s => s.value = "");
-      state[prefix].filteredData = [...state[prefix].fullData];
-      state[prefix].currentPage = 1;
-      renderTable(prefix);
-    }
-
-    function exportCSV(prefix, filename){
-      const st = state[prefix];
-      if (!st.filteredData.length) return;
-
-      const headers = getVisibleColumns(prefix);
-      let csv = headers.join(",") + "\n";
-      st.filteredData.forEach(row => {
-        const values = headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`);
-        csv += values.join(",") + "\n";
+    // ----------------------------------------------------
+    // AUXILIARY UTILITIES: CSV EXPORT, BULK CELL COPY
+    // ----------------------------------------------------
+    function exportCSV(id, filename) {
+      const targetRows = datasets[id].filtered;
+      if (targetRows.length === 0) {
+        alert("No current record data available for extraction.");
+        return;
+      }
+      
+      // SPEED/SAFETY FIX: Leverage Papa.unparse to automatically escape data strings cleanly
+      const csvString = Papa.unparse({
+        fields: datasets[id].visibleHeaders,
+        data: targetRows.map(row => datasets[id].visibleHeaders.map(col => row[col]))
       });
 
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = filename || `${prefix}_filtered.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
-    function populateCopyColumnSelect(prefix){
-      const sel = byId(prefix + "CopyColumnSelect");
-      if (!sel) return;
-      sel.innerHTML = "";
+    function copyColumnValues(id) {
+      const colSelect = document.getElementById(`${id}CopyColumnSelect`);
+      const scopeSelect = document.getElementById(`${id}CopyScope`);
+      if (!colSelect || !scopeSelect) return;
 
-      const cols = getVisibleColumns(prefix);
-      cols.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        sel.appendChild(opt);
-      });
-    }
-
-    function copyColumnValues(prefix){
-      const st = state[prefix];
-      const sel = byId(prefix + "CopyColumnSelect");
-      const scope = byId(prefix + "CopyScope")?.value || "filtered";
-
-      if (!sel || !sel.value){
-        alert("Choose a column first.");
+      const col = colSelect.value;
+      if (!col) {
+        alert("Please explicitly pick a target dataset column from the dropdown list menu.");
         return;
       }
 
-      const col = sel.value;
-      let rows = [];
-      if (scope === "page"){
-        const start = (st.currentPage - 1) * st.rowsPerPage;
-        rows = st.filteredData.slice(start, start + st.rowsPerPage);
+      let targetRows = [];
+      if (scopeSelect.value === 'page') {
+        const startIndex = (config[id].page - 1) * config[id].limit;
+        const endIndex = Math.min(startIndex + config[id].limit, datasets[id].filtered.length);
+        for (let i = startIndex; i < endIndex; i++) {
+          targetRows.push(datasets[id].filtered[i]);
+        }
       } else {
-        rows = st.filteredData;
+        targetRows = datasets[id].filtered;
       }
 
-      const lines = rows.map(r => String(r[col] ?? "").trim());
-      navigator.clipboard.writeText(lines.join("\n")).then(() => {
-        alert(`Copied ${lines.length} cells from "${col}".`);
-      }).catch(() => {
-        alert("Copy failed. Please copy manually.");
+      if (targetRows.length === 0) {
+        alert("Zero valid cellular items to convert.");
+        return;
+      }
+
+      const txt = targetRows.map(r => r[col] !== undefined && r[col] !== null ? String(r[col]) : '').join("\n");
+      navigator.clipboard.writeText(txt)
+        .then(() => alert(`Successfully extracted and copied ${targetRows.length} lines into the OS clipboard buffer.`))
+        .catch(err => console.error("Clipboard failure trace: ", err));
+    }
+
+    // ----------------------------------------------------
+    // INTERFACES: ROW DETAILS & PEDAGOGICAL BREAKDOWNS
+    // ----------------------------------------------------
+    function viewRowDetails(id, index) {
+      const row = datasets[id].filtered[index];
+      if (!row) return;
+
+      document.getElementById("modalTitle").textContent = "Structural Record Inspectors";
+      let html = `<table style="width:100%; border-collapse:collapse; font-size:0.95rem;">`;
+      
+      datasets[id].headers.forEach(h => {
+        const isVisible = datasets[id].visibleHeaders.includes(h);
+        html += `<tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:10px; font-weight:700; width:30%; background:#f8fafc; color:#1e3a8a;">${h.replace(/_/g, ' ')} ${isVisible ? '' : '<span style="font-size:0.75rem; color:#94a3b8; font-weight:normal;">(Hidden)</span>'}</td>
+          <td style="padding:10px; white-space:pre-wrap;">${escapeHtml(String(row[h] !== undefined && row[h] !== null ? row[h] : ''))}</td>
+        </tr>`;
       });
+      html += `</table>`;
+
+      document.getElementById("modalBody").innerHTML = html;
+      openModalWrapper();
     }
 
-    function buildGoogleQueryForRow(row){
-      const w = getFirstNonEmpty(row, [
-        "Word","word","FLemma","Lemma","Baseword","GPT_Root","Root","Greek_Latin_Root_1","Compound"
-      ]);
-      return w ? `${w} meaning etymology morphology` : "";
-    }
+    function explainRow(id, index) {
+      const row = datasets[id].filtered[index];
+      if (!row) return;
 
-    // =========================
-    // MAIN TABS + SUBTABS
-    // =========================
-    function openTab(tabName, btnEl){
-      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-      byId(tabName)?.classList.add("active");
-      btnEl?.classList.add("active");
+      document.getElementById("modalTitle").textContent = "🎓 Lesson Planning Guide & Morphological Analysis";
+      let html = '<div style="line-height:1.5; font-size:0.98rem; color:#334155;">';
 
-      if (tabName === "word-families") ensureLoaded("wf");
-      if (tabName === "compounds"){
-        const activeSub = document.querySelector("#compounds .subtab-btn.active");
-        if (!activeSub || activeSub.textContent.includes("Main")) ensureLoaded("cm");
-        else ensureLoaded("cs");
+      if (id === 'wf') {
+        const word = row["Word"] || "Unknown";
+        const root = row["Root_Word_Cleaned"] || "None Tracked";
+        const classification = row["Morphological_Classification"] || "Standard Base Tiers";
+        html += `<h3>Focus Term: <span style="color:#2563eb;">${escapeHtml(word)}</span></h3>`;
+        html += `<p><strong>Morphological Classification:</strong> ${escapeHtml(classification)}</p>`;
+        html += `<p><strong>Core Structural Root / Base form:</strong> <code>${escapeHtml(root)}</code></p>`;
+        html += `<div style="background:#f1f5f9; padding:12px; border-radius:8px; margin:10px 0;">`;
+        html += `<strong>Teacher Tip for Word Mapping:</strong> Highlight the root segments <code>${escapeHtml(root)}</code> when constructing word trees on whiteboard walls. Try listing structural modifications out loud with students.`;
+        html += `</div>`;
+      } else if (id === 'cm') {
+        const cWord = row["Compound_Word"] || "Compound";
+        const head = row["Head_Word"] || "N/A";
+        const modifier = row["Modifier_Word"] || "N/A";
+        html += `<h3>Compound Analysis: <span style="color:#2563eb;">${escapeHtml(cWord)}</span></h3>`;
+        html += `<p>This unit is created structurally by joining the core modifier element <strong>${escapeHtml(modifier)}</strong> with the foundational word unit <strong>${escapeHtml(head)}</strong>.</p>`;
+      } else if (id === 'de') {
+        const word = row["Word"] || "Vocabulary Line";
+        const def = row["Definition_Simplified"] || "No simple text definition on file.";
+        const etym = row["Etymology_Summary"] || "No ancestral origin history indexed.";
+        html += `<h3>Pedagogical Overview: <span style="color:#2563eb;">${escapeHtml(word)}</span></h3>`;
+        html += `<p><strong>Simplified Student Meaning:</strong> ${escapeHtml(def)}</p>`;
+        html += `<p><strong>Etymological Root Lineage:</strong> ${escapeHtml(etym)}</p>`;
+      } else {
+        html += `<p>Explore custom hidden parameter tracking details inside your full structural spreadsheets view panels.</p>`;
       }
-      if (tabName === "definitions") ensureLoaded("de");
+
+      html += '</div>';
+      document.getElementById("modalBody").innerHTML = html;
+      openModalWrapper();
     }
 
-    function openCompoundSubTab(id, btnEl){
-      document.querySelectorAll("#compounds .subtab-pane").forEach(p => p.classList.remove("active"));
-      document.querySelectorAll("#compounds .subtab-btn").forEach(b => b.classList.remove("active"));
-      byId(id)?.classList.add("active");
-      btnEl?.classList.add("active");
-
-      if (id === "comp-main") ensureLoaded("cm");
-      if (id === "comp-stats") ensureLoaded("cs");
-    }
-
-    async function ensureLoaded(prefix){
-      if (!DATASETS[prefix].loaded) await loadDataset(prefix);
-    }
-
-    // =========================
-    // COLUMN KEY MODAL
-    // =========================
-    function showColumnKey() {
-      byId("columnModal").classList.add("show");
+    function openModalWrapper() {
+      document.getElementById("explainModal").classList.add("show");
       document.body.classList.add("modal-open");
     }
     function closeModal() {
-      byId("columnModal").classList.remove("show");
+      document.getElementById("explainModal").classList.remove("show");
       document.body.classList.remove("modal-open");
     }
-
-    // =========================
-    // EXPLAIN MODAL
-    // =========================
-    function buildExplainPrompt(row, task="both"){
-      const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
-      const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
-      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
-      const definition = getFirstNonEmpty(row, ["Definition","Definitions","Etymology","Meaning"]);
-
-      let instruction = "";
-      if (task === "explain") {
-        instruction = "Explain this morphology entry clearly for teachers and students.";
-      } else if (task === "history") {
-        instruction = "Focus on etymology/history if available; if uncertain, say so clearly and avoid guessing.";
-      } else {
-        instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
-      }
-
-      return `You are a literacy and morphology expert supporting teachers.
-
-${instruction}
-
-Row details:
-- Word/Entry: ${word || "(not provided)"}
-- Root: ${root || "(not provided)"}
-- Morphological parts: ${parts || "(not provided)"}
-- Definition/Etymology: ${definition || "(not provided)"}
-
-Please return:
-- Student-friendly explanation
-- Morphology breakdown (prefix/base/suffix where relevant)
-- Meaning connection to root(s)
-- Teaching tip for classroom use
-- 2 quick discussion/check-for-understanding questions`;
-    }
-
-    function showExplainModal(prefix, row){
-      currentExplainRow = row;
-      const task = byId("explainTask").value;
-      byId("explainPreview").value = buildExplainPrompt(row, task);
-      byId("explainModalBackdrop").classList.add("show");
+    function showColumnKey() {
+      document.getElementById("columnKeyModal").classList.add("show");
       document.body.classList.add("modal-open");
     }
-
-    function closeExplainModal(){
-      byId("explainModalBackdrop").classList.remove("show");
+    function closeColumnKey() {
+      document.getElementById("columnKeyModal").classList.remove("show");
       document.body.classList.remove("modal-open");
     }
 
-    function copyExplainPrompt(){
-      const p = byId("explainPreview").value.trim();
-      if (!p){ alert("No prompt to copy."); return; }
-      navigator.clipboard.writeText(p).then(() => alert("Prompt copied.")).catch(() => alert("Copy failed."));
-    }
-
-    function openExplainInAI(){
-      const provider = byId("explainProvider").value;
-      const prompt = byId("explainPreview").value.trim();
-      if (!prompt) return;
-
-      const encoded = encodeURIComponent(prompt);
-      let url = "https://chatgpt.com/";
-      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
-      if (provider === "chatgpt") url = `https://chatgpt.com/?q=${encoded}`;
-      if (provider === "claude") url = "https://claude.ai/new";
-
-      const w = window.open(url, "_blank");
-      if (!w){ alert("Popup blocked. Allow popups and try again."); return; }
-      navigator.clipboard.writeText(prompt).catch(() => {});
-      closeExplainModal();
-    }
-
-    document.addEventListener("change", (e) => {
-      if (e.target && e.target.id === "explainTask" && currentExplainRow){
-        byId("explainPreview").value = buildExplainPrompt(currentExplainRow, e.target.value);
-      }
-    });
-
-    window.addEventListener("click", (e) => {
-      const colModal = byId("columnModal");
-      const exModal = byId("explainModalBackdrop");
-      if (e.target === colModal) closeModal();
-      if (e.target === exModal) closeExplainModal();
-    });
-
-    // =========================
-    // WORD CLOUD
-    // =========================
+    // ----------------------------------------------------
+    // TAB: WORD CLOUD BUILD ENGINE
+    // ----------------------------------------------------
     function generateWordCloud() {
-      const status = byId("cloudStatus");
-      const inputEl = byId("wordInput");
-      const canvas = byId("wordCanvas");
-
-      const input = inputEl.value.trim();
-      status.style.color = "#6b7280";
-      status.textContent = "Processing...";
-
+      const input = document.getElementById("wordInput").value.trim();
+      const canvas = document.getElementById("wordCanvas");
+      const status = document.getElementById("cloudStatus");
       if (!input) {
-        status.style.color = "red";
-        status.textContent = "Please paste word-frequency data first.";
+        alert("Please supply target frequency matrix terms lines first.");
         return;
       }
 
-      if (typeof window.WordCloud !== "function") {
-        status.style.color = "red";
-        status.textContent = "❌ WordCloud library failed to load.";
-        return;
-      }
+      status.textContent = "Synthesizing vector layouts...";
+      status.style.color = "#2563eb";
 
       const list = [];
-      const lines = input.split(/\r?\n/);
+      const lines = input.split("\n");
+      lines.forEach(l => {
+        const clean = l.trim().replace(/\s+/g, ' ');
+        if (!clean) return;
+        const parts = clean.split(' ');
+        if (parts.length >= 2) {
+          const freq = parseFloat(parts[parts.length - 1]);
+          const word = parts.slice(0, parts.length - 1).join(' ');
+          if (!isNaN(freq)) list.push([word, freq]);
+        } else if (parts.length === 1 && parts[0]) {
+          list.push([parts[0], 15]);
+        }
+      });
 
-      for (let line of lines) {
-        line = line.trim();
-        if (!line) continue;
-        const match = line.match(/^(.*?)\s+(-?\d*\.?\d+)$/);
-        if (!match) continue;
-
-        const word = match[1].trim();
-        const freq = parseFloat(match[2]);
-        if (word && Number.isFinite(freq) && freq > 0) list.push([word, freq]);
-      }
-
-      if (!list.length) {
-        status.style.color = "red";
-        status.textContent = "No valid data. Example: analysis 120";
+      if (list.length === 0) {
+        status.textContent = "Error: Failed to process line arrays entries pairs.";
+        status.style.color = "#ef4444";
         return;
       }
 
-      list.sort((a, b) => b[1] - a[1]);
-      canvas.width = 1100;
-      canvas.height = 700;
+      // Safe bounds extraction
+      const freqs = list.map(x => x[1]);
+      const maxF = Math.max(...freqs);
+      const minF = Math.min(...freqs);
+      const range = maxF - minF || 1;
 
-      status.style.color = "#6b7280";
-      status.textContent = `Generating cloud with ${list.length} words...`;
+      const weightData = list.map(item => {
+        const norm = (item[1] - minF) / range;
+        const size = Math.floor(14 + (norm * 62));
+        return [item[0], size];
+      });
 
-      setTimeout(() => {
-        window.WordCloud(canvas, {
-          list,
-          gridSize: 8,
-          weightFactor: 22,
-          fontFamily: "Segoe UI, Arial, sans-serif",
-          color: "random-dark",
-          rotateRatio: 0.3,
-          backgroundColor: "#ffffff",
-          minSize: 10,
-          shrinkToFit: true
+      try {
+        WordCloud(canvas, {
+          list: weightData,
+          gridSize: 10,
+          weightFactor: 1,
+          fontFamily: 'BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          color: () => {
+            const hues = [210, 220, 240, 270, 290];
+            const h = hues[Math.floor(Math.random() * hues.length)];
+            const s = Math.floor(55 + (Math.random() * 35));
+            const l = Math.floor(35 + (Math.random() * 25));
+            return `hsl(${h}, ${s}%, ${l}%)`;
+          },
+          backgroundColor: '#ffffff',
+          rotateRatio: 0.35
         });
-        status.style.color = "#15803d";
-        status.textContent = `✅ Success! ${list.length} words generated.`;
-      }, 80);
-    }
-
-    // =========================
-    // LLM PROMPT BUILDER
-    // =========================
-    function getActiveDatasetPrefix(){
-      const activeMain = document.querySelector(".tab-content.active")?.id;
-      if (activeMain === "word-families") return "wf";
-      if (activeMain === "definitions") return "de";
-      if (activeMain === "compounds"){
-        const sub = document.querySelector("#compounds .subtab-pane.active")?.id;
-        return sub === "comp-stats" ? "cs" : "cm";
+        status.textContent = "🎉 Word cloud successfully drawn!";
+        status.style.color = "#16a34a";
+      } catch (err) {
+        status.textContent = `Rendering error: ${err.message}`;
+        status.style.color = "#ef4444";
       }
-      return "wf";
     }
 
-    function sampleRows(arr, n, mode = "random") {
-      if (!Array.isArray(arr) || !arr.length || n <= 0) return [];
-      if (n >= arr.length) return [...arr];
-      if (mode === "first") return arr.slice(0, n);
-      const copy = [...arr];
-      for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
+    // ----------------------------------------------------
+    // TAB: INTERACTIVE PROMPT ENGINEERING & LLM SIMULATION
+    // ----------------------------------------------------
+    function generateAIPrompt() {
+      const sourceId = document.getElementById("llmDatasetPick").value;
+      const count = parseInt(document.getElementById("llmRowCount").value, 10) || 10;
+      const type = document.getElementById("llmType").value;
+      const grade = document.getElementById("llmGrade").value;
+
+      let activeId = sourceId;
+      if (sourceId === 'active') {
+        const tabs = ['word-families', 'compounds', 'definitions'];
+        const activeTab = tabs.find(t => document.getElementById(t).classList.includes('active')) || 'word-families';
+        if (activeTab === 'word-families') activeId = 'wf';
+        else if (activeTab === 'compounds') {
+          activeId = document.getElementById('comp-main').classList.contains('active') ? 'cm' : 'cs';
+        } else activeId = 'de';
       }
-      return copy.slice(0, n);
-    }
 
-    function addWordsFromFilteredRows(){
-      const status = byId("llmStatus");
-      const pick = byId("llmDatasetPick").value;
-      const prefix = pick === "active" ? getActiveDatasetPrefix() : pick;
-
-      if (!DATASETS[prefix]?.loaded){
-        status.style.color = "red";
-        status.textContent = "❌ Selected dataset is not loaded yet. Open that tab first.";
+      const rows = datasets[activeId].filtered.slice(0, count);
+      if (rows.length === 0) {
+        document.getElementById("llmPromptOutput").value = "No active database content available to map context from. Ensure datasets are initialized properly.";
         return;
       }
 
-      const st = state[prefix];
-      const rows = st.filteredData;
-      if (!rows.length){
-        status.style.color = "red";
-        status.textContent = "❌ No filtered rows available.";
-        return;
-      }
-
-      const n = Math.max(1, parseInt(byId("llmDbTake").value, 10) || 10);
-      const mode = byId("llmDbMode").value || "random";
-      const picked = sampleRows(rows, n, mode);
-
-      const lines = [];
-      const seen = new Set();
-      for (const row of picked){
-        const word = getFirstNonEmpty(row, ["Word","word","FLemma","Lemma","Baseword","Compound"]);
-        const zipf = getFirstNonEmpty(row, ["Word_frq_Zipf","Zipf","Baseword_frq_Zipf","Frequency"]);
-        if (!word) continue;
-        const line = zipf ? `${word} ${zipf}` : word;
-        const key = line.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        lines.push(line);
-      }
-
-      byId("llmInput").value = lines.join("\n");
-      status.style.color = "#15803d";
-      status.textContent = `✅ Added ${lines.length} items from ${DATASETS[prefix].name}.`;
-    }
-
-    function buildPromptText(words, cfg) {
-      const lenMap = {
-        short: "150–250 words per text",
-        medium: "250–450 words per text",
-        long: "450–700 words per text"
-      };
-
-      let prompt = `You are an expert literacy teacher and curriculum writer specializing in morphology instruction.\n\n`;
-      prompt += `TARGET WORDS (use ALL naturally and repeatedly):\n${words.join("\n")}\n\n`;
-      prompt += `SETTINGS:\n`;
-      prompt += `- Text type: ${cfg.textType}\n`;
-      prompt += `- Grade band: ${cfg.grade}\n`;
-      prompt += `- Length: ${lenMap[cfg.length] || lenMap.medium}\n`;
-      prompt += `- Content area/theme: ${cfg.contentArea || "General"}\n`;
-      prompt += `- Teacher focus area: ${cfg.focus || "Morphology, meaning, and usage"}\n\n`;
-
-      prompt += `REQUIRED OUTPUT:\n`;
-
-      if (cfg.activities.some(a => a.includes("Story with comprehension"))) {
-        if (cfg.textType === "informational") prompt += `1) Write one engaging informational text.\n`;
-        else if (cfg.textType === "fiction") prompt += `1) Write one engaging fiction story.\n`;
-        else prompt += `1) Write one worksheet-focused output.\n`;
-      } else if (cfg.textType !== "Worksheet") {
-        prompt += `1) Write one ${cfg.textType} text incorporating the target words.\n`;
-      }
-
-      prompt += `2) For EACH target word include:\n`;
-      prompt += `   - Morphological breakdown (prefix/base/suffix when relevant)\n`;
-      prompt += `   - Student-friendly meaning\n`;
-      prompt += `   - One usage sentence\n\n`;
-
-      if (cfg.activities.length) {
-        prompt += `3) Create these activities:\n`;
-        cfg.activities.forEach((a, i) => {
-          if (a.includes("Word ladder")) prompt += `   ${i + 1}. Word ladder activity.\n`;
-          else if (a.includes("Gap-fill")) prompt += `   ${i + 1}. Gap-fill with 2 gaps per target word.\n`;
-          else if (a.includes("Sentence frames")) prompt += `   ${i + 1}. 10 sentence frames.\n`;
-          else prompt += `   ${i + 1}. ${a}\n`;
+      // Generate structured data dump
+      let contextDump = "";
+      rows.forEach((r, idx) => {
+        const identifyingToken = r["Word"] || r["Compound_Word"] || r["Base_Word"] || "Item";
+        contextDump += `Entry ${idx+1}: [${identifyingToken}] -> `;
+        datasets[activeId].visibleHeaders.forEach(col => {
+          contextDump += `${col}: "${r[col] || ''}" | `;
         });
-        prompt += "\n";
-      }
+        contextDump += "\n";
+      });
 
-      prompt += `4) Include teacher supports:\n`;
-      prompt += `   - Suggested differentiation (below/on/above level)\n`;
-      prompt += `   - Printable-friendly headings and sections\n\n`;
-      prompt += `Use clear, engaging, classroom-ready language appropriate to the grade level.`;
+      const fullPrompt = `You are an expert literacy specialist and curriculum engineer.
+TASK: Build a highly targeted ${type} tailored precisely for ${grade} children.
 
-      return prompt;
-    }
+DIRECTIONS & RIGOR CHECKS:
+1. You MUST integrate and naturally focus on the following core vocabulary entries extracted directly from our database files context:
+${contextDump}
+2. Ensure morphological boundaries, base structures, or word structural relationships are clear and scaffolded for instruction.
+3. Keep sentence structure and decodability levels consistent with standard expectations for ${grade}. Do not introduce extraneous vocabulary vectors outside the targeting boundaries.
 
-    function generateWithLLM() {
-      const raw = byId("llmInput").value.trim();
-      const status = byId("llmStatus");
-      const out = byId("finalPrompt");
+Please output the completed lesson sheet along with a short teacher tracking guide section detailing how these morphological properties manifest in the generated text rows.`;
 
-      if (!raw) {
-        status.style.color = "red";
-        status.textContent = "❌ Please paste target words first.";
-        return;
-      }
-
-      const words = raw.split(/\r?\n|,\s*/).map(w => w.trim()).filter(Boolean);
-      const activities = Array.from(document.querySelectorAll(".act-option:checked")).map(el => el.value);
-
-      const cfg = {
-        textType: byId("llmTextType").value || "informational",
-        grade: byId("llmGrade").value || "4–6",
-        length: byId("llmLength").value || "medium",
-        contentArea: byId("llmContentArea").value.trim() || "",
-        focus: byId("llmFocus").value.trim() || "",
-        activities
-      };
-
-      out.value = buildPromptText(words, cfg);
-      status.style.color = "#15803d";
-      status.textContent = `✅ Prompt ready (${words.length} words, ${activities.length} activities).`;
+      document.getElementById("llmPromptOutput").value = fullPrompt;
     }
 
     function copyLLMPrompt() {
-      const out = byId("finalPrompt");
-      const status = byId("llmStatus");
-      const text = out.value.trim();
-      if (!text) {
-        status.style.color = "red";
-        status.textContent = "❌ Generate a prompt first.";
-        return;
+      const ta = document.getElementById("llmPromptOutput");
+      if (!ta.value) return;
+      navigator.clipboard.writeText(ta.value)
+        .then(() => alert("Prompt compiled and copied to OS storage!"))
+        .catch(err => console.error(err));
+    }
+
+    // ----------------------------------------------------
+    // IN-BROWSER WEBLLM IMPLEMENTATION (STREAMING INTERACTION)
+    // ----------------------------------------------------
+    let engine = null;
+    let messages = [{ role: "system", content: "You are a helpful literacy assistant for teachers." }];
+
+    function setStatus(text, color = "#374151") {
+      const statusEl = document.getElementById("llmStatus");
+      if (statusEl) {
+        statusEl.textContent = text;
+        statusEl.style.color = color;
       }
-
-      navigator.clipboard.writeText(text).then(() => {
-        status.style.color = "#15803d";
-        status.textContent = "✅ Prompt copied.";
-      }).catch(() => {
-        status.style.color = "red";
-        status.textContent = "❌ Copy failed. Please copy manually.";
-      });
     }
 
-    function openInLLM() {
-      const prompt = byId("finalPrompt").value.trim();
-      const provider = byId("llmProvider").value || "chatgpt";
-      const status = byId("llmStatus");
+    async function initWebLLMInternal() {
+      const btn = document.getElementById("llmLoadModelBtn");
+      btn.disabled = true;
+      setStatus("Loading WebLLM module links...", "#1d4ed8");
 
-      if (!prompt) {
-        status.style.color = "red";
-        status.textContent = "❌ Generate a prompt first.";
-        return;
+      try {
+        const mod = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/+esm");
+        setStatus("Downloading and optimizing context weights model (~1.5GB to cache)...", "#1d4ed8");
+
+        const selectedModel = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
+        
+        engine = await mod.CreateWebWorkerEngine(
+          new Worker(new URL("./worker.js", import.meta.url), { type: "module" }),
+          selectedModel,
+          {
+            initProgressCallback: (report) => {
+              setStatus(`Downloading files: ${report.text}`, "#1e40af");
+            }
+          }
+        );
+
+        setStatus("✅ Model ready! Enter a message below.", "#15803d");
+        document.getElementById("webllmChatArea").style.display = "block";
+        btn.style.display = "none";
+      } catch (err) {
+        console.error("WebLLM setup fault:", err);
+        setStatus(`❌ Configuration error: ${err.message || err}`, "#ef4444");
+        btn.disabled = false;
       }
-
-      const w = window.open("about:blank", "_blank");
-      if (!w) {
-        status.style.color = "red";
-        status.textContent = "❌ Popup blocked. Allow popups, then try again.";
-        return;
-      }
-
-      const encoded = encodeURIComponent(prompt);
-      let url = "https://chatgpt.com/";
-      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
-      if (provider === "chatgpt") url = `https://chatgpt.com/?q=${encoded}`;
-      if (provider === "claude") url = "https://claude.ai/new";
-      w.location.href = url;
-
-      navigator.clipboard.writeText(prompt).then(() => {
-        status.style.color = "#15803d";
-        status.textContent = "✅ Opened new tab. Prompt copied — paste if not auto-filled.";
-      }).catch(() => {
-        status.style.color = "#15803d";
-        status.textContent = "✅ Opened new tab. Paste prompt manually if needed.";
-      });
     }
 
-    function clearLLMForm() {
-      ["llmInput", "llmContentArea", "llmFocus", "finalPrompt"].forEach(id => {
-        const el = byId(id);
-        if (el) el.value = "";
-      });
-      byId("llmStatus").textContent = "";
+    function chatEl() { return document.getElementById("webllmChatLog"); }
+    function inputEl() { return document.getElementById("webllmChatInput"); }
+
+    function addChat(sender, text) {
+      const span = document.createElement("div");
+      span.innerHTML = `<strong>${sender}:</strong> <span>${escapeHtml(text)}</span>`;
+      span.style.marginBottom = "8px";
+      chatEl().appendChild(span);
+      chatEl().scrollTop = chatEl().scrollHeight;
+      return span.querySelector("span");
     }
 
-    function refreshPage() { location.reload(); }
+    async function sendWebLLMMessage() {
+      if (!engine) return;
+      const userText = inputEl().value.trim();
+      if (!userText) return;
 
-    // ===================================
-    // IN-MEMORY FIRST LOAD CYCLE MOUNT
-    // ===================================
-    window.addEventListener("load", async () => {
-      await ensureLoaded("wf");
-      setupExcelGridListeners();
-    });
-  </script>
+      inputEl().value = "";
+      addChat("You", userText);
+      messages.push({ role: "user", content: userText });
 
-<script type="module">
-  import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+      const assistantSpan = addChat("AI", "");
+      let acc = "";
 
-  let engine = null;
-  let messages = [
-    { role: "system", content: "You are a helpful literacy assistant for teachers." }
-  ];
+      try {
+        const stream = await engine.chat.completions.create({
+          messages,
+          stream: true,
+          temperature: 0.7
+        });
 
-  const statusEl = () => document.getElementById("webllmStatus");
-  const modelEl = () => document.getElementById("webllmModel");
-  const chatEl = () => document.getElementById("webllmChat");
-  const inputEl = () => document.getElementById("webllmInput");
-  const loadBtnEl = () => document.getElementById("loadWebLLMBtn");
-
-  function isChatCapableModelId(id = "") {
-    const s = id.toLowerCase();
-    return !s.includes("embed") && !s.includes("embedding") && !s.includes("rerank");
-  }
-
-  function addChat(role, text) {
-    const wrap = document.createElement("div");
-    wrap.style.margin = "8px 0";
-    wrap.innerHTML = `<strong>${role}:</strong> <span></span>`;
-    wrap.querySelector("span").textContent = text;
-    chatEl().appendChild(wrap);
-    chatEl().scrollTop = chatEl().scrollHeight;
-    return wrap.querySelector("span");
-  }
-
-  function setStatus(msg, color = "#374151") {
-    const el = statusEl();
-    if (el) { el.textContent = msg; el.style.color = color; }
-  }
-
-  function populateModels() {
-    const list = (webllm.prebuiltAppConfig?.model_list || [])
-      .filter(m => isChatCapableModelId(m.model_id));
-
-    const select = modelEl();
-    select.innerHTML = "";
-
-    if (!list.length) {
-      const opt = document.createElement("option");
-      opt.textContent = "No chat models available";
-      select.appendChild(opt);
-      return;
-    }
-
-    const sorted = [...list].sort((a, b) => {
-      const getSize = m => parseFloat(m.model_id.match(/(\d+\.?\d*)/)?.[1] || 999);
-      return getSize(a) - getSize(b);
-    });
-
-    sorted.forEach(model => {
-      const opt = document.createElement("option");
-      opt.value = model.model_id;
-      const vram = model.vram_required_MB ? ` ~${Math.round(model.vram_required_MB / 1024)}GB` : "";
-      opt.textContent = `${model.model_id}${vram}`;
-      select.appendChild(opt);
-    });
-  }
-
-  async function initWebLLMInternal() {
-    if (!window.isSecureContext) { setStatus("❌ WebLLM needs HTTPS (or localhost)", "red"); return; }
-    if (!navigator.gpu) { setStatus("❌ WebGPU not available in this browser/device", "red"); return; }
-
-    const selected = modelEl().value;
-    if (!selected) { setStatus("❌ Please select a model first", "red"); return; }
-    if (!isChatCapableModelId(selected)) { setStatus("❌ Select a chat/instruct model.", "red"); return; }
-
-    loadBtnEl().disabled = true;
-    setStatus("Loading model... (first time can take 30–180 seconds)", "#1d4ed8");
-
-    try {
-      engine = await webllm.CreateMLCEngine(selected, {
-        initProgressCallback: (report) => {
-          const pct = report.progress ? ` ${(report.progress * 100).toFixed(0)}%` : "";
-          setStatus(`Loading ${selected}... ${report.text || ""}${pct}`, "#1d4ed8");
+        for await (const chunk of stream) {
+          const token = chunk?.choices?.[0]?.delta?.content || "";
+          acc += token;
+          assistantSpan.textContent = acc;
+          chatEl().scrollTop = chatEl().scrollHeight;
         }
-      });
-      setStatus(`✅ Model loaded: ${selected}`, "#15803d");
-      addChat("System", `Model ready: ${selected}`);
-    } catch (err) {
-      console.error(err);
-      setStatus(`❌ Failed to load model: ${err?.message || err}`, "red");
-    } finally {
-      loadBtnEl().disabled = false;
-    }
-  }
 
-  async function sendWebLLMInternal() {
-    if (!engine) { setStatus("❌ Load a model first.", "red"); return; }
-
-    const userText = inputEl().value.trim();
-    if (!userText) return;
-
-    inputEl().value = "";
-    addChat("You", userText);
-    messages.push({ role: "user", content: userText });
-
-    const assistantSpan = addChat("AI", "");
-    let acc = "";
-
-    try {
-      const stream = await engine.chat.completions.create({
-        messages,
-        stream: true,
-        temperature: 0.7
-      });
-
-      for await (const chunk of stream) {
-        const token = chunk?.choices?.[0]?.delta?.content || "";
-        acc += token;
-        assistantSpan.textContent = acc;
-        chatEl().scrollTop = chatEl().scrollHeight;
+        messages.push({ role: "assistant", content: acc || "(No output)" });
+        setStatus("✅ Response complete.", "#15803d");
+      } catch (err) {
+        console.error("WebLLM generation error:", err);
+        setStatus(`❌ Generation failed: ${err?.message || err}`, "red");
       }
-
-      messages.push({ role: "assistant", content: acc || "(No output)" });
-      setStatus("✅ Response complete.", "#15803d");
-    } catch (err) {
-      console.error("WebLLM generation error:", err);
-      setStatus(`❌ Generation failed: ${err?.message || err}`, "red");
     }
-  }
 
-  function resetWebLLMChatInternal() {
-    messages = [{ role: "system", content: "You are a helpful literacy assistant for teachers." }];
-    chatEl().innerHTML = "";
-    setStatus("Chat reset.", "#374151");
-  }
+    function resetWebLLMChatInternal() {
+      messages = [{ role: "system", content: "You are a helpful literacy assistant for teachers." }];
+      chatEl().innerHTML = "";
+      setStatus("Chat reset.", "#374151");
+    }
 
-  window.initWebLLM = initWebLLMInternal;
-  window.sendWebLLM = sendWebLLMInternal;
-  window.resetWebLLMChat = resetWebLLMChatInternal;
-
-  window.addEventListener("load", () => {
-    setTimeout(() => {
-      populateModels();
-      setStatus("Select a model, then click 'Load Model'.", "#374151");
-    }, 600);
-  });
-</script>
+    window.initWebLLM = initWebLLMInternal;
+    window.sendWebLLMMessage = sendWebLLMMessage;
+    window.resetWebLLMChat = resetWebLLMChatInternal;
+  </script>
 </body>
 </html>
