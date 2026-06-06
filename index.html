@@ -588,6 +588,27 @@ const DATASETS = {
     sortBy: "",
     sortDesc: false
   }
+  const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
+
+function chooseDefaultColumns(key, headers){
+  // compounds: show all real headers
+  if (key === "cm" || key === "cs") return [...headers];
+
+  // word families: prefer useful starter columns
+  const preferred = [
+    "Word",
+    "Word_frq_Zipf",
+    "FLemma",
+    "Baseword",
+    "Baseword_frq_Zipf",
+    "GPT_Root",
+    "Greek_Latin_Root_1"
+  ];
+
+  const found = preferred.filter(col => headers.includes(col));
+  return found.length ? found : headers.slice(0, 12);
+}
+
 };
 
 
@@ -611,6 +632,10 @@ const DATASETS = {
       setupAddColsListener('cs'); 
       loadWebLLMModelList();
     });
+function ensureLoaded(key){
+  if (!DATASETS[key].loaded) initDataset(key);
+  else renderTable(key);
+}
 
     function getDatasetKeyFromTab(tabId) {
       if (tabId === 'word-families') return 'wf';
@@ -625,12 +650,12 @@ function openTab(tabName, btnEl){
   byId(tabName)?.classList.add("active");
   btnEl?.classList.add("active");
 
-  if (tabName === "word-families") ensureLoaded("wf");
-  if (tabName === "compounds"){
-    const activeSub = document.querySelector("#compounds .subtab-btn.active");
-    if (!activeSub || activeSub.textContent.includes("Main")) ensureLoaded("cm");
-    else ensureLoaded("cs");
-  }
+ if (tabName === "word-families") activeKey = "wf";
+if (tabName === "compounds") {
+  const activeSub = document.querySelector("#compounds .subtab-pane.active")?.id;
+  activeKey = activeSub === "comp-stats" ? "cs" : "cm";
+}
+
 }
 
 
@@ -661,19 +686,34 @@ function openTab(tabName, btnEl){
 
         let firstPaint = false;
         config.data = [];
+config.filtered = [];
+config.all = [];
+config.visible = [];
 
         Papa.parse(blob, {
           header: true,
           skipEmptyLines: 'greedy',
           chunkSize: 1024 * 1024 * 3, 
-          transformHeader: function(h) {
-            // FIX: Removes UTF-8 BOM glitch causing ï»¿Word to appear
-            return String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim(); 
-          },
+          transformHeader: function(h, i) {
+  const clean = String(h || "")
+    .replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "")
+    .trim();
+
+  // give blank headers a temp name so they can be filtered out later
+  return clean || `${EMPTY_HEADER_PREFIX}${i}`;
+},
+
           chunk: function(results) {
-            if (!config.all.length) {
-              config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
-            }
+           if (!config.all.length) {
+  const fields = results.meta?.fields || [];
+
+  // remove fake blank headers
+  config.all = fields.filter(f => f && !String(f).startsWith(EMPTY_HEADER_PREFIX));
+
+  // IMPORTANT: initialize visible columns once
+  config.visible = chooseDefaultColumns(key, config.all);
+}
+
             
             const validRows = results.data.filter(r => {
               const w = r['Word'] || r['Baseword'];
@@ -939,51 +979,6 @@ function lookupWordnik(word) {
   window.open(`https://www.wordnik.com/words/${encodeURIComponent(word)}`, "_blank", "noopener");
 }
 
-function lookupGoogle(word) {
-  word = String(word || "").trim();
-  if (!word) return;
-
-  const query = `${word} etymology morphology`;
-  window.open(
-    `https://www.google.com/search?q=${encodeURIComponent(query)}`,
-    "_blank",
-    "noopener"
-  );
-}
-
-function lookupDefinition(word) {
-  word = String(word || "").trim();
-  if (!word) return;
-
-  const wikiWord = encodeURIComponent(word.replace(/\s+/g, "_"));
-  window.open(
-    `https://en.wiktionary.org/wiki/${wikiWord}`,
-    "_blank",
-    "noopener"
-  );
-}
-
-function lookupEtymology(word) {
-  word = String(word || "").trim();
-  if (!word) return;
-
-  window.open(
-    `https://www.etymonline.com/word/${encodeURIComponent(word)}`,
-    "_blank",
-    "noopener"
-  );
-}
-
-function lookupWordnik(word) {
-  word = String(word || "").trim();
-  if (!word) return;
-
-  window.open(
-    `https://www.wordnik.com/words/${encodeURIComponent(word)}`,
-    "_blank",
-    "noopener"
-  );
-}
 
 function makeActionButton(label, className, onClick, disabled = false) {
   const btn = document.createElement("button");
