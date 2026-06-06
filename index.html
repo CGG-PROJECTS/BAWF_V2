@@ -116,7 +116,6 @@
       margin:15px 0;
     }
 
-    /* DB styles */
     .db-wrap {
       background: #fff;
       border: 1px solid #e5e7eb;
@@ -142,6 +141,7 @@
     }
     .db-input { min-width: 320px; }
     .db-select { background:#fff; }
+    .db-select[multiple] { min-height: 120px; }
     .db-btn {
       border:none;
       background:#1d4ed8;
@@ -268,7 +268,6 @@
     }
     .download-btn:hover { background:#1e40af; }
 
-    /* Compound sub-tabs */
     .subtabs {
       display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
       margin: 4px 0 18px;
@@ -287,7 +286,6 @@
     .subtab-pane { display:none; }
     .subtab-pane.active { display:block; }
 
-    /* Word cloud */
     #wordInput {
       width: 90%; max-width: 900px; height: 220px; padding: 16px;
       font-family: ui-monospace, monospace; font-size: 1rem;
@@ -299,7 +297,6 @@
       border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.08); background:#fff;
     }
 
-    /* Modals */
     .modal {
       display: none;
       position: fixed;
@@ -420,6 +417,9 @@
             <option value="page">Copy current page only</option>
           </select>
           <button class="db-btn secondary" onclick="copyColumnValues('wf')">📋 Copy Column Cells</button>
+
+          <select id="wfAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+          <button id="wfAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
         </div>
 
         <div class="db-meta">Showing <strong id="wfRowCount">0</strong> rows</div>
@@ -473,6 +473,9 @@
               <option value="page">Copy current page only</option>
             </select>
             <button class="db-btn secondary" onclick="copyColumnValues('cm')">📋 Copy Column Cells</button>
+
+            <select id="cmAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+            <button id="cmAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
           </div>
 
           <div class="db-meta">Showing <strong id="cmRowCount">0</strong> rows</div>
@@ -519,6 +522,9 @@
               <option value="page">Copy current page only</option>
             </select>
             <button class="db-btn secondary" onclick="copyColumnValues('cs')">📋 Copy Column Cells</button>
+
+            <select id="csAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+            <button id="csAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
           </div>
 
           <div class="db-meta">Showing <strong id="csRowCount">0</strong> rows</div>
@@ -566,6 +572,9 @@
             <option value="page">Copy current page only</option>
           </select>
           <button class="db-btn secondary" onclick="copyColumnValues('de')">📋 Copy Column Cells</button>
+
+          <select id="deAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+          <button id="deAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
         </div>
 
         <div class="db-meta">Showing <strong id="deRowCount">0</strong> rows</div>
@@ -611,7 +620,6 @@
         <h2 style="text-align:center; color:#1d4ed8;">🪄 AI Prompt Generator</h2>
         <p style="text-align:center;">Choose text type, grade level, focus area, and activities.</p>
 
-        <!-- Pull from filtered dataset -->
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; margin-bottom:12px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px;">
           <div>
             <label><strong>Add words from dataset</strong></label><br>
@@ -866,7 +874,11 @@
       state[k] = {
         fullData: [],
         filteredData: [],
-        columns: [],             // <-- cached once
+        columns: [],
+        allColumns: [],
+        coreColumns: [],
+        parseDone: false,
+        firstPaintDone: false,
         currentPage: 1,
         rowsPerPage: 100,
         sort: { column: null, asc: true },
@@ -880,6 +892,29 @@
     function byId(id){ return document.getElementById(id); }
     function normalizeSpaces(s){ return String(s ?? "").replace(/\s+/g, " ").trim(); }
 
+    function norm(s){ return String(s || "").toLowerCase().replace(/[\s_]+/g, ""); }
+
+    function chooseCoreColumns(headers){
+      const hmap = new Map(headers.map(h => [norm(h), h]));
+      const core = [];
+      const preferred = [
+        "word","baseword","greeklatinroot1","greeklatinmeaning1",
+        "greeklatinroot2","greeklatinmeaning2","gptroot","gptcodedwordparts"
+      ];
+      preferred.forEach(k => { if (hmap.has(k)) core.push(hmap.get(k)); });
+      headers.forEach(col => {
+        const c = norm(col);
+        if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) core.push(col);
+      });
+      return [...new Set(core)];
+    }
+
+    function getVisibleColumns(prefix){
+      const st = state[prefix];
+      if (st.columns?.length) return st.columns;
+      return Object.keys(st.fullData[0] || {});
+    }
+
     function getFirstNonEmpty(row, candidates){
       for (const c of candidates){
         const v = String(row?.[c] ?? "").trim();
@@ -890,7 +925,9 @@
 
     function setDbLoading(prefix, msg){
       const el = byId(prefix + "Loading");
-      if (el) el.textContent = msg;
+      if (!el) return;
+      el.style.display = "block";
+      el.textContent = msg;
     }
 
     function debounce(fn, ms = 250){
@@ -911,12 +948,20 @@
     function detectDropdownColumns(prefix){
       const st = state[prefix];
       const rows = st.fullData;
-      const cols = st.columns;
+      const cols = getVisibleColumns(prefix);
       st.dropdownColumns.clear();
 
+      const sampleSize = Math.min(rows.length, 1500);
+      if (!sampleSize) return;
+
       cols.forEach(col => {
-        const values = rows.map(r => normalizeSpaces(r[col])).filter(Boolean);
+        const vals = [];
+        for (let i = 0; i < sampleSize; i++){
+          vals.push(normalizeSpaces(rows[i]?.[col]));
+        }
+        const values = vals.filter(Boolean);
         if (!values.length) return;
+
         const unique = [...new Set(values)];
         const ratio = unique.length / values.length;
         const avgWords = unique.reduce((acc, v) => acc + v.split(" ").length, 0) / unique.length;
@@ -932,11 +977,67 @@
       return state[prefix].dropdownColumns.has(String(colName).toLowerCase().trim());
     }
 
+    function wireAddColsUI(prefix){
+      const btn = byId(prefix + "AddColsBtn");
+      if (!btn || btn.dataset.wired === "1") return;
+      btn.addEventListener("click", () => addSelectedColumns(prefix));
+      btn.dataset.wired = "1";
+    }
+
+    function populateAddColsSelect(prefix){
+      const st = state[prefix];
+      const sel = byId(prefix + "AddCols");
+      if (!sel) return;
+      sel.innerHTML = "";
+
+      (st.allColumns || [])
+        .filter(c => !st.columns.includes(c))
+        .forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c;
+          opt.textContent = c;
+          sel.appendChild(opt);
+        });
+    }
+
+    function addSelectedColumns(prefix){
+      const st = state[prefix];
+      const sel = byId(prefix + "AddCols");
+      if (!sel) return;
+
+      const chosen = Array.from(sel.selectedOptions).map(o => o.value);
+      const add = chosen.filter(c => !st.columns.includes(c));
+      if (!add.length) return;
+
+      st.columns = [...st.columns, ...add];
+
+      detectDropdownColumns(prefix);
+      renderHeadersAndFilters(prefix);
+      renderTable(prefix);
+      populateCopyColumnSelect(prefix);
+      populateAddColsSelect(prefix);
+    }
+
     async function loadDataset(prefix){
       const cfg = DATASETS[prefix];
       if (!cfg || cfg.loaded) return;
 
+      cfg.loaded = true;
+      const st = state[prefix];
+
+      st.fullData = [];
+      st.filteredData = [];
+      st.columns = [];
+      st.allColumns = [];
+      st.coreColumns = [];
+      st.parseDone = false;
+      st.firstPaintDone = false;
+      st.currentPage = 1;
+      st.sort = { column: null, asc: true };
+      st.dropdownColumns = new Set();
+
       setDbLoading(prefix, `Loading ${cfg.name}...`);
+
       try {
         const resp = await fetch(cfg.file, { cache: "no-cache" });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -950,12 +1051,22 @@
           skipEmptyLines: "greedy",
           worker: true,
           fastMode: true,
-          complete: (results) => {
+          chunkSize: 1024 * 1024,
+          chunk: (results) => {
             const rows = (results.data || []).filter(row =>
               Object.values(row).some(v => String(v ?? "").trim() !== "")
             );
+            if (!rows.length) return;
 
-            // optional fast global-search cache (non-enumerable so it won't appear in table/export)
+            if (!st.allColumns.length) {
+              st.allColumns = (results.meta?.fields?.length)
+                ? results.meta.fields
+                : Object.keys(rows[0] || {});
+              st.coreColumns = chooseCoreColumns(st.allColumns);
+              if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
+              st.columns = [...st.coreColumns];
+            }
+
             for (const row of rows) {
               try {
                 Object.defineProperty(row, "__search", {
@@ -967,18 +1078,46 @@
               }
             }
 
-            const st = state[prefix];
-            st.fullData = rows;
-            st.filteredData = [...rows];
-            st.columns = Object.keys(rows[0] || {}); // <-- cache columns once
+            st.fullData.push(...rows);
 
-            detectDropdownColumns(prefix);
+            if (!st.firstPaintDone && st.fullData.length >= Math.max(st.rowsPerPage, 50)) {
+              st.filteredData = st.fullData.slice();
+              initializeDatasetUI(prefix);
+              detectDropdownColumns(prefix);
+              renderHeadersAndFilters(prefix);
+              renderTable(prefix);
+              populateCopyColumnSelect(prefix);
+              populateAddColsSelect(prefix);
 
-            cfg.loaded = true;
+              const loadingEl = byId(prefix + "Loading");
+              if (loadingEl) {
+                loadingEl.style.display = "block";
+                loadingEl.textContent = `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows in background`;
+              }
+
+              const tableEl = byId(prefix + "Table");
+              if (tableEl) tableEl.style.display = "table";
+              const pagerEl = byId(prefix + "Pagination");
+              if (pagerEl) pagerEl.style.display = "flex";
+
+              st.firstPaintDone = true;
+            } else if (st.firstPaintDone) {
+              setDbLoading(prefix, `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows`);
+            }
+          },
+          complete: () => {
+            st.filteredData = st.fullData.slice();
+            st.parseDone = true;
+
             initializeDatasetUI(prefix);
+            detectDropdownColumns(prefix);
+            renderHeadersAndFilters(prefix);
+            renderTable(prefix);
+            populateCopyColumnSelect(prefix);
+            populateAddColsSelect(prefix);
 
             const loadingEl = byId(prefix + "Loading");
-            if (loadingEl){
+            if (loadingEl) {
               loadingEl.textContent = "";
               loadingEl.style.display = "none";
             }
@@ -986,11 +1125,13 @@
             byId(prefix + "Pagination").style.display = "flex";
           },
           error: (err) => {
+            cfg.loaded = false;
             setDbLoading(prefix, `CSV parse error: ${err.message}`);
           }
         });
 
       } catch (err){
+        cfg.loaded = false;
         setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
       }
     }
@@ -999,6 +1140,8 @@
       renderHeadersAndFilters(prefix);
       renderTable(prefix);
       populateCopyColumnSelect(prefix);
+      populateAddColsSelect(prefix);
+      wireAddColsUI(prefix);
 
       const global = byId(prefix + "GlobalSearch");
       if (global && !global.dataset.wired) {
@@ -1012,7 +1155,7 @@
 
     function renderHeadersAndFilters(prefix){
       const st = state[prefix];
-      const columns = st.columns;
+      const columns = getVisibleColumns(prefix);
       const headerRow = byId(prefix + "HeaderRow");
       const filterRow = byId(prefix + "FilterRow");
 
@@ -1116,7 +1259,7 @@
       const pageData = st.filteredData.slice(start, start + st.rowsPerPage);
 
       const frag = document.createDocumentFragment();
-      const columns = st.columns;
+      const columns = getVisibleColumns(prefix);
 
       for (const row of pageData){
         const tr = document.createElement("tr");
@@ -1220,7 +1363,7 @@
       const st = state[prefix];
       if (!st.filteredData.length) return;
 
-      const headers = st.columns; // cached columns
+      const headers = getVisibleColumns(prefix);
       let csv = headers.join(",") + "\n";
       st.filteredData.forEach(row => {
         const values = headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`);
@@ -1241,7 +1384,7 @@
       if (!sel) return;
       sel.innerHTML = "";
 
-      const cols = state[prefix].columns;
+      const cols = getVisibleColumns(prefix);
       cols.forEach(c => {
         const opt = document.createElement("option");
         opt.value = c;
@@ -1405,7 +1548,6 @@ Please return:
       }
     });
 
-    // close modals on backdrop click
     window.addEventListener("click", (e) => {
       const colModal = byId("columnModal");
       const exModal = byId("explainModalBackdrop");
@@ -1693,151 +1835,149 @@ Please return:
     // INITIAL LOAD
     // =========================
     window.addEventListener("load", async () => {
-      await ensureLoaded("wf"); // lazy load first active tab only
+      await ensureLoaded("wf");
     });
   </script>
 
-  <script type="module">
-    import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+<script type="module">
+  import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
-    let engine = null;
-    let messages = [
-      { role: "system", content: "You are a helpful literacy assistant for teachers." }
-    ];
+  let engine = null;
+  let messages = [
+    { role: "system", content: "You are a helpful literacy assistant for teachers." }
+  ];
 
-    const statusEl = () => document.getElementById("webllmStatus");
-    const modelEl = () => document.getElementById("webllmModel");
-    const chatEl = () => document.getElementById("webllmChat");
-    const inputEl = () => document.getElementById("webllmInput");
-    const loadBtnEl = () => document.getElementById("loadWebLLMBtn");
+  const statusEl = () => document.getElementById("webllmStatus");
+  const modelEl = () => document.getElementById("webllmModel");
+  const chatEl = () => document.getElementById("webllmChat");
+  const inputEl = () => document.getElementById("webllmInput");
+  const loadBtnEl = () => document.getElementById("loadWebLLMBtn");
 
-    function isChatCapableModelId(id = "") {
-      const s = id.toLowerCase();
-      return !s.includes("embed") && !s.includes("embedding") && !s.includes("rerank");
+  function isChatCapableModelId(id = "") {
+    const s = id.toLowerCase();
+    return !s.includes("embed") && !s.includes("embedding") && !s.includes("rerank");
+  }
+
+  function addChat(role, text) {
+    const wrap = document.createElement("div");
+    wrap.style.margin = "8px 0";
+    wrap.innerHTML = `<strong>${role}:</strong> <span></span>`;
+    wrap.querySelector("span").textContent = text;
+    chatEl().appendChild(wrap);
+    chatEl().scrollTop = chatEl().scrollHeight;
+    return wrap.querySelector("span");
+  }
+
+  function setStatus(msg, color = "#374151") {
+    const el = statusEl();
+    if (el) { el.textContent = msg; el.style.color = color; }
+  }
+
+  function populateModels() {
+    const list = (webllm.prebuiltAppConfig?.model_list || [])
+      .filter(m => isChatCapableModelId(m.model_id));
+
+    const select = modelEl();
+    select.innerHTML = "";
+
+    if (!list.length) {
+      const opt = document.createElement("option");
+      opt.textContent = "No chat models available";
+      select.appendChild(opt);
+      return;
     }
 
-    function addChat(role, text) {
-      const wrap = document.createElement("div");
-      wrap.style.margin = "8px 0";
-      wrap.innerHTML = `<strong>${role}:</strong> <span></span>`;
-      wrap.querySelector("span").textContent = text;
-      chatEl().appendChild(wrap);
-      chatEl().scrollTop = chatEl().scrollHeight;
-      return wrap.querySelector("span");
-    }
+    const sorted = [...list].sort((a, b) => {
+      const getSize = m => parseFloat(m.model_id.match(/(\d+\.?\d*)/)?.[1] || 999);
+      return getSize(a) - getSize(b);
+    });
 
-    function setStatus(msg, color = "#374151") {
-      const el = statusEl();
-      if (el) { el.textContent = msg; el.style.color = color; }
-    }
+    sorted.forEach(model => {
+      const opt = document.createElement("option");
+      opt.value = model.model_id;
+      const vram = model.vram_required_MB ? ` ~${Math.round(model.vram_required_MB / 1024)}GB` : "";
+      opt.textContent = `${model.model_id}${vram}`;
+      select.appendChild(opt);
+    });
+  }
 
-    function populateModels() {
-      const list = (webllm.prebuiltAppConfig?.model_list || [])
-        .filter(m => isChatCapableModelId(m.model_id));
+  async function initWebLLMInternal() {
+    if (!window.isSecureContext) { setStatus("❌ WebLLM needs HTTPS (or localhost)", "red"); return; }
+    if (!navigator.gpu) { setStatus("❌ WebGPU not available in this browser/device", "red"); return; }
 
-      const select = modelEl();
-      select.innerHTML = "";
+    const selected = modelEl().value;
+    if (!selected) { setStatus("❌ Please select a model first", "red"); return; }
+    if (!isChatCapableModelId(selected)) { setStatus("❌ Select a chat/instruct model.", "red"); return; }
 
-      if (!list.length) {
-        const opt = document.createElement("option");
-        opt.textContent = "No chat models available";
-        select.appendChild(opt);
-        return;
-      }
+    loadBtnEl().disabled = true;
+    setStatus("Loading model... (first time can take 30–180 seconds)", "#1d4ed8");
 
-      const sorted = [...list].sort((a, b) => {
-        const getSize = m => parseFloat(m.model_id.match(/(\d+\.?\d*)/)?.[1] || 999);
-        return getSize(a) - getSize(b);
-      });
-
-      sorted.forEach(model => {
-        const opt = document.createElement("option");
-        opt.value = model.model_id;
-        const vram = model.vram_required_MB ? ` ~${Math.round(model.vram_required_MB / 1024)}GB` : "";
-        opt.textContent = `${model.model_id}${vram}`;
-        select.appendChild(opt);
-      });
-    }
-
-    async function initWebLLMInternal() {
-      if (!window.isSecureContext) { setStatus("❌ WebLLM needs HTTPS (or localhost)", "red"); return; }
-      if (!navigator.gpu) { setStatus("❌ WebGPU not available in this browser/device", "red"); return; }
-
-      const selected = modelEl().value;
-      if (!selected) { setStatus("❌ Please select a model first", "red"); return; }
-      if (!isChatCapableModelId(selected)) { setStatus("❌ Select a chat/instruct model.", "red"); return; }
-
-      loadBtnEl().disabled = true;
-      setStatus("Loading model... (first time can take 30–180 seconds)", "#1d4ed8");
-
-      try {
-        engine = await webllm.CreateMLCEngine(selected, {
-          initProgressCallback: (report) => {
-            const pct = report.progress ? ` ${(report.progress * 100).toFixed(0)}%` : "";
-            setStatus(`Loading ${selected}... ${report.text || ""}${pct}`, "#1d4ed8");
-          }
-        });
-        setStatus(`✅ Model loaded: ${selected}`, "#15803d");
-        addChat("System", `Model ready: ${selected}`);
-      } catch (err) {
-        console.error(err);
-        setStatus(`❌ Failed to load model: ${err?.message || err}`, "red");
-      } finally {
-        loadBtnEl().disabled = false;
-      }
-    }
-
-    async function sendWebLLMInternal() {
-      if (!engine) { setStatus("❌ Load a model first.", "red"); return; }
-
-      const userText = inputEl().value.trim();
-      if (!userText) return;
-
-      inputEl().value = "";
-      addChat("You", userText);
-      messages.push({ role: "user", content: userText });
-
-      const assistantSpan = addChat("AI", "");
-      let acc = "";
-
-      try {
-        const stream = await engine.chat.completions.create({
-          messages,
-          stream: true,
-          temperature: 0.7
-        });
-
-        for await (const chunk of stream) {
-          const token = chunk?.choices?.[0]?.delta?.content || "";
-          acc += token;
-          assistantSpan.textContent = acc;
-          chatEl().scrollTop = chatEl().scrollHeight;
+    try {
+      engine = await webllm.CreateMLCEngine(selected, {
+        initProgressCallback: (report) => {
+          const pct = report.progress ? ` ${(report.progress * 100).toFixed(0)}%` : "";
+          setStatus(`Loading ${selected}... ${report.text || ""}${pct}`, "#1d4ed8");
         }
+      });
+      setStatus(`✅ Model loaded: ${selected}`, "#15803d");
+      addChat("System", `Model ready: ${selected}`);
+    } catch (err) {
+      console.error(err);
+      setStatus(`❌ Failed to load model: ${err?.message || err}`, "red");
+    } finally {
+      loadBtnEl().disabled = false;
+    }
+  }
 
-        messages.push({ role: "assistant", content: acc || "(No output)" });
-        setStatus("✅ Response complete.", "#15803d");
-      } catch (err) {
-        console.error("WebLLM generation error:", err);
-        setStatus(`❌ Generation failed: ${err?.message || err}`, "red");
+  async function sendWebLLMInternal() {
+    if (!engine) { setStatus("❌ Load a model first.", "red"); return; }
+
+    const userText = inputEl().value.trim();
+    if (!userText) return;
+
+    inputEl().value = "";
+    addChat("You", userText);
+    messages.push({ role: "user", content: userText });
+
+    const assistantSpan = addChat("AI", "");
+    let acc = "";
+
+    try {
+      const stream = await engine.chat.completions.create({
+        messages,
+        stream: true,
+        temperature: 0.7
+      });
+
+      for await (const chunk of stream) {
+        const token = chunk?.choices?.[0]?.delta?.content || "";
+        acc += token;
+        assistantSpan.textContent = acc;
+        chatEl().scrollTop = chatEl().scrollHeight;
       }
+
+      messages.push({ role: "assistant", content: acc || "(No output)" });
+      setStatus("✅ Response complete.", "#15803d");
+    } catch (err) {
+      console.error("WebLLM generation error:", err);
+      setStatus(`❌ Generation failed: ${err?.message || err}`, "red");
     }
+  }
 
-    function resetWebLLMChatInternal() {
-      messages = [{ role: "system", content: "You are a helpful literacy assistant for teachers." }];
-      chatEl().innerHTML = "";
-      setStatus("Chat reset.", "#374151");
-    }
+  function resetWebLLMChatInternal() {
+    messages = [{ role: "system", content: "You are a helpful literacy assistant for teachers." }];
+    chatEl().innerHTML = "";
+    setStatus("Chat reset.", "#374151");
+  }
 
-    window.initWebLLM = initWebLLMInternal;
-    window.sendWebLLM = sendWebLLMInternal;
-    window.resetWebLLMChat = resetWebLLMChatInternal;
+  window.initWebLLM = initWebLLMInternal;
+  window.sendWebLLM = sendWebLLMInternal;
+  window.resetWebLLMChat = resetWebLLMChatInternal;
 
-    window.addEventListener("load", () => {
-      setTimeout(() => {
-        populateModels();
-        setStatus("Select a model, then click 'Load Model'.", "#374151");
-      }, 600);
-    });
-  </script>
-</body>
-</html>
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      populateModels();
+      setStatus("Select a model, then click 'Load Model'.", "#374151");
+    }, 600);
+  });
+</script>
