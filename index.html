@@ -6,9 +6,7 @@
   <title>BAWF Morphological Database</title>
 
   <!-- Data parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-
+ <script src="https://cdn.jsdelivr.net/npm/apache-arrow@13"></script>
   <!-- Word cloud -->
   <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
 
@@ -862,12 +860,28 @@
     // =========================
     // DATASET CONFIG + STATE
     // =========================
-    const DATASETS = {
-      wf: { file: "BAWF_FINAL.csv.gz", loaded: false, name: "Word Families" },
-      cm: { file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz", loaded: false, name: "Compound Main" },
-      cs: { file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz", loaded: false, name: "Compound Stats" },
-      de: { file: "BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz", loaded: false, name: "Definitions & Etymology" }
-    };
+const DATASETS = {
+  wf: { 
+    file: "BAWF_FINAL.csv.parquet", 
+    loaded: false, 
+    name: "Word Families" 
+  },
+  cm: { 
+    file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.parquet", 
+    loaded: false, 
+    name: "Compound Main" 
+  },
+  cs: { 
+    file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.parquet", 
+    loaded: false, 
+    name: "Compound Stats" 
+  },
+  de: { 
+    file: "BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.parquet", 
+    loaded: false, 
+    name: "Definitions & Etymology" 
+  }
+};
 
     const state = {};
     Object.keys(DATASETS).forEach(k => {
@@ -1077,147 +1091,68 @@
       populateAddColsSelect(prefix);
     }
 
-    async function loadDataset(prefix){
-      const cfg = DATASETS[prefix];
-      if (!cfg) return;
-      if (cfg.loaded) return;
-      cfg.loaded = true;
+ async function loadDataset(prefix) {
+  const cfg = DATASETS[prefix];
+  if (!cfg || cfg.loaded) return;
+  cfg.loaded = true;
 
-      const st = state[prefix];
-      st.fullData = [];
-      st.filteredData = [];
-      st.currentPage = 1;
-      st.sort = { column: null, asc: true };
-      st.dropdownColumns = new Set();
-      st.columns = [];
-      st.allColumns = [];
-      st.coreColumns = [];
-      st.parseDone = false;
-      st.firstPaintDone = false;
-      st.badRowCount = 0;
+  const st = state[prefix];
+  st.fullData = [];
+  st.filteredData = [];
+  st.currentPage = 1;
+  st.sort = { column: null, asc: true };
+  st.dropdownColumns = new Set();
+  st.columns = [];
+  st.allColumns = [];
+  st.coreColumns = [];
+  st.parseDone = false;
+  st.firstPaintDone = false;
 
-      setDbLoading(prefix, `Loading ${cfg.name}...`);
+  setDbLoading(prefix, `Loading ${cfg.name} (Parquet)...`);
 
-      try {
-        const resp = await fetch(cfg.file, { cache: "no-cache" });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  try {
+    const resp = await fetch(cfg.file);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
-        const arrBuf = await resp.arrayBuffer();
-        const bin = new Uint8Array(arrBuf);
-        const csvText = pako.ungzip(bin, { to: "string" });
+    const arrayBuffer = await resp.arrayBuffer();
+    const table = await tableFromIPC(arrayBuffer);
 
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: "greedy",
-          worker: false,
-          fastMode: false,
-          chunkSize: 1024 * 1024,
-          transformHeader: (h) => String(h || "").replace(/^\uFEFF/, "").trim(),
+    st.allColumns = table.schema.names;
+    st.coreColumns = chooseCoreColumns(st.allColumns);
+    if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
+    st.columns = [...st.coreColumns];
 
-          chunk: (results) => {
-            let rows = (results.data || []).filter(r =>
-              Object.values(r).some(v => String(v ?? "").trim() !== "")
-            );
-            if (!rows.length) return;
-
-            if (!st.allColumns.length) {
-              st.allColumns = (results.meta?.fields?.length)
-                ? results.meta.fields.map(h => String(h || "").trim())
-                : Object.keys(rows[0] || {}).filter(k => k !== "__parsed_extra");
-
-              st.coreColumns = chooseCoreColumns(st.allColumns);
-              if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
-              st.columns = [...st.coreColumns];
-            }
-
-            const cleanedRows = [];
-            for (const r of rows){
-              const hasExtra = Array.isArray(r.__parsed_extra) && r.__parsed_extra.length > 0;
-              if (hasExtra){
-                st.badRowCount++;
-                continue;
-              }
-
-              const cleaned = cleanParsedRow(r, st.allColumns);
-              roundVocabularyGradeLevels(cleaned, st.allColumns);
-
-              try {
-                Object.defineProperty(cleaned, "__search", {
-                  value: st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase(),
-                  enumerable: false
-                });
-              } catch {
-                cleaned.__search = st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase();
-              }
-              cleanedRows.push(cleaned);
-            }
-
-            if (!cleanedRows.length) return;
-            st.fullData.push(...cleanedRows);
-
-            if (!st.firstPaintDone && st.fullData.length >= Math.max(st.rowsPerPage, 50)) {
-              st.filteredData = st.fullData.slice();
-              st.currentPage = 1;
-
-              initializeDatasetUI(prefix);
-              wireAddColsUI(prefix);
-              detectDropdownColumns(prefix);
-              renderHeadersAndFilters(prefix);
-              renderTable(prefix);
-              populateCopyColumnSelect(prefix);
-              populateAddColsSelect(prefix);
-
-              const loadingEl = byId(prefix + "Loading");
-              if (loadingEl) {
-                loadingEl.style.display = "block";
-                loadingEl.textContent = `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows in background`;
-              }
-
-              const tableEl = byId(prefix + "Table");
-              if (tableEl) tableEl.style.display = "table";
-              const pagerEl = byId(prefix + "Pagination");
-              if (pagerEl) pagerEl.style.display = "flex";
-
-              st.firstPaintDone = true;
-            } else if (st.firstPaintDone) {
-              setDbLoading(prefix, `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows`);
-            }
-          },
-
-          complete: () => {
-            st.filteredData = st.fullData.slice();
-            st.parseDone = true;
-
-            initializeDatasetUI(prefix);
-            wireAddColsUI(prefix);
-            detectDropdownColumns(prefix);
-            renderHeadersAndFilters(prefix);
-            renderTable(prefix);
-            populateCopyColumnSelect(prefix);
-            populateAddColsSelect(prefix);
-
-            const loadingEl = byId(prefix + "Loading");
-            if (loadingEl) {
-              loadingEl.style.display = "none";
-              loadingEl.textContent = "";
-            }
-
-            if (st.badRowCount > 0) {
-              console.warn(`${prefix}: skipped ${st.badRowCount} malformed rows with extra CSV columns.`);
-            }
-          },
-
-          error: (err) => {
-            setDbLoading(prefix, `CSV parse error: ${err.message}`);
-            cfg.loaded = false;
-          }
-        });
-
-      } catch (err){
-        setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
-        cfg.loaded = false;
+    const data = table.toArray().map(row => {
+      const obj = {};
+      for (const col of st.allColumns) {
+        let val = row[col];
+        obj[col] = (val != null) ? String(val) : "";
       }
-    }
+      obj.__search = st.allColumns.map(c => String(obj[c] ?? "")).join(" ").toLowerCase();
+      return obj;
+    });
+
+    st.fullData = data;
+    st.filteredData = [...data];
+
+    initializeDatasetUI(prefix);
+    detectDropdownColumns(prefix);
+    renderHeadersAndFilters(prefix);
+    renderTable(prefix);
+    populateCopyColumnSelect(prefix);
+    populateAddColsSelect(prefix);
+
+    const loadingEl = byId(prefix + "Loading");
+    if (loadingEl) loadingEl.style.display = "none";
+
+    console.log(`✅ ${cfg.name} loaded successfully: ${data.length.toLocaleString()} rows`);
+
+  } catch (err) {
+    console.error(err);
+    setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
+    cfg.loaded = false;
+  }
+}
 
     function initializeDatasetUI(prefix){
       renderHeadersAndFilters(prefix);
