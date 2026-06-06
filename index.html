@@ -612,148 +612,74 @@
       if (!DATASETS[key].data.length) initDataset(key); else renderTable(key);
     }
 
-    // ==========================================
-// ==========================================
-// HIGH-PERFORMANCE LOADER (Custom Safe Chunker)
-// ==========================================
-async function initDataset(key) {
-  const config = DATASETS[key];
-  const loadingEl = document.getElementById(`${key}Loading`);
-  try {
-    if (loadingEl) loadingEl.textContent = `Downloading dataset...`;
-    
-    const res = await fetch(config.file);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
-    if (loadingEl) loadingEl.textContent = `Decompressing data...`;
-    const buffer = await res.arrayBuffer();
-    const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
+    // HIGH-PERFORMANCE DATA LOADER (Asynchronous Blob Chunking + Fixed Bytes/BOM)
+    async function initDataset(key) {
+      const config = DATASETS[key];
+      const loadingEl = document.getElementById(`${key}Loading`);
+      try {
+        if (loadingEl) loadingEl.textContent = `Downloading dataset...`;
+        const res = await fetch(config.file);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        if (loadingEl) loadingEl.textContent = `Decompressing data...`;
+        const buffer = await res.arrayBuffer();
+        
+        // FIX: Extract RAW bytes to prevent UTF-8 corruption
+        const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
 
-    if (loadingEl) loadingEl.textContent = `Decoding text...`;
-    let csvText = new TextDecoder('utf-8').decode(inflatedBytes);
+        if (loadingEl) loadingEl.textContent = `Parsing records...`;
+        const blob = new Blob([inflatedBytes], { type: 'text/csv;charset=utf-8' });
 
-    // Strip invisible Byte Order Mark (BOM) if present
-    if (csvText.charCodeAt(0) === 0xFEFF) {
-      csvText = csvText.substring(1);
-    }
+        let firstPaint = false;
+        config.data = [];
 
-    if (loadingEl) loadingEl.textContent = `Parsing records...`;
-
-    config.data = [];
-    let firstPaint = false;
-    let offset = 0;
-    
-    // Process in 2MB chunks (fast enough to not freeze, large enough to be efficient)
-    const chunkSize = 1024 * 1024 * 2; 
-    let headerLine = "";
-
-    function processNextChunk() {
-      if (offset >= csvText.length) {
-        // We are finished!
-        config.filtered = [...config.data];
-        if (!firstPaint) {
-          document.getElementById(`${key}Table`).style.display = 'table';
-          document.getElementById(`${key}Pagination`).style.display = 'flex';
-          buildDropdowns(key);
-          renderTable(key);
-        } else {
-          filterTable(key); // Re-apply any search the user typed
-        }
-        if (loadingEl) loadingEl.style.display = 'none';
-        return;
-      }
-
-      let end = offset + chunkSize;
-      
-      // Ensure we don't go out of bounds
-      if (end >= csvText.length) {
-        end = csvText.length;
-      } else {
-        // FIND SAFE ROW BOUNDARY: Find the next newline
-        let nextNewline = csvText.indexOf('\n', end);
-        if (nextNewline === -1) {
-          end = csvText.length;
-        } else {
-          // Count quotes to ensure we aren't cutting a multiline definition in half!
-          let chunk = csvText.substring(offset, nextNewline);
-          let quotes = (chunk.match(/"/g) || []).length;
-
-          // If quotes are odd, we are trapped inside a quote. Keep going to next newline!
-          while (quotes % 2 !== 0) {
-            let nextNextNewline = csvText.indexOf('\n', nextNewline + 1);
-            if (nextNextNewline === -1) {
-              nextNewline = csvText.length;
-              break;
+        Papa.parse(blob, {
+          header: true,
+          skipEmptyLines: 'greedy',   // FIX: Prevents empty lines breaking chunks
+          chunkSize: 1024 * 1024 * 3, // FIX: 3MB chunk ensures large quotes aren't split
+          transformHeader: function(h) {
+            // FIX: Remove Byte Order Mark (\uFEFF) which corrupted the first row headers
+            return String(h || "").replace(/^\uFEFF/, "").trim(); 
+          },
+          chunk: function(results) {
+            if (!config.all.length) {
+              config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
             }
-            let extra = csvText.substring(nextNewline, nextNextNewline);
-            quotes += (extra.match(/"/g) || []).length;
-            nextNewline = nextNextNewline;
-          }
-          end = nextNewline + 1; // Include the newline in this chunk safely
-        }
-      }
+            
+            const validRows = results.data.filter(r => {
+              const w = r['Word'] || r['Baseword'];
+              return w && w.trim().length > 0;
+            });
+            config.data.push(...validRows);
 
-      let chunkStr = csvText.substring(offset, end);
-
-      if (offset === 0) {
-        // Save the first line so we can prepend it to future chunks (PapaParse needs headers)
-        headerLine = chunkStr.substring(0, chunkStr.indexOf('\n') + 1);
-      } else {
-        // Prepend headers to middle chunks so columns align perfectly
-        chunkStr = headerLine + chunkStr;
-      }
-
-      offset = end; // Update offset for the next loop
-
-      Papa.parse(chunkStr, {
-        header: true,
-        skipEmptyLines: 'greedy',
-        complete: function(results) {
-          // Extract valid headers safely on first pass
-          if (!config.all || config.all.length === 0) {
-            config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
-          }
-
-          // Filter garbage rows
-          const validRows = results.data.filter(r => {
-            const w = r['Word'] || r['Baseword'];
-            return w && w.trim().length > 0;
-          });
-
-          config.data.push(...validRows);
-
-          // PROGRESSIVE RENDER: Show table instantly after the first chunk!
-          if (!firstPaint && config.data.length > 0) {
-            firstPaint = true;
+            if (!firstPaint && config.data.length >= config.rpp) {
+              firstPaint = true;
+              config.filtered = [...config.data];
+              if (loadingEl) loadingEl.textContent = `Loading remaining records in background...`;
+              document.getElementById(`${key}Table`).style.display = 'table';
+              document.getElementById(`${key}Pagination`).style.display = 'flex';
+              buildDropdowns(key);
+              renderTable(key);
+            } else if (firstPaint && loadingEl) {
+              loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`;
+            }
+          },
+          complete: function() {
             config.filtered = [...config.data];
-            document.getElementById(`${key}Table`).style.display = 'table';
-            document.getElementById(`${key}Pagination`).style.display = 'flex';
-            buildDropdowns(key);
-            renderTable(key);
+            if (!firstPaint) {
+              document.getElementById(`${key}Table`).style.display = 'table';
+              document.getElementById(`${key}Pagination`).style.display = 'flex';
+              buildDropdowns(key); renderTable(key);
+            } else {
+              filterTable(key);
+            }
+            if (loadingEl) loadingEl.style.display = 'none';
           }
-
-          if (firstPaint && loadingEl) {
-            loadingEl.textContent = `Loading remaining records... (${config.data.length.toLocaleString()} loaded)`;
-          }
-
-          // Use setTimeout to yield back to the browser so the UI doesn't freeze!
-          setTimeout(processNextChunk, 10); 
-        },
-        error: function(err) {
-          console.error("Chunk parse error:", err);
-        }
-      });
+        });
+      } catch (e) {
+        if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
+      }
     }
-
-    // Kick off the chunking process
-    processNextChunk();
-
-  } catch (e) {
-    if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
-  }
-}
-
-
 
     function buildDropdowns(key) {
       const config = DATASETS[key];
