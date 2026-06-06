@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BAWF Morphological Database</title>
 
+  <!-- Data parsing & Compression -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 
+  <!-- Word cloud -->
   <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
 
   <style>
@@ -65,39 +67,18 @@
       width: 96%;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
-    .info-card h3 {
-      color:#1d4ed8;
-      margin-top:0;
-      font-size: 1.75rem;
-      font-weight: 700;
-    }
+    .info-card h3 { color:#1d4ed8; margin-top:0; font-size: 1.75rem; font-weight: 700; }
     .info-card ul {
-      font-size: 1.08rem;
-      font-weight: 600;
-      line-height: 1.45;
-      padding-left: 22px;
-      margin: 0;
-      column-count: 2;
-      column-gap: 40px;
+      font-size: 1.08rem; font-weight: 600; line-height: 1.45;
+      padding-left: 22px; margin: 0; column-count: 2; column-gap: 40px;
     }
-    .info-card li {
-      margin-bottom: 6px;
-      break-inside: avoid;
-    }
-    @media (max-width: 900px) {
-      .info-card ul { column-count: 1; }
-    }
+    .info-card li { margin-bottom: 6px; break-inside: avoid; }
+    @media (max-width: 900px) { .info-card ul { column-count: 1; } }
 
     .tabs { display:flex; justify-content:center; gap:12px; margin:28px 0 20px 0; flex-wrap:wrap; }
     .tab-btn {
-      padding:12px 28px;
-      font-size:1.1rem;
-      font-weight:600;
-      background:#e5e7eb;
-      color:#374151;
-      border:none;
-      border-radius:8px 8px 0 0;
-      cursor:pointer;
+      padding:12px 28px; font-size:1.1rem; font-weight:600;
+      background:#e5e7eb; color:#374151; border:none; border-radius:8px 8px 0 0; cursor:pointer;
     }
     .tab-btn.active { background:#1d4ed8; color:white; }
 
@@ -105,248 +86,91 @@
     .tab-content.active { display:block; }
 
     .loading-note {
-      text-align:center;
-      font-size:1.05rem;
-      color:#6b7280;
-      background:#f0f4f8;
-      padding:14px;
-      border-radius:8px;
-      margin:15px 0;
+      text-align:center; font-size:1.05rem; color:#6b7280;
+      background:#f0f4f8; padding:14px; border-radius:8px; margin:15px 0;
     }
 
     .db-wrap {
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      padding: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.05);
     }
 
     .db-controls {
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      justify-content:center;
-      margin: 8px 0 12px;
+      display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+      justify-content:center; margin: 8px 0 12px;
     }
 
     .db-input, .db-select, .db-btn {
-      padding:10px 12px;
-      border-radius:8px;
-      border:1px solid #d1d5db;
-      font-size:0.96rem;
+      padding:10px 12px; border-radius:8px; border:1px solid #d1d5db; font-size:0.96rem;
     }
     .db-input { min-width: 320px; }
     .db-select { background:#fff; }
-    .db-select[multiple] { min-height: 120px; }
-    .db-btn {
-      border:none;
-      background:#1d4ed8;
-      color:#fff;
-      font-weight:600;
-      cursor:pointer;
-    }
+    .db-select[multiple] { min-height: 50px; max-height: 120px; }
+    
+    .db-btn { border:none; background:#1d4ed8; color:#fff; font-weight:600; cursor:pointer; }
     .db-btn:hover { background:#1e40af; }
-
-    .db-btn.secondary {
-      background:#e5e7eb;
-      color:#111827;
-      border:1px solid #d1d5db;
-    }
+    .db-btn.secondary { background:#e5e7eb; color:#111827; border:1px solid #d1d5db; }
     .db-btn.secondary:hover { background:#d1d5db; }
 
-    .db-meta {
-      text-align:center;
-      color:#374151;
-      margin:8px 0 14px;
-      font-size:0.95rem;
-    }
+    .db-meta { text-align:center; color:#374151; margin:8px 0 14px; font-size:0.95rem; }
+    .db-loading { text-align:center; padding:28px 8px; color:#1d4ed8; font-weight:600; }
 
-    .db-loading {
-      text-align:center;
-      padding:28px 8px;
-      color:#1d4ed8;
-      font-weight:600;
-    }
-
-    .db-table-wrap {
-      overflow:auto;
-      max-height: 72vh;
-      border-radius: 10px;
-      border: 1px solid #e5e7eb;
-    }
-
-    table.db-table {
-      width:100%;
-      border-collapse:collapse;
-      background:white;
-    }
+    .db-table-wrap { overflow:auto; max-height: 72vh; border-radius: 10px; border: 1px solid #e5e7eb; }
+    table.db-table { width:100%; border-collapse:collapse; background:white; table-layout: fixed; }
 
     .db-table th, .db-table td {
-      padding: 9px 8px;
-      border-bottom: 1px solid #e5e7eb;
-      text-align:left;
-      vertical-align: top;
-      font-size: 0.9rem;
-      white-space: nowrap;
+      padding: 9px 8px; border-bottom: 1px solid #e5e7eb; text-align:left;
+      vertical-align: top; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis;
     }
-
-    .db-table th {
-      background:#1e40af;
-      color:white;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      cursor:pointer;
-    }
-
+    .db-table th { background:#1e40af; color:white; position: sticky; top: 0; z-index: 5; cursor:pointer; }
     .db-table tr:hover td { background:#f0f9ff; }
 
     .filter-row input, .filter-row select {
-      width:100%;
-      padding:8px 9px;
-      border:1px solid #cbd5e1;
-      border-radius:6px;
-      height:38px;
-      box-sizing:border-box;
-      font-size:0.85rem;
-      background:#fff;
+      width:100%; padding:8px 9px; border:1px solid #cbd5e1; border-radius:6px;
+      height:38px; box-sizing:border-box; font-size:0.85rem; background:#fff;
     }
 
-    .long-text {
-      white-space: pre-wrap !important;
-      min-width: 260px;
-      max-width: 520px;
-      line-height: 1.35;
-    }
-
-    .row-actions {
-      display:flex;
-      gap:6px;
-      flex-wrap:wrap;
-    }
+    .long-text { white-space: pre-wrap !important; min-width: 260px; max-width: 520px; line-height: 1.35; }
+    .row-actions { display:flex; gap:6px; flex-wrap:wrap; }
     .source-btn, .explain-btn {
-      border:none;
-      border-radius:6px;
-      padding:6px 10px;
-      color:#fff;
-      cursor:pointer;
-      font-size:0.84rem;
-      white-space:nowrap;
+      border:none; border-radius:6px; padding:6px 10px; color:#fff; cursor:pointer; font-size:0.84rem;
     }
     .source-btn { background:#3b82f6; }
     .source-btn:hover { background:#2563eb; }
     .explain-btn { background:#8b5cf6; }
     .explain-btn:hover { background:#7c3aed; }
 
-    .pagination {
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:12px;
-    }
-    .pagination button, .pagination select {
-      padding:8px 10px;
-      border:1px solid #d1d5db;
-      border-radius:7px;
-      background:#fff;
-      cursor:pointer;
-    }
+    .pagination { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:10px; margin-top:12px; }
+    .pagination button, .pagination select { padding:8px 10px; border:1px solid #d1d5db; border-radius:7px; background:#fff; cursor:pointer; }
 
     .download-section { text-align:center; margin:10px 0 18px; }
     .download-btn {
-      display:inline-flex; align-items:center; gap:10px;
-      padding:10px 20px;
-      font-size:1rem; font-weight:600;
-      background:#1d4ed8; color:white;
-      text-decoration:none;
-      border-radius:9px;
+      display:inline-flex; align-items:center; gap:10px; padding:10px 20px;
+      font-size:1rem; font-weight:600; background:#1d4ed8; color:white; text-decoration:none; border-radius:9px;
     }
     .download-btn:hover { background:#1e40af; }
 
-    .subtabs {
-      display:flex;
-      gap:10px; justify-content:center; flex-wrap:wrap;
-      margin: 4px 0 18px;
-    }
-    .subtab-btn {
-      border:none;
-      background:#e5e7eb;
-      color:#1f2937;
-      padding:9px 14px;
-      border-radius:999px;
-      font-weight:600;
-      cursor:pointer;
-    }
+    .subtabs { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin: 4px 0 18px; }
+    .subtab-btn { border:none; background:#e5e7eb; color:#1f2937; padding:9px 14px; border-radius:999px; font-weight:600; cursor:pointer; }
     .subtab-btn.active { background:#1d4ed8; color:#fff; }
-
     .subtab-pane { display:none; }
     .subtab-pane.active { display:block; }
 
     #wordInput {
-      width: 90%; max-width: 900px; height: 220px; padding: 16px;
-      font-family: ui-monospace, monospace; font-size: 1rem;
-      border: 2px solid #d1d5db; border-radius: 10px; resize: vertical;
-      margin:0 auto;
+      width: 90%; max-width: 900px; height: 220px; padding: 16px; font-family: ui-monospace, monospace;
+      font-size: 1rem; border: 2px solid #d1d5db; border-radius: 10px; resize: vertical; margin:0 auto;
     }
-    #wordCanvas {
-      display:block; margin:24px auto 0; max-width:100%;
-      border-radius:12px;
-      box-shadow:0 6px 20px rgba(0,0,0,0.08); background:#fff;
-    }
+    #wordCanvas { display:block; margin:24px auto 0; max-width:100%; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.08); background:#fff; }
 
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 2147483647;
-      background-color: rgba(0,0,0,0.7);
-      overflow-y: auto;
-    }
+    .modal { display: none; position: fixed; inset: 0; z-index: 2147483647; background-color: rgba(0,0,0,0.7); overflow-y: auto; }
     .modal.show { display: block; }
-
-    .modal-content {
-      position: relative;
-      z-index: 2147483648;
-      background: #fff;
-      margin: 40px auto;
-      padding: 30px;
-      border-radius: 12px;
-      max-width: 980px;
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
+    .modal-content { position: relative; z-index: 2147483648; background: #fff; margin: 40px auto; padding: 30px; border-radius: 12px; max-width: 980px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .modal-header h2, .modal-header h3 { margin: 0; color: #1d4ed8; }
-
-    .close {
-      font-size: 28px;
-      font-weight: bold;
-      color: #6b7280;
-      cursor: pointer;
-      border:none;
-      background:transparent;
-    }
+    .close { font-size: 28px; font-weight: bold; color: #6b7280; cursor: pointer; border:none; background:transparent; }
     .close:hover { color: #111827; }
-
     .modal-body { max-height: 70vh; overflow-y: auto; }
-
-    .modal-actions {
-      display:flex;
-      gap:10px;
-      justify-content:flex-end;
-      margin-top:10px;
-      flex-wrap:wrap;
-    }
-
+    .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:10px; flex-wrap:wrap; }
     body.modal-open { overflow:hidden; }
   </style>
 </head>
@@ -357,68 +181,67 @@
       <div class="tagline">Morphology, roots, affixes, compounds, and etymology</div>
     </header>
 
+    <!-- Banner Images -->
     <div class="visual-banner">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/5/59/Word_Cloud_of_Various_Prefixes.png" alt="Word cloud of common English prefixes" class="visual-aid">
-      <img src="https://www.shichida.com.au/wp-content/uploads/2023/05/teaching-vocab-feature-1024x683.png" alt="Children engaged in fun vocabulary and word learning" class="visual-aid">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/3/3b/Sign_word_matrix.png" alt="Word matrix showing family relationships" class="visual-aid">
-      <img src="https://www.the74million.org/wp-content/uploads/2019/05/Classroom-library.jpg" alt="Group of children reading books in a circle on the floor" class="visual-aid">
-      <img src="https://as1.ftcdn.net/jpg/03/08/88/54/1000_F_308885463_Y68hiTN0ZpcqBOLPARkMawFvhFut3N7S.jpg" alt="Teacher and young children reading a colorful book together" class="visual-aid">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/5/59/Word_Cloud_of_Various_Prefixes.png" alt="Word cloud" class="visual-aid">
+      <img src="https://www.shichida.com.au/wp-content/uploads/2023/05/teaching-vocab-feature-1024x683.png" alt="Vocabulary learning" class="visual-aid">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/3/3b/Sign_word_matrix.png" alt="Word matrix" class="visual-aid">
+      <img src="https://www.the74million.org/wp-content/uploads/2019/05/Classroom-library.jpg" alt="Children reading" class="visual-aid">
     </div>
 
+    <!-- Intro Card -->
     <div class="info-card">
       <h3>About this Database</h3>
       <ul>
         <li>Explore English word families, compound words, and definitions/etymologies.</li>
-        <li>The British and American Word Families (BAWF) is a tool for vocabulary morphology instruction from the primary grades.</li>
-        <li>Morphology is the study of how words are built from meaningful units, including bases, roots, prefixes, and suffixes.</li>
         <li>Filter or search for words you want and particular morphemes.</li>
-        <li>Use sorting, filtering, and column search to find morphologically related words quickly.</li>
-        <li>Paste word + frequency into the Word Cloud tab to make visuals.</li>
-        <li>Use word families to build word walls.</li>
-        <li>Use Zipf frequencies to sort by commonness bands (1st 1000 words, 2nd 1000, etc.).</li>
-        <li>Download raw `.csv.gz` files for offline use and advanced analysis.</li>
+        <li>Use dynamic row actions to view detailed properties or extract lesson planning hooks instantly.</li>
+        <li>Paste word lists into the Generator tab to instantly map typography word clouds.</li>
       </ul>
-      <p style="margin-top: 16px; font-style: italic;">
-        Be inspired by joyful word learning and reading — dive in and explore!
-      </p>
     </div>
 
     <div class="loading-note">
-      <strong>Note:</strong> Large datasets may take several seconds to load the first time. After loading, filtering/sorting is instant in-browser.
+      <strong>Note:</strong> Data loads securely in compressed blocks. Filtering, column manipulation, and cell copying are local and instant.
     </div>
 
     <div style="text-align:center; margin:25px 0;">
       <button class="key-btn" onclick="showColumnKey()">📋 Column Information Key</button>
     </div>
 
+    <!-- Main Navigation Tabs -->
     <div class="tabs">
       <button class="tab-btn active" onclick="openTab('word-families', this)">Word Families</button>
       <button class="tab-btn" onclick="openTab('compounds', this)">Compound Words</button>
       <button class="tab-btn" onclick="openTab('definitions', this)">Definitions & Etymologies</button>
       <button class="tab-btn" onclick="openTab('wordcloud', this)">Word Cloud Generator</button>
-      <button class="tab-btn" onclick="openTab('llm-generator', this)">🪄 Generate AI Stories & Worksheets!</button>
+      <button class="tab-btn" onclick="openTab('llm-generator', this)">🪄 AI Worksheets & Prompts</button>
     </div>
 
+    <!-- WORD FAMILIES TAB -->
     <div id="word-families" class="tab-content active">
       <div class="download-section">
         <a class="download-btn" href="BAWF_FINAL.csv.gz" download>↓ Download Word Families (.csv.gz)</a>
       </div>
-      <div class="db-wrap" id="wfWrap">
+      <div class="db-wrap">
         <div class="db-controls">
-          <input id="wfGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Word Families..." />
+          <input id="wfGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Word Families..." oninput="debounceFilter('wf')" />
           <button class="db-btn" onclick="filterTable('wf')">🔍 Search</button>
-          <button class="db-btn" onclick="clearAllFilters('wf')">🧹 Clear</button>
+          <button class="db-btn" onclick="clearAllFilters('wf')">🧹 Clear All</button>
           <button class="db-btn" onclick="exportCSV('wf', 'BAWF_Word_Families_Filtered.csv')">↓ Export CSV</button>
+          
+          <span style="border-left: 2px solid #ccc; height: 30px; margin: 0 4px;"></span>
 
-          <select id="wfCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+          <select id="wfCopyColumnSelect" class="db-select"></select>
           <select id="wfCopyScope" class="db-select">
-            <option value="filtered" selected>Copy all filtered rows</option>
-            <option value="page">Copy current page only</option>
+            <option value="filtered" selected>All filtered rows</option>
+            <option value="page">Current page only</option>
           </select>
           <button class="db-btn secondary" onclick="copyColumnValues('wf')">📋 Copy Column Cells</button>
+          
+          <span style="border-left: 2px solid #ccc; height: 30px; margin: 0 4px;"></span>
 
-          <select id="wfAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-          <button id="wfAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
+          <select id="wfAddCols" class="db-select" multiple></select>
+          <button class="db-btn secondary" onclick="handleAddColumns('wf')">➕ Add Columns</button>
         </div>
 
         <div class="db-meta">Showing <strong id="wfRowCount">0</strong> rows</div>
@@ -447,233 +270,174 @@
       </div>
     </div>
 
+    <!-- COMPOUNDS TAB -->
     <div id="compounds" class="tab-content">
       <div class="subtabs">
         <button class="subtab-btn active" onclick="openCompoundSubTab('comp-main', this)">Main Compound</button>
         <button class="subtab-btn" onclick="openCompoundSubTab('comp-stats', this)">Word Family Size Stats</button>
       </div>
 
+      <!-- Main Compounds View -->
       <div id="comp-main" class="subtab-pane active">
-        <div class="download-section">
-          <a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>↓ Download Compound Main (.csv.gz)</a>
-        </div>
-        <div class="db-wrap" id="cmWrap">
+        <div class="download-section"><a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>↓ Download Main Compounds</a></div>
+        <div class="db-wrap">
           <div class="db-controls">
-            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
+            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search Compounds..." oninput="debounceFilter('cm')" />
             <button class="db-btn" onclick="filterTable('cm')">🔍 Search</button>
             <button class="db-btn" onclick="clearAllFilters('cm')">🧹 Clear</button>
-            <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
-
-            <select id="cmCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
+            <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compounds_Main.csv')">↓ Export</button>
+            <select id="cmCopyColumnSelect" class="db-select"></select>
             <select id="cmCopyScope" class="db-select">
-              <option value="filtered" selected>Copy all filtered rows</option>
-              <option value="page">Copy current page only</option>
+              <option value="filtered">All filtered</option>
+              <option value="page">Current page</option>
             </select>
-            <button class="db-btn secondary" onclick="copyColumnValues('cm')">📋 Copy Column Cells</button>
-
-            <select id="cmAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-            <button id="cmAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
+            <button class="db-btn secondary" onclick="copyColumnValues('cm')">📋 Copy</button>
+            <select id="cmAddCols" class="db-select" multiple></select>
+            <button class="db-btn secondary" onclick="handleAddColumns('cm')">➕ Add</button>
           </div>
-
           <div class="db-meta">Showing <strong id="cmRowCount">0</strong> rows</div>
-          <div id="cmLoading" class="db-loading">Loading Compound Main dataset...</div>
-
+          <div id="cmLoading" class="db-loading">Loading Dataset...</div>
           <div class="db-table-wrap">
             <table id="cmTable" class="db-table" style="display:none;">
-              <thead>
-                <tr id="cmHeaderRow"></tr>
-                <tr id="cmFilterRow" class="filter-row"></tr>
-              </thead>
+              <thead><tr id="cmHeaderRow"></tr><tr id="cmFilterRow" class="filter-row"></tr></thead>
               <tbody id="cmTableBody"></tbody>
             </table>
           </div>
-
           <div id="cmPagination" class="pagination" style="display:none;">
-            <button onclick="prevPage('cm')">← Previous</button>
-            <span>Page <span id="cmCurrentPage">1</span> of <span id="cmTotalPages">1</span></span>
-            <button onclick="nextPage('cm')">Next →</button>
-            <select id="cmRowsPerPage" onchange="changeRowsPerPage('cm')">
-              <option value="50">50 rows</option>
-              <option value="100" selected>100 rows</option>
-              <option value="250">250 rows</option>
-            </select>
+            <button onclick="prevPage('cm')">←</button><span>Page <span id="cmCurrentPage">1</span></span><button onclick="nextPage('cm')">→</button>
           </div>
         </div>
       </div>
 
+      <!-- Stats Sub-View -->
       <div id="comp-stats" class="subtab-pane">
-        <div class="download-section">
-          <a class="download-btn" href="BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz" download>↓ Download Compound Stats (.csv.gz)</a>
-        </div>
-        <div class="db-wrap" id="csWrap">
+        <div class="download-section"><a class="download-btn" href="BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz" download>↓ Download Stats</a></div>
+        <div class="db-wrap">
           <div class="db-controls">
-            <input id="csGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Stats..." />
+            <input id="csGlobalSearch" class="db-input" type="text" placeholder="Search Stats..." oninput="debounceFilter('cs')" />
             <button class="db-btn" onclick="filterTable('cs')">🔍 Search</button>
-            <button class="db-btn" onclick="clearAllFilters('cs')">🧹 Clear</button>
-            <button class="db-btn" onclick="exportCSV('cs', 'BAWF_Compound_Stats_Filtered.csv')">↓ Export CSV</button>
-
-            <select id="csCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
-            <select id="csCopyScope" class="db-select">
-              <option value="filtered" selected>Copy all filtered rows</option>
-              <option value="page">Copy current page only</option>
-            </select>
-            <button class="db-btn secondary" onclick="copyColumnValues('cs')">📋 Copy Column Cells</button>
-
-            <select id="csAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-            <button id="csAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
+            <select id="csCopyColumnSelect" class="db-select"></select>
+            <button class="db-btn secondary" onclick="copyColumnValues('cs')">📋 Copy</button>
+            <select id="csAddCols" class="db-select" multiple></select>
+            <button class="db-btn secondary" onclick="handleAddColumns('cs')">➕ Add</button>
           </div>
-
           <div class="db-meta">Showing <strong id="csRowCount">0</strong> rows</div>
-          <div id="csLoading" class="db-loading">Loading Compound Stats dataset...</div>
-
+          <div id="csLoading" class="db-loading">Loading Dataset...</div>
           <div class="db-table-wrap">
             <table id="csTable" class="db-table" style="display:none;">
-              <thead>
-                <tr id="csHeaderRow"></tr>
-                <tr id="csFilterRow" class="filter-row"></tr>
-              </thead>
+              <thead><tr id="csHeaderRow"></tr><tr id="csFilterRow" class="filter-row"></tr></thead>
               <tbody id="csTableBody"></tbody>
             </table>
           </div>
-
           <div id="csPagination" class="pagination" style="display:none;">
-            <button onclick="prevPage('cs')">← Previous</button>
-            <span>Page <span id="csCurrentPage">1</span> of <span id="csTotalPages">1</span></span>
-            <button onclick="nextPage('cs')">Next →</button>
-            <select id="csRowsPerPage" onchange="changeRowsPerPage('cs')">
-              <option value="50">50 rows</option>
-              <option value="100" selected>100 rows</option>
-              <option value="250">250 rows</option>
-            </select>
+            <button onclick="prevPage('cs')">←</button><span>Page <span id="csCurrentPage">1</span></span><button onclick="nextPage('cs')">→</button>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- DEFINITIONS TAB -->
     <div id="definitions" class="tab-content">
-      <div class="download-section">
-        <a class="download-btn" href="BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz" download>↓ Download Definitions & Etymology (.csv.gz)</a>
-      </div>
-      <div class="db-wrap" id="deWrap">
+      <div class="download-section"><a class="download-btn" href="BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz" download>↓ Download Etymology (.csv.gz)</a></div>
+      <div class="db-wrap">
         <div class="db-controls">
-          <input id="deGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Definitions/Etymology..." />
+          <input id="deGlobalSearch" class="db-input" type="text" placeholder="Search Definitions..." oninput="debounceFilter('de')" />
           <button class="db-btn" onclick="filterTable('de')">🔍 Search</button>
           <button class="db-btn" onclick="clearAllFilters('de')">🧹 Clear</button>
-          <button class="db-btn" onclick="exportCSV('de', 'BAWF_Definitions_Filtered.csv')">↓ Export CSV</button>
-
-          <select id="deCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
-          <select id="deCopyScope" class="db-select">
-            <option value="filtered" selected>Copy all filtered rows</option>
-            <option value="page">Copy current page only</option>
-          </select>
-          <button class="db-btn secondary" onclick="copyColumnValues('de')">📋 Copy Column Cells</button>
-
-          <select id="deAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-          <button id="deAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
+          <select id="deCopyColumnSelect" class="db-select"></select>
+          <button class="db-btn secondary" onclick="copyColumnValues('de')">📋 Copy Cells</button>
+          <select id="deAddCols" class="db-select" multiple></select>
+          <button class="db-btn secondary" onclick="handleAddColumns('de')">➕ Add</button>
         </div>
-
         <div class="db-meta">Showing <strong id="deRowCount">0</strong> rows</div>
-        <div id="deLoading" class="db-loading">Loading Definitions & Etymology dataset...</div>
-
+        <div id="deLoading" class="db-loading">Loading Definitions...</div>
         <div class="db-table-wrap">
           <table id="deTable" class="db-table" style="display:none;">
-            <thead>
-              <tr id="deHeaderRow"></tr>
-              <tr id="deFilterRow" class="filter-row"></tr>
-            </thead>
+            <thead><tr id="deHeaderRow"></tr><tr id="deFilterRow" class="filter-row"></tr></thead>
             <tbody id="deTableBody"></tbody>
           </table>
         </div>
-
         <div id="dePagination" class="pagination" style="display:none;">
-          <button onclick="prevPage('de')">← Previous</button>
-          <span>Page <span id="deCurrentPage">1</span> of <span id="deTotalPages">1</span></span>
-          <button onclick="nextPage('de')">Next →</button>
-          <select id="deRowsPerPage" onchange="changeRowsPerPage('de')">
-            <option value="50">50 rows</option>
-            <option value="100" selected>100 rows</option>
-            <option value="250">250 rows</option>
-          </select>
+          <button onclick="prevPage('de')">←</button><span>Page <span id="deCurrentPage">1</span></span><button onclick="nextPage('de')">→</button>
         </div>
       </div>
     </div>
 
+    <!-- WORD CLOUD GENERATOR -->
     <div id="wordcloud" class="tab-content">
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p><strong>Instructions:</strong> Paste Word + Frequency (one per line)</p>
-        <textarea id="wordInput" placeholder="analysis 120&#10;morphology 95&#10;prefix 78"></textarea><br><br>
-        <button id="generateBtn" onclick="generateWordCloud()" class="key-btn">Generate Word Cloud</button>
+        <p><strong>Instructions:</strong> Paste Word + Frequency values directly (One item per line layout)</p>
+        <textarea id="wordInput" placeholder="morphology 120&#10;prefix 95&#10;root 78&#10;compounding 62"></textarea><br><br>
+        <button onclick="generateWordCloud()" class="key-btn">Generate Word Cloud Matrix</button>
         <p id="cloudStatus" style="margin-top:12px; font-weight:500;"></p>
       </div>
-      <canvas id="wordCanvas" width="1100" height="700"></canvas>
+      <canvas id="wordCanvas" width="1100" height="600"></canvas>
     </div>
 
+    <!-- PROMPT & WORKSheet GENERATION ENGINE -->
     <div id="llm-generator" class="tab-content">
       <div style="max-width:1100px; margin:0 auto;">
-        <h2 style="text-align:center; color:#1d4ed8;">🪄 AI Prompt Generator</h2>
-        <p style="text-align:center;">Choose text type, grade level, focus area, and activities.</p>
+        <h2 style="text-align:center; color:#1d4ed8;">🪄 AI Prompt Generator Workspace</h2>
+        <p style="text-align:center; margin-bottom: 20px;">Convert filtered table records into configured AI prompt matrix blocks instantly.</p>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; margin-bottom:12px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-bottom:15px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:16px;">
           <div>
-            <label><strong>Add words from dataset</strong></label><br>
-            <select id="llmDatasetPick" style="width:100%; padding:10px; border-radius:8px;">
-              <option value="active" selected>Active tab dataset</option>
-              <option value="wf">Word Families</option>
+            <label><strong>Target Dataset</strong></label><br>
+            <select id="llmDatasetPick" style="width:100%; padding:10px; border-radius:8px; margin-top:4px;">
+              <option value="wf" selected>Word Families (Active)</option>
               <option value="cm">Compound Main</option>
               <option value="cs">Compound Stats</option>
               <option value="de">Definitions/Etymology</option>
             </select>
           </div>
           <div>
-            <label><strong>How many rows</strong></label><br>
-            <input id="llmRowCount" type="number" value="10" min="1" max="100" style="width:90%; padding:10px; border-radius:8px; border:1px solid #ccc;" />
+            <label><strong>Row Volume</strong></label><br>
+            <input id="llmRowCount" type="number" value="10" min="1" max="100" style="width:95%; padding:10px; border-radius:8px; border:1px solid #ccc; margin-top:4px;" />
           </div>
           <div>
-            <label><strong>Text Target Category</strong></label><br>
-            <select id="llmType" style="width:100%; padding:10px; border-radius:8px;">
-              <option value="Story with Target Vocabulary">Decodable / Controlled Story</option>
-              <option value="Reading Comprehension Passage">Passage with Comprehension Questions</option>
-              <option value="Vocabulary Match and Fill-in-the-blank Sheet">Worksheet (Match & Sentences)</option>
-              <option value="Morphological Analysis breakdown exercise">Morphological Breakdown Guide</option>
+            <label><strong>Resource Typology</strong></label><br>
+            <select id="llmType" style="width:100%; padding:10px; border-radius:8px; margin-top:4px;">
+              <option value="Controlled Decodable Story">Controlled Decodable Story</option>
+              <option value="Reading Comprehension Passage">Passage with Questions</option>
+              <option value="Vocabulary Fill-in-the-blank Sheet">Worksheet (Fill-in-the-blank)</option>
+              <option value="Morphological Breakdown Matrix Guide">Morphological Analysis Matrix</option>
             </select>
           </div>
           <div>
-            <label><strong>Target Grade Level</strong></label><br>
-            <select id="llmGrade" style="width:100%; padding:10px; border-radius:8px;">
-              <option value="Kindergarten">Kindergarten</option>
+            <label><strong>Grade Alignment</strong></label><br>
+            <select id="llmGrade" style="width:100%; padding:10px; border-radius:8px; margin-top:4px;">
               <option value="1st Grade">1st Grade</option>
               <option value="2nd Grade" selected>2nd Grade</option>
               <option value="3rd Grade">3rd Grade</option>
               <option value="4th Grade">4th Grade</option>
-              <option value="5th Grade">5th Grade</option>
               <option value="Middle School">Middle School</option>
             </select>
           </div>
         </div>
 
         <div style="text-align:center; margin-bottom:20px;">
-          <button class="key-btn" style="margin:0;" onclick="generateAIPrompt()">✨ Build Optimized Prompt</button>
+          <button class="key-btn" style="margin:0;" onclick="generateAIPrompt()">✨ Build Optimized Core Prompt</button>
         </div>
 
         <div style="background:white; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h4 style="margin:0; color:#1e40af;">Generated LLM Prompt</h4>
-            <button class="db-btn secondary" onclick="copyLLMPrompt()">📋 Copy Prompt</button>
+            <h4 style="margin:0; color:#1e40af;">Generated LLM Prompt Context</h4>
+            <button class="db-btn secondary" onclick="copyLLMPrompt()">📋 Copy Prompt Output</button>
           </div>
-          <textarea id="llmPromptOutput" readonly style="width:100%; height:250px; font-family:inherit; font-size:0.95rem; padding:12px; border-radius:8px; border:1px solid #cbd5e1; box-sizing:border-box; background:#f8fafc; resize:vertical;"></textarea>
+          <textarea id="llmPromptOutput" readonly style="width:100%; height:220px; font-family:inherit; font-size:0.95rem; padding:12px; border-radius:8px; border:1px solid #cbd5e1; box-sizing:border-box; background:#f8fafc; resize:vertical;"></textarea>
           
-          <div style="margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
-            <h4 style="margin:0 0 10px 0; color:#8b5cf6;">🤖 Chat directly with Local WebLLM Assistant</h4>
+          <div style="margin-top:20px; border-top:1px dashed #cbd5e1; padding-top:20px;">
+            <h4 style="margin:0 0 8px 0; color:#8b5cf6;">🤖 Optional: Run streaming directly via Local WebLLM WebWorker</h4>
             <div style="display:flex; gap:10px; margin-bottom:10px;">
-              <button class="db-btn" id="llmLoadModelBtn" onclick="initWebLLM()">1. Load WebLLM Model (Requires ~1.5GB Data)</button>
-              <button class="db-btn secondary" onclick="resetWebLLMChat()">Reset Chat</button>
+              <button class="db-btn" id="llmLoadModelBtn" onclick="initWebLLM()">1. Initialize Local WebLLM Engine (Loads ~1.5GB Data)</button>
+              <button class="db-btn secondary" onclick="resetWebLLMChat()">Reset Workspace Chat</button>
             </div>
-            <div id="llmStatus" style="font-size:0.88rem; color:#4b5563; margin-bottom:10px;">Local Model Status: Not loaded.</div>
+            <div id="llmStatus" style="font-size:0.88rem; color:#4b5563; margin-bottom:10px;">Local Engine Status: Dormant.</div>
             
             <div id="webllmChatArea" style="display:none;">
-              <div id="webllmChatLog" style="border:1px solid #cbd5e1; background:#fff; height:240px; overflow-y:auto; padding:10px; border-radius:8px; font-size:0.92rem; margin-bottom:10px; white-space:pre-wrap;"></div>
+              <div id="webllmChatLog" style="border:1px solid #cbd5e1; background:#fff; height:220px; overflow-y:auto; padding:10px; border-radius:8px; font-size:0.92rem; margin-bottom:10px; white-space:pre-wrap;"></div>
               <div style="display:flex; gap:8px;">
-                <input id="webllmChatInput" type="text" placeholder="Type a request or paste your prompt..." style="flex:1; padding:10px; border-radius:8px; border:1px solid #cbd5e1;" onkeydown="if(event.key==='Enter') sendWebLLMMessage()"/>
+                <input id="webllmChatInput" type="text" placeholder="Send prompt modifications or structural guides here..." style="flex:1; padding:10px; border-radius:8px; border:1px solid #cbd5e1;" onkeydown="if(event.key==='Enter') sendWebLLMMessage()"/>
                 <button class="db-btn" onclick="sendWebLLMMessage()">Send</button>
               </div>
             </div>
@@ -682,49 +446,30 @@
       </div>
     </div>
 
+    <!-- SYSTEM MODALS INTERFACES -->
     <div id="explainModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 id="modalTitle">Morphological Information</h2>
+          <h2 id="modalTitle">Analysis Profile</h2>
           <button class="close" onclick="closeModal()">&times;</button>
         </div>
         <div class="modal-body" id="modalBody"></div>
-        <div class="modal-actions">
-          <button class="db-btn" onclick="closeModal()">Close</button>
-        </div>
+        <div class="modal-actions"><button class="db-btn" onclick="closeModal()">Dismiss</button></div>
       </div>
     </div>
 
     <div id="columnKeyModal" class="modal">
-      <div class="modal-content" style="max-width:1100px;">
+      <div class="modal-content" style="max-width:900px;">
         <div class="modal-header">
-          <h2>Database Column Explanations & Key</h2>
+          <h2>Database Keys Framework Reference</h2>
           <button class="close" onclick="closeColumnKey()">&times;</button>
         </div>
         <div class="modal-body">
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-            <div>
-              <h4 style="color:#1d4ed8; margin:0 0 8px 0;">Word Families Fields</h4>
-              <ul style="font-size:0.88rem; padding-left:18px; line-height:1.4;">
-                <li><strong>Word / Lemma:</strong> The primary base form of the entry.</li>
-                <li><strong>Zipf_Frequency:</strong> Logarithmic baseline commonness score (3 to 7+).</li>
-                <li><strong>Bases_Variants:</strong> Root orthographic groups tracked.</li>
-                <li><strong>Affixes / Morphemes:</strong> Prefix/Suffix counts, structural sizes and individual properties.</li>
-              </ul>
-            </div>
-            <div>
-              <h4 style="color:#1d4ed8; margin:0 0 8px 0;">Compounds & Definitions Fields</h4>
-              <ul style="font-size:0.88rem; padding-left:18px; line-height:1.4;">
-                <li><strong>Compound_Type:</strong> Categorization framework (Open, Closed, Hyphenated).</li>
-                <li><strong>Definition_Simplified:</strong> Primary pedagogical meanings target-optimized for early learning tiers.</li>
-                <li><strong>Etymology_Summary:</strong> Roots traced historically through Old English, Latin, Germanic, Greek, or French lines.</li>
-              </ul>
-            </div>
-          </div>
+          <h4 style="color:#1d4ed8; margin-top:0;">Primary Key Mappings</h4>
+          <p><strong>Word Families:</strong> Core base mappings, structural classifications, tracking elements, prefixes/suffixes counters, and frequency weights metrics.</p>
+          <p><strong>Compounds & Etymologies:</strong> Traced breakdowns highlighting semantic compounds modifiers, student-tier basic operational definitions, and etymological histories.</p>
         </div>
-        <div class="modal-actions">
-          <button class="db-btn" onclick="closeColumnKey()">Got it</button>
-        </div>
+        <div class="modal-actions"><button class="db-btn" onclick="closeColumnKey()">Acknowledge</button></div>
       </div>
     </div>
 
@@ -732,13 +477,13 @@
 
   <script>
     // ----------------------------------------------------
-    // GLOBAL STATE MANAGEMENT
+    // CONSTANT & CONFIG STATE DEFINITION
     // ----------------------------------------------------
     const datasets = {
-      wf: { url: 'BAWF_FINAL.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], defaultCount: 15 },
-      cm: { url: 'BAWF_Compound_Words_FINAL__Main_Compound.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], defaultCount: 12 },
-      cs: { url: 'BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], defaultCount: 10 },
-      de: { url: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], defaultCount: 12 }
+      wf: { url: 'BAWF_FINAL.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], core: ["Word","Zipf_Frequency","Morphological_Classification","Root_Word_Cleaned","Prefix_List","Suffix_List"], initLimit: 14 },
+      cm: { url: 'BAWF_Compound_Words_FINAL__Main_Compound.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], core: ["Compound_Word","Head_Word","Modifier_Word","Compound_Type","Zipf_Frequency"], initLimit: 12 },
+      cs: { url: 'BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], core: ["Base_Word","Family_Size_Count","List_Of_Family_Members"], initLimit: 8 },
+      de: { url: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', raw: [], filtered: [], headers: [], visibleHeaders: [], core: ["Word","Part_Of_Speech","Definition_Simplified","Etymology_Summary"], initLimit: 10 }
     };
 
     const config = {
@@ -748,21 +493,11 @@
       de: { page: 1, limit: 100, sortCol: null, sortDesc: false }
     };
 
-    // Initialize core structural columns
-    datasets.wf.core = ["Word","Zipf_Frequency","Morphological_Classification","Root_Word_Cleaned","Prefix_List","Suffix_List"];
-    datasets.cm.core = ["Compound_Word","Head_Word","Modifier_Word","Compound_Type","Zipf_Frequency"];
-    datasets.cs.core = ["Base_Word","Family_Size_Count","List_Of_Family_Members"];
-    datasets.de.core = ["Word","Part_Of_Speech","Definition_Simplified","Etymology_Summary","Morphology_Notes"];
-
     // ----------------------------------------------------
-    // APPLICATION ENTRY & LIFECYCLE
+    // BOOTSTRAP INITIALIZATION
     // ----------------------------------------------------
     document.addEventListener("DOMContentLoaded", () => {
-      loadDataset('wf');
-      loadDataset('cm');
-      loadDataset('cs');
-      loadDataset('de');
-      setupAddColumnListeners();
+      Object.keys(datasets).forEach(id => loadDatasetData(id));
     });
 
     function openTab(tabId, btn) {
@@ -780,145 +515,109 @@
     }
 
     // ----------------------------------------------------
-    // SPEED OPTIMIZED DATA FETCHING & PARSING
+    // ASYNC CELL STABLE PARSING SYSTEM (PARSES QUOTES PERFECTLY)
     // ----------------------------------------------------
-    async function loadDataset(id) {
+    async function loadDatasetData(id) {
       const loadingEl = document.getElementById(`${id}Loading`);
       try {
-        const response = await fetch(datasets[urlConfigKey(id)]);
-        if (!response.ok) throw new Error(`HTTP network fault code: ${response.status}`);
+        const response = await fetch(datasets[id].url);
+        if (!response.ok) throw new Error(`HTTP fetch error code: ${response.status}`);
         
-        const arrayBuffer = await response.arrayBuffer();
-        const decompressed = pako.ungzip(new Uint8Array(arrayBuffer), { to: 'string' });
+        const buffer = await response.arrayBuffer();
+        const unzippedStr = pako.ungzip(new Uint8Array(buffer), { to: 'string' });
 
-        // SPEED IMPROVEMENT: Use native PapaParse configuration instead of manually tracking lines
-        Papa.parse(decompressed, {
+        // PapaParse dynamic engine solves column shift/offset bug instantly
+        Papa.parse(unzippedStr, {
           header: true,
           skipEmptyLines: true,
-          dynamicTyping: false, // Keep as strings to safely preserve formatting
           complete: function(results) {
-            if (!results.data || results.data.length === 0) {
-              throw new Error("CSV dataset parsed flat or empty.");
-            }
+            if (!results.data || results.data.length === 0) return;
 
             datasets[id].headers = Object.keys(results.data[0]);
             datasets[id].raw = results.data;
             datasets[id].filtered = [...results.data];
 
-            // Build dynamic visibility profiles
+            // Setup display headers tracking rules cleanly
             datasets[id].visibleHeaders = datasets[id].headers.filter(h => 
-              datasets[id].core.includes(h) || datasets[id].headers.indexOf(h) < datasets[id].defaultCount
+              datasets[id].core.includes(h) || datasets[id].headers.indexOf(h) < datasets[id].initLimit
             );
 
             if (loadingEl) loadingEl.style.display = 'none';
-            buildHeaderUI(id);
-            buildAddColumnDropdown(id);
-            buildCopyDropdown(id);
             
-            const tableEl = document.getElementById(`${id}Table`);
-            const pagEl = document.getElementById(`${id}Pagination`);
-            if (tableEl) tableEl.style.display = 'table';
-            if (pagEl) pagEl.style.display = 'flex';
+            // Build layout interface dropdown frames
+            refreshInterfaceControls(id);
 
-            renderTableData(id);
-          },
-          error: function(err) {
-            throw new Error(err.message);
+            document.getElementById(`${id}Table`).style.display = 'table';
+            document.getElementById(`${id}Pagination`).style.display = 'flex';
+            
+            renderTableRecords(id);
           }
         });
-
       } catch (err) {
-        console.error(`Fault loading ${id}:`, err);
-        if (loadingEl) {
-          loadingEl.textContent = `❌ Initialization failed: ${err.message}. Try reloading pages.`;
-          loadingEl.style.color = '#ef4444';
-        }
+        console.error(err);
+        if (loadingEl) loadingEl.textContent = `Error loading source metrics: ${err.message}`;
       }
     }
 
-    function urlConfigKey(id) {
-      return id; 
+    function refreshInterfaceControls(id) {
+      buildTableHeaderUI(id);
+      
+      // 1. Copy drop setup
+      const copySel = document.getElementById(`${id}CopyColumnSelect`);
+      if (copySel) {
+        let copyHtml = `<option value="" disabled selected>Select Column...</option>`;
+        datasets[id].visibleHeaders.forEach(col => {
+          copyHtml += `<option value="${col}">${col.replace(/_/g, ' ')}</option>`;
+        });
+        copySel.innerHTML = copyHtml;
+      }
+
+      // 2. Add columns select list configuration
+      const addSel = document.getElementById(`${id}AddCols`);
+      if (addSel) {
+        let addHtml = '';
+        datasets[id].headers.forEach(col => {
+          if (!datasets[id].visibleHeaders.includes(col)) {
+            addHtml += `<option value="${col}">${col.replace(/_/g, ' ')}</option>`;
+          }
+        });
+        addSel.innerHTML = addHtml;
+      }
     }
 
     // ----------------------------------------------------
-    // RENDERING & INTERFACE ENGINE (DOM-STABLE & VIRTUAL)
+    // CORE TABLE HEADER & FILTER DOM SPECIFICATION
     // ----------------------------------------------------
-    function buildHeaderUI(id) {
+    function buildTableHeaderUI(id) {
       const headerRow = document.getElementById(`${id}HeaderRow`);
       const filterRow = document.getElementById(`${id}FilterRow`);
       if (!headerRow || !filterRow) return;
 
-      let headHtml = '';
-      let filtHtml = '';
-
-      // Action column
-      headHtml += `<th style="width: 140px; background:#1e3a8a;">Actions</th>`;
-      filtHtml += `<td></td>`;
+      let hHtml = `<th style="width:130px; background:#1e3a8a;">Actions</th>`;
+      let fHtml = `<td></td>`;
 
       datasets[id].visibleHeaders.forEach(col => {
-        let displayTitle = col.replace(/_/g, ' ');
-        let sortIndicator = '';
+        let indicator = '';
         if (config[id].sortCol === col) {
-          sortIndicator = config[id].sortDesc ? ' 🔽' : ' 🔼';
+          indicator = config[id].sortDesc ? ' 🔽' : ' 🔼';
         }
-        headHtml += `<th onclick="handleSort('${id}', '${col}')">${displayTitle}${sortIndicator}</th>`;
-        filtHtml += `<td><input id="${id}_filter_${col}" type="text" placeholder="Filter..." oninput="debounceFilter('${id}')" /></td>`;
+        hHtml += `<th onclick="sortDataset('${id}', '${col}')" style="min-width:140px;">${col.replace(/_/g, ' ')}${indicator}</th>`;
+        fHtml += `<td><input id="${id}_f_${col}" type="text" placeholder="Filter..." oninput="debounceFilter('${id}')" /></td>`;
       });
 
-      headerRow.innerHTML = headHtml;
-      filterRow.innerHTML = filtHtml;
+      headerRow.innerHTML = hHtml;
+      filterRow.innerHTML = fHtml;
     }
 
-    function buildAddColumnDropdown(id) {
-      const select = document.getElementById(`${id}AddCols`);
-      if (!select) return;
-      
-      let html = '';
-      datasets[id].headers.forEach(col => {
-        if (!datasets[id].visibleHeaders.includes(col)) {
-          html += `<option value="${col}">${col.replace(/_/g, ' ')}</option>`;
-        }
-      });
-      select.innerHTML = html;
-    }
-
-    function buildCopyDropdown(id) {
-      const select = document.getElementById(`${id}CopyColumnSelect`);
-      if (!select) return;
-      let html = '<option value="" disabled selected>Select Column to Copy...</option>';
-      datasets[id].visibleHeaders.forEach(col => {
-        html += `<option value="${col}">${col.replace(/_/g, ' ')}</option>`;
-      });
-      select.innerHTML = html;
-    }
-
-    function setupAddColumnListeners() {
-      ['wf', 'cm', 'cs', 'de'].forEach(id => {
-        const btn = document.getElementById(`${id}AddColsBtn`);
-        if (!btn) return;
-        btn.onclick = () => {
-          const select = document.getElementById(`${id}AddCols`);
-          if (!select) return;
-          const selectedOptions = Array.from(select.selectedOptions).map(o => o.value);
-          if (selectedOptions.length === 0) return;
-
-          datasets[id].visibleHeaders = [...datasets[id].visibleHeaders, ...selectedOptions];
-          buildHeaderUI(id);
-          buildAddColumnDropdown(id);
-          buildCopyDropdown(id);
-          renderTableData(id);
-        };
-      });
-    }
-
-    // SPEED OPTIMIZED RENDERING LAYER
-    function renderTableData(id) {
+    // ----------------------------------------------------
+    // HIGH-SPEED MEMORY FRAGMENT OVERLAY RENDERING ENGINE
+    // ----------------------------------------------------
+    function renderTableRecords(id) {
       const tbody = document.getElementById(`${id}TableBody`);
-      const rowCountEl = document.getElementById(`${id}RowCount`);
       if (!tbody) return;
 
       const data = datasets[id].filtered;
-      rowCountEl.textContent = data.length.toLocaleString();
+      document.getElementById(`${id}RowCount`).textContent = data.length.toLocaleString();
 
       const totalPages = Math.max(1, Math.ceil(data.length / config[id].limit));
       if (config[id].page > totalPages) config[id].page = totalPages;
@@ -926,205 +625,204 @@
       document.getElementById(`${id}CurrentPage`).textContent = config[id].page;
       document.getElementById(`${id}TotalPages`).textContent = totalPages;
 
-      const startIndex = (config[id].page - 1) * config[id].limit;
-      const endIndex = Math.min(startIndex + config[id].limit, data.length);
+      const start = (config[id].page - 1) * config[id].limit;
+      const end = Math.min(start + config[id].limit, data.length);
 
       if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${datasets[id].visibleHeaders.length + 1}" style="text-align:center; padding:40px; color:#6b7280;">No records matched your search queries.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${datasets[id].visibleHeaders.length + 1}" style="text-align:center; padding:30px;">No matching records found.</td></tr>`;
         return;
       }
 
-      // SPEED IMPROVEMENT: Build flat string array join maps instead of nested appendChild passes
-      let fragmentHtml = '';
-      for (let i = startIndex; i < endIndex; i++) {
+      // SPEED FIX: Use an array mapping strategy to drastically decrease DOM mutation cycles
+      const rowsHtml = [];
+      for (let i = start; i < end; i++) {
         const row = data[i];
-        fragmentHtml += `<tr>`;
+        let rowHtml = `<tr>`;
         
-        // Actions column
-        fragmentHtml += `<td>
+        // Target Actions Framework
+        rowHtml += `<td>
           <div class="row-actions">
-            <button class="source-btn" onclick="viewRowDetails('${id}', ${i})">View</button>
-            <button class="explain-btn" onclick="explainRow('${id}', ${i})">Explain</button>
+            <button class="source-btn" onclick="inspectRowElement('${id}', ${i})">View</button>
+            <button class="explain-btn" onclick="explainRowLesson('${id}', ${i})">Explain</button>
           </div>
         </td>`;
 
-        // Visible values columns
+        // Cellular Columns Loop
         datasets[id].visibleHeaders.forEach(col => {
-          const val = row[col] !== undefined && row[col] !== null ? row[col] : '';
-          const valStr = String(val);
-          if (valStr.length > 70 || col.toLowerCase().includes('list') || col.toLowerCase().includes('members')) {
-            fragmentHtml += `<td class="long-text">${escapeHtml(valStr)}</td>`;
+          const rawCell = row[col] !== undefined && row[col] !== null ? row[col] : '';
+          const cellString = String(rawCell);
+          
+          if (cellString.length > 60 || col.toLowerCase().includes('list') || col.toLowerCase().includes('member')) {
+            rowHtml += `<td class="long-text">${escapeHtmlString(cellString)}</td>`;
           } else {
-            fragmentHtml += `<td>${escapeHtml(valStr)}</td>`;
+            rowHtml += `<td>${escapeHtmlString(cellString)}</td>`;
           }
         });
-        fragmentHtml += `</tr>`;
+
+        rowHtml += `</tr>`;
+        rowsHtml.push(rowHtml);
       }
 
-      tbody.innerHTML = fragmentHtml;
+      tbody.innerHTML = rowsHtml.join('');
     }
 
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    function escapeHtmlString(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
     // ----------------------------------------------------
-    // HIGH SPEED HIGH VOLUME DATA FILTERING ENGINE
+    // HIGH ACCURACY LOCAL DEBOUNCED MULTI-COLUMN FILTERING
     // ----------------------------------------------------
-    let filterTimeout = null;
+    let filterDebounceTimer = null;
     function debounceFilter(id) {
-      clearTimeout(filterTimeout);
-      filterTimeout = setTimeout(() => filterTable(id), 120);
+      clearTimeout(filterDebounceTimer);
+      filterDebounceTimer = setTimeout(() => filterTable(id), 150);
     }
 
     function filterTable(id) {
-      const globalSearch = document.getElementById(`${id}GlobalSearch`)?.value.trim().toLowerCase() || '';
+      const globalText = document.getElementById(`${id}GlobalSearch`)?.value.trim().toLowerCase() || '';
       
-      // Cache column filter references for speed loop
-      const activeFilters = [];
+      const columnFilters = [];
       datasets[id].visibleHeaders.forEach(col => {
-        const inputVal = document.getElementById(`${id}_filter_${col}`)?.value.trim().toLowerCase();
-        if (inputVal) {
-          activeFilters.push({ col, token: inputVal });
-        }
+        const val = document.getElementById(`${id}_f_${col}`)?.value.trim().toLowerCase();
+        if (val) columnFilters.push({ col, val });
       });
 
-      // SPEED OPTIMIZATION: Linear fast-filter array evaluation pass
       datasets[id].filtered = datasets[id].raw.filter(row => {
-        // 1. Column filters loop
-        for (let i = 0; i < activeFilters.length; i++) {
-          const { col, token } = activeFilters[i];
-          const val = row[col];
-          if (!val || !String(val).toLowerCase().includes(token)) return false;
+        // Evaluate dynamic multi column bounds
+        for (let i = 0; i < columnFilters.length; i++) {
+          const f = columnFilters[i];
+          const cellVal = row[f.col];
+          if (!cellVal || !String(cellVal).toLowerCase().includes(f.val)) return false;
         }
 
-        // 2. Global search matching pass
-        if (globalSearch) {
-          let matched = false;
+        // Evaluate broad text matches
+        if (globalText) {
+          let hasMatch = false;
           const cols = datasets[id].visibleHeaders;
           for (let j = 0; j < cols.length; j++) {
-            const val = row[cols[j]];
-            if (val && String(val).toLowerCase().includes(globalSearch)) {
-              matched = true;
+            const cellVal = row[cols[j]];
+            if (cellVal && String(cellVal).toLowerCase().includes(globalText)) {
+              hasMatch = true;
               break;
             }
           }
-          if (!matched) return false;
+          if (!hasMatch) return false;
         }
-
         return true;
       });
 
-      // Reset sequence sort tracking states if column configurations specified sort rules
-      if (config[id].sortCol) {
-        applySortExecution(id);
-      }
-
+      if (config[id].sortCol) executeSortLogic(id);
       config[id].page = 1;
-      renderTableData(id);
+      renderTableRecords(id);
     }
 
     function clearAllFilters(id) {
-      const gInput = document.getElementById(`${id}GlobalSearch`);
-      if (gInput) gInput.value = '';
+      const globInput = document.getElementById(`${id}GlobalSearch`);
+      if (globInput) globInput.value = '';
       
       datasets[id].visibleHeaders.forEach(col => {
-        const cInput = document.getElementById(`${id}_filter_${col}`);
-        if (cInput) cInput.value = '';
+        const inp = document.getElementById(`${id}_f_${col}`);
+        if (inp) inp.value = '';
       });
 
       datasets[id].filtered = [...datasets[id].raw];
-      if (config[id].sortCol) applySortExecution(id);
-      
       config[id].page = 1;
-      renderTableData(id);
+      renderTableRecords(id);
     }
 
     // ----------------------------------------------------
-    // HIGH SPEED DATA SORT ENGINE
+    // SORTING & COLUMN EXPANSION MANAGEMENT RULES
     // ----------------------------------------------------
-    function handleSort(id, col) {
+    function sortDataset(id, col) {
       if (config[id].sortCol === col) {
         config[id].sortDesc = !config[id].sortDesc;
       } else {
         config[id].sortCol = col;
         config[id].sortDesc = false;
       }
-      buildHeaderUI(id);
-      applySortExecution(id);
-      renderTableData(id);
+      buildTableHeaderUI(id);
+      executeSortLogic(id);
+      renderTableRecords(id);
     }
 
-    function applySortExecution(id) {
+    function executeSortLogic(id) {
       const col = config[id].sortCol;
       const desc = config[id].sortDesc;
       if (!col) return;
 
       datasets[id].filtered.sort((a, b) => {
-        let v1 = a[col];
-        let v2 = b[col];
-
-        if (v1 === undefined || v1 === null) v1 = '';
-        if (v2 === undefined || v2 === null) v2 = '';
-
-        // Performance check: check if it parses cleanly as numeric floats
+        let v1 = a[col] || '';
+        let v2 = b[col] || '';
+        
         const n1 = parseFloat(v1);
         const n2 = parseFloat(v2);
         if (!isNaN(n1) && !isNaN(n2)) {
           return desc ? n2 - n1 : n1 - n2;
         }
-
-        const s1 = String(v1).toLowerCase();
-        const s2 = String(v2).toLowerCase();
-        if (s1 < s2) return desc ? 1 : -1;
-        if (s1 > s2) return desc ? -1 : 1;
-        return 0;
+        return desc ? String(v2).localeCompare(String(v1)) : String(v1).localeCompare(String(v2));
       });
     }
 
-    // ----------------------------------------------------
-    // PAGINATION LIFECYCLES
-    // ----------------------------------------------------
-    function prevPage(id) {
-      if (config[id].page > 1) {
-        config[id].page--;
-        renderTableData(id);
-      }
-    }
-
-    function nextPage(id) {
-      const totalPages = Math.ceil(datasets[id].filtered.length / config[id].limit);
-      if (config[id].page < totalPages) {
-        config[id].page++;
-        renderTableData(id);
-      }
-    }
-
-    function changeRowsPerPage(id) {
-      const select = document.getElementById(`${id}RowsPerPage`);
+    function handleAddColumns(id) {
+      const select = document.getElementById(`${id}AddCols`);
       if (!select) return;
-      config[id].limit = parseInt(select.value, 10);
-      config[id].page = 1;
-      renderTableData(id);
+      const choices = Array.from(select.selectedOptions).map(o => o.value);
+      if (choices.length === 0) return;
+
+      datasets[id].visibleHeaders = [...datasets[id].visibleHeaders, ...choices];
+      refreshInterfaceControls(id);
+      renderTableRecords(id);
     }
 
     // ----------------------------------------------------
-    // AUXILIARY UTILITIES: CSV EXPORT, BULK CELL COPY
+    // CELL VALUE RECOVERY / COPY CLIPBOARD FRAMEWORK (RESTORED)
     // ----------------------------------------------------
-    function exportCSV(id, filename) {
-      const targetRows = datasets[id].filtered;
-      if (targetRows.length === 0) {
-        alert("No current record data available for extraction.");
+    function copyColumnValues(id) {
+      const colSelect = document.getElementById(`${id}CopyColumnSelect`);
+      const scopeSelect = document.getElementById(`${id}CopyScope`);
+      if (!colSelect || !colSelect.value) {
+        alert("Please select a target column to copy first.");
         return;
       }
+
+      const col = colSelect.value;
+      let targetRows = [];
+
+      if (scopeSelect && scopeSelect.value === 'page') {
+        const start = (config[id].page - 1) * config[id].limit;
+        const end = Math.min(start + config[id].limit, datasets[id].filtered.length);
+        targetRows = datasets[id].filtered.slice(start, end);
+      } else {
+        targetRows = datasets[id].filtered;
+      }
+
+      if (targetRows.length === 0) {
+        alert("No text contents are currently available to extract.");
+        return;
+      }
+
+      // Map out plain text transformations directly
+      const plainTextDump = targetRows.map(r => r[col] !== undefined && r[col] !== null ? String(r[col]) : '').join("\n");
       
-      // SPEED/SAFETY FIX: Leverage Papa.unparse to automatically escape data strings cleanly
-      const csvString = Papa.unparse({
+      navigator.clipboard.writeText(plainTextDump)
+        .then(() => alert(`Success! Copied ${targetRows.length} rows from column "${col}" to clipboard.`))
+        .catch(err => alert(`Clipboard copy operation aborted: ${err}`));
+    }
+
+    // ----------------------------------------------------
+    // CSV EXPORT MECHANICS
+    // ----------------------------------------------------
+    function exportCSV(id, filename) {
+      const rows = datasets[id].filtered;
+      if (rows.length === 0) return;
+
+      const csvContent = Papa.unparse({
         fields: datasets[id].visibleHeaders,
-        data: targetRows.map(row => datasets[id].visibleHeaders.map(col => row[col]))
+        data: rows.map(r => datasets[id].visibleHeaders.map(col => r[col]))
       });
 
-      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.setAttribute("download", filename);
@@ -1133,348 +831,221 @@
       document.body.removeChild(link);
     }
 
-    function copyColumnValues(id) {
-      const colSelect = document.getElementById(`${id}CopyColumnSelect`);
-      const scopeSelect = document.getElementById(`${id}CopyScope`);
-      if (!colSelect || !scopeSelect) return;
-
-      const col = colSelect.value;
-      if (!col) {
-        alert("Please explicitly pick a target dataset column from the dropdown list menu.");
-        return;
-      }
-
-      let targetRows = [];
-      if (scopeSelect.value === 'page') {
-        const startIndex = (config[id].page - 1) * config[id].limit;
-        const endIndex = Math.min(startIndex + config[id].limit, datasets[id].filtered.length);
-        for (let i = startIndex; i < endIndex; i++) {
-          targetRows.push(datasets[id].filtered[i]);
-        }
-      } else {
-        targetRows = datasets[id].filtered;
-      }
-
-      if (targetRows.length === 0) {
-        alert("Zero valid cellular items to convert.");
-        return;
-      }
-
-      const txt = targetRows.map(r => r[col] !== undefined && r[col] !== null ? String(r[col]) : '').join("\n");
-      navigator.clipboard.writeText(txt)
-        .then(() => alert(`Successfully extracted and copied ${targetRows.length} lines into the OS clipboard buffer.`))
-        .catch(err => console.error("Clipboard failure trace: ", err));
+    // ----------------------------------------------------
+    // PAGINATION LIFECYCLES
+    // ----------------------------------------------------
+    function prevPage(id) { if (config[id].page > 1) { config[id].page--; renderTableRecords(id); } }
+    function nextPage(id) {
+      const total = Math.ceil(datasets[id].filtered.length / config[id].limit);
+      if (config[id].page < total) { config[id].page++; renderTableRecords(id); }
+    }
+    function changeRowsPerPage(id) {
+      config[id].limit = parseInt(document.getElementById(`${id}RowsPerPage`).value, 10);
+      config[id].page = 1;
+      renderTableRecords(id);
     }
 
     // ----------------------------------------------------
-    // INTERFACES: ROW DETAILS & PEDAGOGICAL BREAKDOWNS
+    // ROW DETAILS INSPECTION MODALS
     // ----------------------------------------------------
-    function viewRowDetails(id, index) {
+    function inspectRowElement(id, index) {
       const row = datasets[id].filtered[index];
       if (!row) return;
 
-      document.getElementById("modalTitle").textContent = "Structural Record Inspectors";
+      document.getElementById("modalTitle").textContent = "Structural Record Elements Inspector";
       let html = `<table style="width:100%; border-collapse:collapse; font-size:0.95rem;">`;
-      
       datasets[id].headers.forEach(h => {
-        const isVisible = datasets[id].visibleHeaders.includes(h);
         html += `<tr style="border-bottom:1px solid #e2e8f0;">
-          <td style="padding:10px; font-weight:700; width:30%; background:#f8fafc; color:#1e3a8a;">${h.replace(/_/g, ' ')} ${isVisible ? '' : '<span style="font-size:0.75rem; color:#94a3b8; font-weight:normal;">(Hidden)</span>'}</td>
-          <td style="padding:10px; white-space:pre-wrap;">${escapeHtml(String(row[h] !== undefined && row[h] !== null ? row[h] : ''))}</td>
+          <td style="padding:10px; font-weight:700; background:#f8fafc; width:35%;">${h.replace(/_/g, ' ')}</td>
+          <td style="padding:10px; white-space:pre-wrap;">${escapeHtmlString(String(row[h] || ''))}</td>
         </tr>`;
       });
       html += `</table>`;
 
       document.getElementById("modalBody").innerHTML = html;
-      openModalWrapper();
+      openModal();
     }
 
-    function explainRow(id, index) {
+    function explainRowLesson(id, index) {
       const row = datasets[id].filtered[index];
       if (!row) return;
 
-      document.getElementById("modalTitle").textContent = "🎓 Lesson Planning Guide & Morphological Analysis";
-      let html = '<div style="line-height:1.5; font-size:0.98rem; color:#334155;">';
-
+      document.getElementById("modalTitle").textContent = "🎓 Lesson Structural Mapping Assistance";
+      let html = `<div style="font-size:1rem; line-height:1.5;">`;
+      
       if (id === 'wf') {
-        const word = row["Word"] || "Unknown";
-        const root = row["Root_Word_Cleaned"] || "None Tracked";
-        const classification = row["Morphological_Classification"] || "Standard Base Tiers";
-        html += `<h3>Focus Term: <span style="color:#2563eb;">${escapeHtml(word)}</span></h3>`;
-        html += `<p><strong>Morphological Classification:</strong> ${escapeHtml(classification)}</p>`;
-        html += `<p><strong>Core Structural Root / Base form:</strong> <code>${escapeHtml(root)}</code></p>`;
-        html += `<div style="background:#f1f5f9; padding:12px; border-radius:8px; margin:10px 0;">`;
-        html += `<strong>Teacher Tip for Word Mapping:</strong> Highlight the root segments <code>${escapeHtml(root)}</code> when constructing word trees on whiteboard walls. Try listing structural modifications out loud with students.`;
-        html += `</div>`;
-      } else if (id === 'cm') {
-        const cWord = row["Compound_Word"] || "Compound";
-        const head = row["Head_Word"] || "N/A";
-        const modifier = row["Modifier_Word"] || "N/A";
-        html += `<h3>Compound Analysis: <span style="color:#2563eb;">${escapeHtml(cWord)}</span></h3>`;
-        html += `<p>This unit is created structurally by joining the core modifier element <strong>${escapeHtml(modifier)}</strong> with the foundational word unit <strong>${escapeHtml(head)}</strong>.</p>`;
-      } else if (id === 'de') {
-        const word = row["Word"] || "Vocabulary Line";
-        const def = row["Definition_Simplified"] || "No simple text definition on file.";
-        const etym = row["Etymology_Summary"] || "No ancestral origin history indexed.";
-        html += `<h3>Pedagogical Overview: <span style="color:#2563eb;">${escapeHtml(word)}</span></h3>`;
-        html += `<p><strong>Simplified Student Meaning:</strong> ${escapeHtml(def)}</p>`;
-        html += `<p><strong>Etymological Root Lineage:</strong> ${escapeHtml(etym)}</p>`;
+        html += `<p><strong>Target Word Unit:</strong> ${escapeHtmlString(row['Word'] || '')}</p>`;
+        html += `<p><strong>Core Base Roots form:</strong> <code>${escapeHtmlString(row['Root_Word_Cleaned'] || 'None')}</code></p>`;
+        html += `<p><strong>Classification Level:</strong> ${escapeHtmlString(row['Morphological_Classification'] || 'N/A')}</p>`;
       } else {
-        html += `<p>Explore custom hidden parameter tracking details inside your full structural spreadsheets view panels.</p>`;
+        html += `<p>Review targeted contextual items directly using full inline parameters layouts screens.</p>`;
       }
-
-      html += '</div>';
+      
+      html += `</div>`;
       document.getElementById("modalBody").innerHTML = html;
-      openModalWrapper();
+      openModal();
     }
 
-    function openModalWrapper() {
-      document.getElementById("explainModal").classList.add("show");
-      document.body.classList.add("modal-open");
-    }
-    function closeModal() {
-      document.getElementById("explainModal").classList.remove("show");
-      document.body.classList.remove("modal-open");
-    }
-    function showColumnKey() {
-      document.getElementById("columnKeyModal").classList.add("show");
-      document.body.classList.add("modal-open");
-    }
-    function closeColumnKey() {
-      document.getElementById("columnKeyModal").classList.remove("show");
-      document.body.classList.remove("modal-open");
-    }
+    function openModal() { document.getElementById("explainModal").classList.add("show"); }
+    function closeModal() { document.getElementById("explainModal").classList.remove("show"); }
+    function showColumnKey() { document.getElementById("columnKeyModal").classList.add("show"); }
+    function closeColumnKey() { document.getElementById("columnKeyModal").classList.remove("show"); }
 
     // ----------------------------------------------------
-    // TAB: WORD CLOUD BUILD ENGINE
+    // WORD CLOUD GENERATION LOGIC
     // ----------------------------------------------------
     function generateWordCloud() {
-      const input = document.getElementById("wordInput").value.trim();
+      const txt = document.getElementById("wordInput").value.trim();
       const canvas = document.getElementById("wordCanvas");
       const status = document.getElementById("cloudStatus");
-      if (!input) {
-        alert("Please supply target frequency matrix terms lines first.");
-        return;
-      }
+      if (!txt) return;
 
-      status.textContent = "Synthesizing vector layouts...";
-      status.style.color = "#2563eb";
+      status.textContent = "Processing frequency tokens maps...";
+      const lines = txt.split("\n");
+      const arrData = [];
 
-      const list = [];
-      const lines = input.split("\n");
       lines.forEach(l => {
-        const clean = l.trim().replace(/\s+/g, ' ');
-        if (!clean) return;
-        const parts = clean.split(' ');
-        if (parts.length >= 2) {
-          const freq = parseFloat(parts[parts.length - 1]);
-          const word = parts.slice(0, parts.length - 1).join(' ');
-          if (!isNaN(freq)) list.push([word, freq]);
-        } else if (parts.length === 1 && parts[0]) {
-          list.push([parts[0], 15]);
+        const tokens = l.trim().split(/\s+/);
+        if (tokens.length >= 2) {
+          const freq = parseFloat(tokens[tokens.length - 1]);
+          const word = tokens.slice(0, tokens.length - 1).join(' ');
+          if (!isNaN(freq)) arrData.push([word, freq]);
+        } else if (tokens[0]) {
+          arrData.push([tokens[0], 12]);
         }
       });
 
-      if (list.length === 0) {
-        status.textContent = "Error: Failed to process line arrays entries pairs.";
-        status.style.color = "#ef4444";
+      if (arrData.length === 0) {
+        status.textContent = "Error parsing line pairs elements.";
         return;
       }
 
-      // Safe bounds extraction
-      const freqs = list.map(x => x[1]);
-      const maxF = Math.max(...freqs);
-      const minF = Math.min(...freqs);
-      const range = maxF - minF || 1;
+      const freqs = arrData.map(x => x[1]);
+      const max = Math.max(...freqs), min = Math.min(...freqs), range = max - min || 1;
 
-      const weightData = list.map(item => {
-        const norm = (item[1] - minF) / range;
-        const size = Math.floor(14 + (norm * 62));
-        return [item[0], size];
+      const finalWeights = arrData.map(item => {
+        const weight = Math.floor(14 + (((item[1] - min) / range) * 50));
+        return [item[0], weight];
       });
 
-      try {
-        WordCloud(canvas, {
-          list: weightData,
-          gridSize: 10,
-          weightFactor: 1,
-          fontFamily: 'BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          color: () => {
-            const hues = [210, 220, 240, 270, 290];
-            const h = hues[Math.floor(Math.random() * hues.length)];
-            const s = Math.floor(55 + (Math.random() * 35));
-            const l = Math.floor(35 + (Math.random() * 25));
-            return `hsl(${h}, ${s}%, ${l}%)`;
-          },
-          backgroundColor: '#ffffff',
-          rotateRatio: 0.35
-        });
-        status.textContent = "🎉 Word cloud successfully drawn!";
-        status.style.color = "#16a34a";
-      } catch (err) {
-        status.textContent = `Rendering error: ${err.message}`;
-        status.style.color = "#ef4444";
-      }
+      WordCloud(canvas, {
+        list: finalWeights,
+        gridSize: 8,
+        weightFactor: 1,
+        backgroundColor: '#ffffff',
+        color: () => `hsl(${Math.floor(Math.random() * 40) + 200}, 70%, ${Math.floor(Math.random() * 30) + 35}%)`
+      });
+      status.textContent = "🎉 Cloud mapped successfully!";
     }
 
     // ----------------------------------------------------
-    // TAB: INTERACTIVE PROMPT ENGINEERING & LLM SIMULATION
+    // PROMPT RECOVERY & WEBLLM WORKER MANAGEMENT
     // ----------------------------------------------------
     function generateAIPrompt() {
-      const sourceId = document.getElementById("llmDatasetPick").value;
+      const activeId = document.getElementById("llmDatasetPick").value;
       const count = parseInt(document.getElementById("llmRowCount").value, 10) || 10;
       const type = document.getElementById("llmType").value;
       const grade = document.getElementById("llmGrade").value;
 
-      let activeId = sourceId;
-      if (sourceId === 'active') {
-        const tabs = ['word-families', 'compounds', 'definitions'];
-        const activeTab = tabs.find(t => document.getElementById(t).classList.includes('active')) || 'word-families';
-        if (activeTab === 'word-families') activeId = 'wf';
-        else if (activeTab === 'compounds') {
-          activeId = document.getElementById('comp-main').classList.contains('active') ? 'cm' : 'cs';
-        } else activeId = 'de';
-      }
-
-      const rows = datasets[activeId].filtered.slice(0, count);
-      if (rows.length === 0) {
-        document.getElementById("llmPromptOutput").value = "No active database content available to map context from. Ensure datasets are initialized properly.";
+      const items = datasets[activeId].filtered.slice(0, count);
+      if (items.length === 0) {
+        document.getElementById("llmPromptOutput").value = "No records match current parameters filters.";
         return;
       }
 
-      // Generate structured data dump
-      let contextDump = "";
-      rows.forEach((r, idx) => {
-        const identifyingToken = r["Word"] || r["Compound_Word"] || r["Base_Word"] || "Item";
-        contextDump += `Entry ${idx+1}: [${identifyingToken}] -> `;
+      let dump = "";
+      items.forEach((item, index) => {
+        const label = item["Word"] || item["Compound_Word"] || item["Base_Word"] || "Item";
+        dump += `Item ${index+1}: [${label}] -> `;
         datasets[activeId].visibleHeaders.forEach(col => {
-          contextDump += `${col}: "${r[col] || ''}" | `;
+          dump += `${col}: "${item[col] || ''}" | `;
         });
-        contextDump += "\n";
+        dump += "\n";
       });
 
-      const fullPrompt = `You are an expert literacy specialist and curriculum engineer.
-TASK: Build a highly targeted ${type} tailored precisely for ${grade} children.
-
-DIRECTIONS & RIGOR CHECKS:
-1. You MUST integrate and naturally focus on the following core vocabulary entries extracted directly from our database files context:
-${contextDump}
-2. Ensure morphological boundaries, base structures, or word structural relationships are clear and scaffolded for instruction.
-3. Keep sentence structure and decodability levels consistent with standard expectations for ${grade}. Do not introduce extraneous vocabulary vectors outside the targeting boundaries.
-
-Please output the completed lesson sheet along with a short teacher tracking guide section detailing how these morphological properties manifest in the generated text rows.`;
-
-      document.getElementById("llmPromptOutput").value = fullPrompt;
+      document.getElementById("llmPromptOutput").value = `You are an expert curriculum developer. 
+Task: Generate a ${type} for ${grade} students.
+Focus explicitly on these vocabulary words and structures:
+${dump}
+Ensure spelling and structural difficulty match the grade context boundaries perfectly.`;
     }
 
     function copyLLMPrompt() {
       const ta = document.getElementById("llmPromptOutput");
       if (!ta.value) return;
-      navigator.clipboard.writeText(ta.value)
-        .then(() => alert("Prompt compiled and copied to OS storage!"))
-        .catch(err => console.error(err));
+      navigator.clipboard.writeText(ta.value).then(() => alert("Prompt copied successfully."));
     }
 
-    // ----------------------------------------------------
-    // IN-BROWSER WEBLLM IMPLEMENTATION (STREAMING INTERACTION)
-    // ----------------------------------------------------
+    // Dynamic Engine Streaming Environment Hooks
     let engine = null;
-    let messages = [{ role: "system", content: "You are a helpful literacy assistant for teachers." }];
+    let chatHistory = [{ role: "system", content: "You are a helpful reading specialist assistant." }];
 
-    function setStatus(text, color = "#374151") {
-      const statusEl = document.getElementById("llmStatus");
-      if (statusEl) {
-        statusEl.textContent = text;
-        statusEl.style.color = color;
-      }
-    }
-
-    async function initWebLLMInternal() {
+    async function initWebLLM() {
       const btn = document.getElementById("llmLoadModelBtn");
       btn.disabled = true;
-      setStatus("Loading WebLLM module links...", "#1d4ed8");
+      const status = document.getElementById("llmStatus");
+      status.textContent = "Loading WebLLM module dynamically...";
 
       try {
-        const mod = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/+esm");
-        setStatus("Downloading and optimizing context weights model (~1.5GB to cache)...", "#1d4ed8");
-
-        const selectedModel = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
+        const module = await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/+esm");
+        status.textContent = "Downloading model weights into system cache memory (~1.5GB)...";
         
-        engine = await mod.CreateWebWorkerEngine(
+        engine = await module.CreateWebWorkerEngine(
           new Worker(new URL("./worker.js", import.meta.url), { type: "module" }),
-          selectedModel,
-          {
-            initProgressCallback: (report) => {
-              setStatus(`Downloading files: ${report.text}`, "#1e40af");
-            }
-          }
+          "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+          { initProgressCallback: (r) => status.textContent = `Downloading tracks: ${r.text}` }
         );
 
-        setStatus("✅ Model ready! Enter a message below.", "#15803d");
+        status.textContent = "✅ System initialized! Type messages below.";
         document.getElementById("webllmChatArea").style.display = "block";
         btn.style.display = "none";
       } catch (err) {
-        console.error("WebLLM setup fault:", err);
-        setStatus(`❌ Configuration error: ${err.message || err}`, "#ef4444");
+        status.textContent = `Error initializing engine: ${err.message}`;
         btn.disabled = false;
       }
     }
 
-    function chatEl() { return document.getElementById("webllmChatLog"); }
-    function inputEl() { return document.getElementById("webllmChatInput"); }
-
-    function addChat(sender, text) {
-      const span = document.createElement("div");
-      span.innerHTML = `<strong>${sender}:</strong> <span>${escapeHtml(text)}</span>`;
-      span.style.marginBottom = "8px";
-      chatEl().appendChild(span);
-      chatEl().scrollTop = chatEl().scrollHeight;
-      return span.querySelector("span");
-    }
-
     async function sendWebLLMMessage() {
       if (!engine) return;
-      const userText = inputEl().value.trim();
-      if (!userText) return;
+      const input = document.getElementById("webllmChatInput");
+      const text = input.value.trim();
+      if (!text) return;
 
-      inputEl().value = "";
-      addChat("You", userText);
-      messages.push({ role: "user", content: userText });
+      input.value = "";
+      appendChatBubble("You", text);
+      chatHistory.push({ role: "user", content: text });
 
-      const assistantSpan = addChat("AI", "");
-      let acc = "";
+      const replyNode = appendChatBubble("AI", "Thinking...");
+      let fullText = "";
 
       try {
-        const stream = await engine.chat.completions.create({
-          messages,
-          stream: true,
-          temperature: 0.7
-        });
-
+        const stream = await engine.chat.completions.create({ messages: chatHistory, stream: true });
         for await (const chunk of stream) {
-          const token = chunk?.choices?.[0]?.delta?.content || "";
-          acc += token;
-          assistantSpan.textContent = acc;
-          chatEl().scrollTop = chatEl().scrollHeight;
+          fullText += (chunk.choices[0]?.delta?.content || "");
+          replyNode.textContent = fullText;
         }
-
-        messages.push({ role: "assistant", content: acc || "(No output)" });
-        setStatus("✅ Response complete.", "#15803d");
-      } catch (err) {
-        console.error("WebLLM generation error:", err);
-        setStatus(`❌ Generation failed: ${err?.message || err}`, "red");
+        chatHistory.push({ role: "assistant", content: fullText });
+      } catch (e) {
+        replyNode.textContent = `Error: ${e.message}`;
       }
     }
 
-    function resetWebLLMChatInternal() {
-      messages = [{ role: "system", content: "You are a helpful literacy assistant for teachers." }];
-      chatEl().innerHTML = "";
-      setStatus("Chat reset.", "#374151");
+    function appendChatBubble(role, txt) {
+      const d = document.createElement("div");
+      d.style.marginBottom = "8px";
+      d.innerHTML = `<strong>${role}:</strong> <span></span>`;
+      const s = d.querySelector("span");
+      s.textContent = txt;
+      const log = document.getElementById("webllmChatLog");
+      log.appendChild(d);
+      log.scrollTop = log.scrollHeight;
+      return s;
     }
 
-    window.initWebLLM = initWebLLMInternal;
-    window.sendWebLLMMessage = sendWebLLMMessage;
-    window.resetWebLLMChat = resetWebLLMChatInternal;
+    function resetWebLLMChat() {
+      chatHistory = [{ role: "system", content: "You are a helpful reading specialist assistant." }];
+      document.getElementById("webllmChatLog").innerHTML = "";
+    }
   </script>
 </body>
 </html>
