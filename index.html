@@ -858,778 +858,732 @@
     </div>
   </div>
 
-<script>
-  const PERF = {
-  validateRows: false,          // turn on only when auditing data
-  precomputeSearch: false,      // build __search lazily instead
-  searchColumns: "core",        // "core" or "all"
-  firstPaintMinRows: 800
-};
+  <script>
+    // =========================
+    // DATASET CONFIG + STATE
+    // =========================
+    const DATASETS = {
+      wf: { file: "BAWF_FINAL.csv.gz", loaded: false, name: "Word Families" },
+      cm: { file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz", loaded: false, name: "Compound Main" },
+      cs: { file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz", loaded: false, name: "Compound Stats" },
+      de: { file: "BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz", loaded: false, name: "Definitions & Etymology" }
+    };
 
-  // =========================
-  // HELPERS
-  // =========================
-  function byId(id){ return document.getElementById(id); }
-  function normalizeSpaces(s){ return String(s ?? "").replace(/\s+/g, " ").trim(); }
-  function norm(s){ return String(s || "").toLowerCase().replace(/[\s_]+/g, ""); }
-  function colNorm(s){ return String(s || "").toLowerCase().replace(/[\s_()\-]+/g, ""); }
+    const state = {};
+    Object.keys(DATASETS).forEach(k => {
+      state[k] = {
+        fullData: [],
+        filteredData: [],
+        columns: [],
+        allColumns: [],
+        coreColumns: [],
+        parseDone: false,
+        firstPaintDone: false,
+        currentPage: 1,
+        rowsPerPage: 100,
+        sort: { column: null, asc: true },
+        dropdownColumns: new Set()
+      };
+    });
 
-  function sanitizeHeaders(fields) {
-    const out = [];
-    (fields || []).forEach(h => {
-      let s = String(h ?? "")
-        .replace(/^\uFEFF/, "")                 // BOM
-        .replace(/[\u0000-\u001F\u007F]/g, " ") // control chars
-        .trim();
+    let currentExplainRow = null;
+    const filterDebouncers = {};
 
-      if (!s) return;
+    function byId(id){ return document.getElementById(id); }
+    function normalizeSpaces(s){ return String(s ?? "").replace(/\s+/g, " ").trim(); }
+function colNorm(s){
+  return String(s || "").toLowerCase().replace(/[\s_()\-]+/g, "");
+}
 
-      // Split accidental tab-merged header text
-      const parts = s.split(/\t+/).map(p => p.trim()).filter(Boolean);
+function isLikelyNumeric(v){
+  if (v === null || v === undefined) return false;
+  const s = String(v).trim();
+  if (!s) return false;
+  return /^-?\d+(\.\d+)?$/.test(s);
+}
 
-      parts.forEach(p => {
-        // Drop obvious numeric garbage pretending to be header
-        if (/^-?\d+(\.\d+)?$/.test(p)) return;
-        out.push(p);
+function isNumericColumn(prefix, col){
+  const st = state[prefix];
+  const rows = st.fullData;
+  const sample = Math.min(rows.length, 1500);
+  let seen = 0, numeric = 0;
+  for (let i = 0; i < sample; i++){
+    const v = rows[i]?.[col];
+    const s = String(v ?? "").trim();
+    if (!s) continue;
+    seen++;
+    if (isLikelyNumeric(s)) numeric++;
+  }
+  if (!seen) return false;
+  return (numeric / seen) >= 0.9;
+}
+
+function isForcedDropdownColumn(col){
+  const c = colNorm(col);
+
+  // Explicit root + meaning dropdowns
+  if (c === "greeklatinroot1" || c === "greeklatinmeaning1" ||
+      c === "greeklatinroot2" || c === "greeklatinmeaning2") return true;
+
+  // Prefix / suffix columns
+  if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) return true;
+
+  // N morphemes explicitly
+  if (c === "nmorphemes") return true;
+
+  return false;
+}
+
+function cleanParsedRow(row, headers){
+  // Force row values to align exactly with headers
+  const out = {};
+  headers.forEach(h => out[h] = row[h] ?? "");
+
+  // If parser produced extras, append to last column so columns don't shift
+  if (Array.isArray(row.__parsed_extra) && row.__parsed_extra.length && headers.length){
+    const last = headers[headers.length - 1];
+    const tail = row.__parsed_extra.join(",");
+    out[last] = String(out[last] ?? "");
+    out[last] = out[last] ? `${out[last]},${tail}` : tail;
+  }
+  return out;
+}
+
+function roundVocabularyGradeLevels(row, headers){
+  // Round any vocabulary expected grade level style column
+  const gradeCols = headers.filter(h => /vocabulary.*grade.*level/i.test(h));
+  for (const c of gradeCols){
+    const n = parseFloat(String(row[c] ?? "").trim());
+    if (Number.isFinite(n)) row[c] = String(Math.round(n));
+  }
+}
+
+    function norm(s){ return String(s || "").toLowerCase().replace(/[\s_]+/g, ""); }
+
+    function chooseCoreColumns(headers){
+      const hmap = new Map(headers.map(h => [norm(h), h]));
+      const core = [];
+      const preferred = [
+        "word","baseword","greeklatinroot1","greeklatinmeaning1",
+        "greeklatinroot2","greeklatinmeaning2","gptroot","gptcodedwordparts"
+      ];
+      preferred.forEach(k => { if (hmap.has(k)) core.push(hmap.get(k)); });
+      headers.forEach(col => {
+        const c = norm(col);
+        if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) core.push(col);
       });
-    });
-
-    // unique, preserve order
-    return [...new Set(out)];
-  }
-
-  function isLikelyNumeric(v) {
-    if (v == null) return false;
-    const s = String(v).trim();
-    if (!s) return false;
-
-    // allow commas: "1,234.5"
-    const normalized = s.replace(/,/g, "");
-    return /^-?\d+(\.\d+)?$/.test(normalized);
-  }
-
-  function cleanParsedRow(row, headers) {
-    const out = {};
-    headers.forEach(h => {
-      out[h] = row?.[h] ?? "";
-    });
-
-    // Keep extras for validation only (do NOT merge into data columns)
-    Object.defineProperty(out, "__parsed_extra", {
-      value: Array.isArray(row?.__parsed_extra) ? row.__parsed_extra : [],
-      enumerable: false
-    });
-
-    return out;
-  }
-
-  function validateRowAlignment(row, headers) {
-    const issues = [];
-
-    // Papa overflow fields
-    if (Array.isArray(row.__parsed_extra) && row.__parsed_extra.length) {
-      issues.push("extra_fields");
+      return [...new Set(core)];
     }
 
-    // Word sanity
-    const wordCol = headers.find(h => /^word$/i.test(String(h).trim())) || headers[0];
-    const w = String(row[wordCol] ?? "").trim();
-    if (!w) issues.push("missing_word");
-    if (w.length > 120) issues.push("word_too_long");
+    function getVisibleColumns(prefix){
+      const st = state[prefix];
+      if (st.columns?.length) return st.columns;
+      return Object.keys(st.fullData[0] || {});
+    }
 
-    // Numeric sanity on likely numeric cols
-    headers.forEach(h => {
-      if (/(zipf|familysize|count|grade|aoa|frequency|n[_\s]?morphemes)/i.test(h)) {
-        const v = String(row[h] ?? "").trim();
-        if (v && !isLikelyNumeric(v)) issues.push(`bad_numeric:${h}`);
+    function getFirstNonEmpty(row, candidates){
+      for (const c of candidates){
+        const v = String(row?.[c] ?? "").trim();
+        if (v) return v;
       }
-    });
-
-    return issues;
-  }
-
-  function roundVocabularyGradeLevels(row, headers){
-    const gradeCols = headers.filter(h => /vocabulary.*grade.*level/i.test(h));
-    for (const c of gradeCols){
-      const n = parseFloat(String(row[c] ?? "").trim());
-      if (Number.isFinite(n)) row[c] = String(Math.round(n));
+      return "";
     }
-  }
 
-  function getFirstNonEmpty(row, candidates){
-    for (const c of candidates){
-      const v = String(row?.[c] ?? "").trim();
-      if (v) return v;
+    function setDbLoading(prefix, msg){
+      const el = byId(prefix + "Loading");
+      if (!el) return;
+      el.style.display = "block";
+      el.textContent = msg;
     }
-    return "";
-  }
 
-  function setDbLoading(prefix, msg){
-    const el = byId(prefix + "Loading");
-    if (!el) return;
-    if (!msg) {
-      el.style.display = "none";
-      el.textContent = "";
+    function debounce(fn, ms = 250){
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+      };
+    }
+
+    function getDebouncedFilter(prefix){
+      if (!filterDebouncers[prefix]) {
+        filterDebouncers[prefix] = debounce(() => filterTable(prefix), 220);
+      }
+      return filterDebouncers[prefix];
+    }
+
+function detectDropdownColumns(prefix){
+  const st = state[prefix];
+  st.dropdownColumns.clear();
+
+  const cols = getVisibleColumns(prefix);
+  const rows = st.fullData;
+  const sampleSize = Math.min(rows.length, 1500);
+
+  cols.forEach(col => {
+    // Forced dropdown columns
+    if (isForcedDropdownColumn(col)) {
+      st.dropdownColumns.add(String(col).toLowerCase().trim());
       return;
     }
-    el.style.display = "block";
-    el.textContent = msg;
-  }
 
-  function debounce(fn, ms = 250){
-    let t;
-    return (...args) => {
-      clearTimeout(t);
-      t = setTimeout(() => fn(...args), ms);
-    };
-  }
+    // All numeric columns become dropdowns (per your request)
+    if (isNumericColumn(prefix, col)) {
+      st.dropdownColumns.add(String(col).toLowerCase().trim());
+      return;
+    }
 
-  // =========================
-  // DATASET CONFIG + STATE
-  // =========================
-  const DATASETS = {
-    wf: { file: "BAWF_FINAL.csv.gz", loaded: false, name: "Word Families" },
-    cm: { file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz", loaded: false, name: "Compound Main" },
-    cs: { file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz", loaded: false, name: "Compound Stats" },
-    de: { file: "BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz", loaded: false, name: "Definitions & Etymology" }
-  };
+    // Existing category-like detection
+    const vals = new Set();
+    for (let i = 0; i < sampleSize; i++) {
+      const v = normalizeSpaces(rows[i]?.[col]);
+      if (v) vals.add(v);
+      if (vals.size > 50) break;
+    }
 
-  const state = {};
-  Object.keys(DATASETS).forEach(k => {
-    state[k] = {
-      fullData: [],
-      filteredData: [],
-      columns: [],
-      allColumns: [],
-      coreColumns: [],
-      parseDone: false,
-      currentPage: 1,
-      rowsPerPage: 100,
-      sort: { column: null, asc: true },
-      dropdownColumns: new Set(),
-      badRows: []
-    };
+    if (vals.size > 1 && vals.size <= 35) {
+      st.dropdownColumns.add(String(col).toLowerCase().trim());
+    }
   });
-
-  let currentExplainRow = null;
-  const filterDebouncers = {};
-
-  function getDebouncedFilter(prefix){
-    if (!filterDebouncers[prefix]) {
-      filterDebouncers[prefix] = debounce(() => filterTable(prefix), 220);
-    }
-    return filterDebouncers[prefix];
-  }
-
-  function chooseCoreColumns(headers){
-    const hmap = new Map(headers.map(h => [norm(h), h]));
-    const core = [];
-    const preferred = [
-      "word","baseword","greeklatinroot1","greeklatinmeaning1",
-      "greeklatinroot2","greeklatinmeaning2","gptroot","gptcodedwordparts"
-    ];
-    preferred.forEach(k => { if (hmap.has(k)) core.push(hmap.get(k)); });
-
-    headers.forEach(col => {
-      const c = norm(col);
-      if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) core.push(col);
-    });
-    return [...new Set(core)];
-  }
-
-  function getVisibleColumns(prefix){
-    const st = state[prefix];
-    if (st.columns?.length) return st.columns;
-    return Object.keys(st.fullData[0] || {});
-  }
-
-  function isNumericColumn(prefix, col){
-    const st = state[prefix];
-    const rows = st.fullData;
-    const sample = Math.min(rows.length, 1500);
-    let seen = 0, numeric = 0;
-    for (let i = 0; i < sample; i++){
-      const v = rows[i]?.[col];
-      const s = String(v ?? "").trim();
-      if (!s) continue;
-      seen++;
-      if (isLikelyNumeric(s)) numeric++;
-    }
-    if (!seen) return false;
-    return (numeric / seen) >= 0.9;
-  }
-
-  function isForcedDropdownColumn(col){
-    const c = colNorm(col);
-
-    if (c === "greeklatinroot1" || c === "greeklatinmeaning1" ||
-        c === "greeklatinroot2" || c === "greeklatinmeaning2") return true;
-
-    if (/^prefix\d+$/.test(c) || /^suffix\d+$/.test(c)) return true;
-
-    if (c === "nmorphemes") return true;
-
-    return false;
-  }
-
-  function detectDropdownColumns(prefix){
-    const st = state[prefix];
-    st.dropdownColumns.clear();
-
-    const cols = getVisibleColumns(prefix);
-    const rows = st.fullData;
-    const sampleSize = Math.min(rows.length, 1500);
-
-    cols.forEach(col => {
-      if (isForcedDropdownColumn(col)) {
-        st.dropdownColumns.add(String(col).toLowerCase().trim());
-        return;
-      }
-
-  
-
-      const vals = new Set();
-      for (let i = 0; i < sampleSize; i++) {
-        const v = normalizeSpaces(rows[i]?.[col]);
-        if (v) vals.add(v);
-        if (vals.size > 50) break;
-      }
-
-      if (vals.size > 1 && vals.size <= 35) {
-        st.dropdownColumns.add(String(col).toLowerCase().trim());
-      }
-    });
-  }
-
-  function isDropdownColumn(prefix, colName){
-    return state[prefix].dropdownColumns.has(String(colName).toLowerCase().trim());
-  }
-
-  function wireAddColsUI(prefix){
-    const btn = byId(prefix + "AddColsBtn");
-    if (!btn || btn.dataset.wired === "1") return;
-    btn.addEventListener("click", () => addSelectedColumns(prefix));
-    btn.dataset.wired = "1";
-  }
-
-  function populateAddColsSelect(prefix){
-    const st = state[prefix];
-    const sel = byId(prefix + "AddCols");
-    if (!sel) return;
-    sel.innerHTML = "";
-
-    (st.allColumns || [])
-      .filter(c => !st.columns.includes(c))
-      .forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        sel.appendChild(opt);
-      });
-  }
-
-  function addSelectedColumns(prefix){
-    const st = state[prefix];
-    const sel = byId(prefix + "AddCols");
-    if (!sel) return;
-
-    const chosen = Array.from(sel.selectedOptions).map(o => o.value);
-    const add = chosen.filter(c => !st.columns.includes(c));
-    if (!add.length) return;
-
-    st.columns = [...st.columns, ...add];
-
-    detectDropdownColumns(prefix);
-    renderHeadersAndFilters(prefix);
-    renderTable(prefix);
-    populateCopyColumnSelect(prefix);
-    populateAddColsSelect(prefix);
-  }
-
-  async function loadDataset(prefix){
-    const cfg = DATASETS[prefix];
-    if (!cfg) return;
-    if (cfg.loaded) return;
-    cfg.loaded = true;
-
-    const st = state[prefix];
-    st.fullData = [];
-    st.filteredData = [];
-    st.currentPage = 1;
-    st.sort = { column: null, asc: true };
-    st.dropdownColumns = new Set();
-    st.columns = [];
-    st.allColumns = [];
-    st.coreColumns = [];
-    st.parseDone = false;
-    st.badRows = [];
-
-    setDbLoading(prefix, `Loading ${cfg.name}...`);
-
-    try {
-      const resp = await fetch(cfg.file, { cache: "no-cache" });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-      const arrBuf = await resp.arrayBuffer();
-      const bin = new Uint8Array(arrBuf);
-      const csvText = pako.ungzip(bin, { to: "string" });
-
-      Papa.parse(csvText, {
-        header: true,
-        delimiter: ",",
-        skipEmptyLines: "greedy",
-        worker: false,
-        fastMode: true,
-        chunkSize: 2/8 1024 * 1024,
-        transformHeader: h => String(h || "").replace(/^\uFEFF/, "").trim(),
-
-        chunk: (results) => {
-          let rows = (results.data || []).filter(r =>
-            Object.values(r).some(v => String(v ?? "").trim() !== "")
-          );
-          if (!rows.length) return;
-
-          if (!st.allColumns.length) {
-            const rawFields = results.meta?.fields || [];
-            st.allColumns = sanitizeHeaders(rawFields);
-
-            st.coreColumns = chooseCoreColumns(st.allColumns);
-            if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
-            st.columns = [...st.coreColumns];
-          }
-
-          const goodRows = [];
-const searchCols = (PERF.searchColumns === "core" && st.coreColumns.length)
-  ? st.coreColumns
-  : st.allColumns;
-
-for (const raw of rows) {
-  const cleaned = cleanParsedRow(raw, st.allColumns);
-  roundVocabularyGradeLevels(cleaned, st.allColumns);
-
-  if (PERF.validateRows) {
-    const issues = validateRowAlignment(cleaned, st.allColumns);
-    if (issues.length) {
-      st.badRows.push({ issues, row: cleaned });
-      continue;
-    }
-  }
-
-  if (PERF.precomputeSearch) {
-    cleaned.__search = searchCols.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase();
-  }
-
-  goodRows.push(cleaned);
 }
-st.fullData.push(...goodRows);
 
-          setDbLoading(prefix, `Loading ${cfg.name}... ${st.fullData.length.toLocaleString()} rows parsed`);
-        },
 
-        complete: () => {
+    function isDropdownColumn(prefix, colName){
+      return state[prefix].dropdownColumns.has(String(colName).toLowerCase().trim());
+    }
+
+    function wireAddColsUI(prefix){
+      const btn = byId(prefix + "AddColsBtn");
+      if (!btn || btn.dataset.wired === "1") return;
+      btn.addEventListener("click", () => addSelectedColumns(prefix));
+      btn.dataset.wired = "1";
+    }
+
+    function populateAddColsSelect(prefix){
+      const st = state[prefix];
+      const sel = byId(prefix + "AddCols");
+      if (!sel) return;
+      sel.innerHTML = "";
+
+      (st.allColumns || [])
+        .filter(c => !st.columns.includes(c))
+        .forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c;
+          opt.textContent = c;
+          sel.appendChild(opt);
+        });
+    }
+
+    function addSelectedColumns(prefix){
+      const st = state[prefix];
+      const sel = byId(prefix + "AddCols");
+      if (!sel) return;
+
+      const chosen = Array.from(sel.selectedOptions).map(o => o.value);
+      const add = chosen.filter(c => !st.columns.includes(c));
+      if (!add.length) return;
+
+      st.columns = [...st.columns, ...add];
+
+      detectDropdownColumns(prefix);
+      renderHeadersAndFilters(prefix);
+      renderTable(prefix);
+      populateCopyColumnSelect(prefix);
+      populateAddColsSelect(prefix);
+    }
+
+ async function loadDataset(prefix){
+  const cfg = DATASETS[prefix];
+  if (!cfg) return;
+  if (cfg.loaded) return;
+  cfg.loaded = true;
+
+  const st = state[prefix];
+  st.fullData = [];
+  st.filteredData = [];
+  st.currentPage = 1;
+  st.sort = { column: null, asc: true };
+  st.dropdownColumns = new Set();
+  st.columns = [];
+  st.allColumns = [];
+  st.coreColumns = [];
+  st.parseDone = false;
+  st.firstPaintDone = false;
+
+  setDbLoading(prefix, `Loading ${cfg.name}...`);
+
+  try {
+    const resp = await fetch(cfg.file, { cache: "no-cache" });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    const arrBuf = await resp.arrayBuffer();
+    const bin = new Uint8Array(arrBuf);
+    const csvText = pako.ungzip(bin, { to: "string" });
+
+  Papa.parse(csvText, {
+  header: true,
+  skipEmptyLines: "greedy",
+  worker: false, // changed from true
+  fastMode: false,
+  chunkSize: 1024 * 1024,
+  transformHeader: h => String(h || "").replace(/^\uFEFF/, "").trim(),
+  
+      chunk: (results) => {
+        let rows = (results.data || []).filter(r =>
+          Object.values(r).some(v => String(v ?? "").trim() !== "")
+        );
+        if (!rows.length) return;
+
+        // Set headers once
+        if (!st.allColumns.length) {
+          st.allColumns = (results.meta?.fields?.length)
+            ? results.meta.fields.map(h => String(h || "").trim())
+            : Object.keys(rows[0] || {}).filter(k => k !== "__parsed_extra");
+
+          st.coreColumns = chooseCoreColumns(st.allColumns);
+          if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
+          st.columns = [...st.coreColumns];
+        }
+
+        // Clean rows + round grade level
+        rows = rows.map(r => {
+          const cleaned = cleanParsedRow(r, st.allColumns);
+          roundVocabularyGradeLevels(cleaned, st.allColumns);
+
+          // global search cache
+          try {
+            Object.defineProperty(cleaned, "__search", {
+              value: st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase(),
+              enumerable: false
+            });
+          } catch {
+            cleaned.__search = st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase();
+          }
+          return cleaned;
+        });
+
+        st.fullData.push(...rows);
+
+        if (!st.firstPaintDone && st.fullData.length >= Math.max(st.rowsPerPage, 50)) {
           st.filteredData = st.fullData.slice();
-          st.parseDone = true;
+          st.currentPage = 1;
 
-          detectDropdownColumns(prefix);
           initializeDatasetUI(prefix);
+          wireAddColsUI(prefix);
+          detectDropdownColumns(prefix);
+          renderHeadersAndFilters(prefix);
+          renderTable(prefix);
+          populateCopyColumnSelect(prefix);
+          populateAddColsSelect(prefix);
+
+          const loadingEl = byId(prefix + "Loading");
+          if (loadingEl) {
+            loadingEl.style.display = "block";
+            loadingEl.textContent = `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows in background`;
+          }
 
           const tableEl = byId(prefix + "Table");
           if (tableEl) tableEl.style.display = "table";
           const pagerEl = byId(prefix + "Pagination");
           if (pagerEl) pagerEl.style.display = "flex";
 
-          const badCount = st.badRows.length;
-          if (badCount > 0) {
-            const el = byId(prefix + "Loading");
-            if (el) {
-              el.style.display = "block";
-              el.textContent = `⚠ Loaded with ${badCount} suspect rows excluded.`;
-            }
-          } else {
-            setDbLoading(prefix, "");
-          }
-        },
-
-        error: (err) => {
-          console.error("Papa parse error:", err);
-          setDbLoading(prefix, `CSV parse error: ${err?.message || err}`);
-          cfg.loaded = false;
+          st.firstPaintDone = true;
+        } else if (st.firstPaintDone) {
+          setDbLoading(prefix, `Loaded ${st.fullData.length.toLocaleString()} rows... parsing remaining rows`);
         }
-      });
+      },
 
-    } catch (err){
-      setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
-      cfg.loaded = false;
-    }
-  }
+      complete: () => {
+        st.filteredData = st.fullData.slice();
+        st.parseDone = true;
 
-  function initializeDatasetUI(prefix){
-    detectDropdownColumns(prefix);
-    renderHeadersAndFilters(prefix);
-    renderTable(prefix);
-    populateCopyColumnSelect(prefix);
-    populateAddColsSelect(prefix);
-    wireAddColsUI(prefix);
+        initializeDatasetUI(prefix);
+        wireAddColsUI(prefix);
+        detectDropdownColumns(prefix);
+        renderHeadersAndFilters(prefix);
+        renderTable(prefix);
+        populateCopyColumnSelect(prefix);
+        populateAddColsSelect(prefix);
 
-    const global = byId(prefix + "GlobalSearch");
-    if (global && !global.dataset.wired) {
-      global.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") filterTable(prefix);
-      });
-      global.addEventListener("input", getDebouncedFilter(prefix));
-      global.dataset.wired = "1";
-    }
-  }
+        setDbLoading(prefix, "");
+        const loadingEl = byId(prefix + "Loading");
+        if (loadingEl) loadingEl.style.display = "none";
+      },
 
-  function renderHeadersAndFilters(prefix){
-    const st = state[prefix];
-    const columns = getVisibleColumns(prefix);
-    const headerRow = byId(prefix + "HeaderRow");
-    const filterRow = byId(prefix + "FilterRow");
-    if (!headerRow || !filterRow) return;
-
-    headerRow.innerHTML = "";
-    filterRow.innerHTML = "";
-
-    columns.forEach(col => {
-      const th = document.createElement("th");
-      th.textContent = col;
-      th.title = "Click to sort";
-      th.onclick = () => sortTable(prefix, col);
-      headerRow.appendChild(th);
+      error: (err) => {
+        setDbLoading(prefix, `CSV parse error: ${err.message}`);
+        cfg.loaded = false;
+      }
     });
 
-    const actionTh = document.createElement("th");
-    actionTh.textContent = "Actions";
-    headerRow.appendChild(actionTh);
+  } catch (err){
+    setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
+    cfg.loaded = false;
+  }
+}
 
-    columns.forEach(col => {
-      const td = document.createElement("td");
 
-      if (isDropdownColumn(prefix, col)) {
-        const sel = document.createElement("select");
-        sel.dataset.col = col;
-        sel.onchange = () => filterTable(prefix);
+    function initializeDatasetUI(prefix){
+      renderHeadersAndFilters(prefix);
+      renderTable(prefix);
+      populateCopyColumnSelect(prefix);
+      populateAddColsSelect(prefix);
+      wireAddColsUI(prefix);
 
-        const all = document.createElement("option");
-        all.value = "";
-        all.textContent = "All";
-        sel.appendChild(all);
-
-        const unique = [...new Set(st.fullData.map(r => normalizeSpaces(r[col])).filter(Boolean))];
-
-        const numericLike = unique.length && unique.every(isLikelyNumeric);
-        if (numericLike) {
-          unique.sort((a,b) =>
-            parseFloat(String(a).replace(/,/g, "")) - parseFloat(String(b).replace(/,/g, ""))
-          );
-        } else {
-          unique.sort((a,b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-        }
-
-        unique.forEach(v => {
-          const opt = document.createElement("option");
-          opt.value = v;
-          opt.textContent = v;
-          sel.appendChild(opt);
+      const global = byId(prefix + "GlobalSearch");
+      if (global && !global.dataset.wired) {
+        global.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") filterTable(prefix);
         });
-
-        td.appendChild(sel);
-      } else {
-        const input = document.createElement("input");
-        input.type = "text";
-        input.placeholder = "Filter...";
-        input.dataset.col = col;
-        input.oninput = getDebouncedFilter(prefix);
-        td.appendChild(input);
+        global.addEventListener("input", getDebouncedFilter(prefix));
+        global.dataset.wired = "1";
       }
+    }
 
-      filterRow.appendChild(td);
-    });
+    function renderHeadersAndFilters(prefix){
+      const st = state[prefix];
+      const columns = getVisibleColumns(prefix);
+      const headerRow = byId(prefix + "HeaderRow");
+      const filterRow = byId(prefix + "FilterRow");
 
-    filterRow.appendChild(document.createElement("td"));
-  }
+      headerRow.innerHTML = "";
+      filterRow.innerHTML = "";
 
-  function filterTable(prefix){
-    const st = state[prefix];
-    const global = (byId(prefix + "GlobalSearch")?.value || "").toLowerCase().trim();
-    const filterRow = byId(prefix + "FilterRow");
-    if (!filterRow) return;
+      columns.forEach(col => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        th.title = "Click to sort";
+        th.onclick = () => sortTable(prefix, col);
+        headerRow.appendChild(th);
+      });
 
-    const colFilters = {};
-    filterRow.querySelectorAll("[data-col]").forEach(el => {
-      const col = el.dataset.col;
-      const raw = normalizeSpaces(el.value);
-      if (!raw) return;
-      colFilters[col] = {
-        type: el.tagName === "SELECT" ? "exact" : "contains",
-        value: raw.toLowerCase()
-      };
-    });
+      const actionTh = document.createElement("th");
+      actionTh.textContent = "Actions";
+      headerRow.appendChild(actionTh);
 
-    st.filteredData = st.fullData.filter(row => {
-      if (global){
-        const rowText = row.__search || Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase();
-        if (!rowText.includes(global)) return false;
-      }
-
-      for (const col in colFilters){
-        const cell = normalizeSpaces(row[col]).toLowerCase();
-        const f = colFilters[col];
-        if (f.type === "exact"){
-          if (cell !== f.value) return false;
-        } else {
-          if (!cell.includes(f.value)) return false;
-        }
-      }
-      return true;
-    });
-
-    st.currentPage = 1;
-    renderTable(prefix);
-  }
-
-  function renderTable(prefix){
-    const st = state[prefix];
-    const tbody = byId(prefix + "TableBody");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-
-    const start = (st.currentPage - 1) * st.rowsPerPage;
-    const pageData = st.filteredData.slice(start, start + st.rowsPerPage);
-
-    const frag = document.createDocumentFragment();
-    const columns = getVisibleColumns(prefix);
-
-    for (const row of pageData){
-      const tr = document.createElement("tr");
-
-      for (const col of columns){
+      columns.forEach(col => {
         const td = document.createElement("td");
-        const val = String(row[col] ?? "");
-        if (val.length > 120) td.classList.add("long-text");
-        td.textContent = val;
-        tr.appendChild(td);
+
+   if (isDropdownColumn(prefix, col)) {
+  const sel = document.createElement("select");
+  sel.dataset.col = col;
+  sel.onchange = () => filterTable(prefix);
+
+  const all = document.createElement("option");
+  all.value = "";
+  all.textContent = "All";
+  sel.appendChild(all);
+
+  const unique = [...new Set(st.fullData.map(r => normalizeSpaces(r[col])).filter(Boolean))];
+
+  const numericLike = unique.length && unique.every(isLikelyNumeric);
+  if (numericLike) {
+    unique.sort((a,b) => parseFloat(a) - parseFloat(b));
+  } else {
+    unique.sort((a,b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }
+
+  unique.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+
+  td.appendChild(sel);
+}
+ else {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Filter...";
+          input.dataset.col = col;
+          input.oninput = getDebouncedFilter(prefix);
+          td.appendChild(input);
+        }
+
+        filterRow.appendChild(td);
+      });
+
+      filterRow.appendChild(document.createElement("td"));
+    }
+
+    function filterTable(prefix){
+      const st = state[prefix];
+      const global = (byId(prefix + "GlobalSearch")?.value || "").toLowerCase().trim();
+
+      const colFilters = {};
+      byId(prefix + "FilterRow").querySelectorAll("[data-col]").forEach(el => {
+        const col = el.dataset.col;
+        const raw = normalizeSpaces(el.value);
+        if (!raw) return;
+        colFilters[col] = {
+          type: el.tagName === "SELECT" ? "exact" : "contains",
+          value: raw.toLowerCase()
+        };
+      });
+
+      st.filteredData = st.fullData.filter(row => {
+        if (global){
+          const rowText = row.__search || Object.values(row).map(v => String(v ?? "")).join(" ").toLowerCase();
+          if (!rowText.includes(global)) return false;
+        }
+
+        for (const col in colFilters){
+          const cell = normalizeSpaces(row[col]).toLowerCase();
+          const f = colFilters[col];
+          if (f.type === "exact"){
+            if (cell !== f.value) return false;
+          } else {
+            if (!cell.includes(f.value)) return false;
+          }
+        }
+        return true;
+      });
+
+      st.currentPage = 1;
+      renderTable(prefix);
+    }
+
+    function renderTable(prefix){
+      const st = state[prefix];
+      const tbody = byId(prefix + "TableBody");
+      tbody.innerHTML = "";
+
+      const start = (st.currentPage - 1) * st.rowsPerPage;
+      const pageData = st.filteredData.slice(start, start + st.rowsPerPage);
+
+      const frag = document.createDocumentFragment();
+      const columns = getVisibleColumns(prefix);
+
+      for (const row of pageData){
+        const tr = document.createElement("tr");
+
+        for (const col of columns){
+          const td = document.createElement("td");
+          const val = String(row[col] ?? "");
+          if (val.length > 120) td.classList.add("long-text");
+          td.textContent = val;
+          tr.appendChild(td);
+        }
+
+        const actionTd = document.createElement("td");
+        const wrap = document.createElement("div");
+        wrap.className = "row-actions";
+
+        const gbtn = document.createElement("button");
+        gbtn.className = "source-btn";
+        gbtn.textContent = "🔎 Google Word";
+        gbtn.onclick = () => {
+          const q = buildGoogleQueryForRow(row);
+          if (!q) return;
+          window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
+        };
+        wrap.appendChild(gbtn);
+
+        const ebtn = document.createElement("button");
+        ebtn.className = "explain-btn";
+        ebtn.textContent = "✨ Explain";
+        ebtn.onclick = () => showExplainModal(prefix, row);
+        wrap.appendChild(ebtn);
+
+        actionTd.appendChild(wrap);
+        tr.appendChild(actionTd);
+        frag.appendChild(tr);
       }
 
-      const actionTd = document.createElement("td");
-      const wrap = document.createElement("div");
-      wrap.className = "row-actions";
+      tbody.appendChild(frag);
 
-      const gbtn = document.createElement("button");
-      gbtn.className = "source-btn";
-      gbtn.textContent = "🔎 Google Word";
-      gbtn.onclick = () => {
-        const q = buildGoogleQueryForRow(row);
-        if (!q) return;
-        window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
-      };
-      wrap.appendChild(gbtn);
+      const totalPages = Math.max(1, Math.ceil(st.filteredData.length / st.rowsPerPage));
+      if (st.currentPage > totalPages) st.currentPage = totalPages;
 
-      const ebtn = document.createElement("button");
-      ebtn.className = "explain-btn";
-      ebtn.textContent = "✨ Explain";
-      ebtn.onclick = () => showExplainModal(prefix, row);
-      wrap.appendChild(ebtn);
-
-      actionTd.appendChild(wrap);
-      tr.appendChild(actionTd);
-      frag.appendChild(tr);
+      byId(prefix + "RowCount").textContent = st.filteredData.length.toLocaleString();
+      byId(prefix + "CurrentPage").textContent = st.currentPage;
+      byId(prefix + "TotalPages").textContent = totalPages;
     }
 
-    tbody.appendChild(frag);
+    function sortTable(prefix, column){
+      const st = state[prefix];
+      if (st.sort.column === column) st.sort.asc = !st.sort.asc;
+      else {
+        st.sort.column = column;
+        st.sort.asc = true;
+      }
 
-    const totalPages = Math.max(1, Math.ceil(st.filteredData.length / st.rowsPerPage));
-    if (st.currentPage > totalPages) st.currentPage = totalPages;
+      st.filteredData.sort((a,b) => {
+        const av = String(a[column] ?? "").toLowerCase();
+        const bv = String(b[column] ?? "").toLowerCase();
+        const cmp = av.localeCompare(bv, undefined, { numeric:true, sensitivity:"base" });
+        return st.sort.asc ? cmp : -cmp;
+      });
 
-    if (byId(prefix + "RowCount")) byId(prefix + "RowCount").textContent = st.filteredData.length.toLocaleString();
-    if (byId(prefix + "CurrentPage")) byId(prefix + "CurrentPage").textContent = st.currentPage;
-    if (byId(prefix + "TotalPages")) byId(prefix + "TotalPages").textContent = totalPages;
-  }
-
-  function sortTable(prefix, column){
-    const st = state[prefix];
-    if (st.sort.column === column) st.sort.asc = !st.sort.asc;
-    else {
-      st.sort.column = column;
-      st.sort.asc = true;
-    }
-
-    st.filteredData.sort((a,b) => {
-      const av = String(a[column] ?? "").toLowerCase();
-      const bv = String(b[column] ?? "").toLowerCase();
-      const cmp = av.localeCompare(bv, undefined, { numeric:true, sensitivity:"base" });
-      return st.sort.asc ? cmp : -cmp;
-    });
-
-    st.currentPage = 1;
-    renderTable(prefix);
-  }
-
-  function prevPage(prefix){
-    const st = state[prefix];
-    if (st.currentPage > 1){
-      st.currentPage--;
+      st.currentPage = 1;
       renderTable(prefix);
     }
-  }
 
-  function nextPage(prefix){
-    const st = state[prefix];
-    const max = Math.max(1, Math.ceil(st.filteredData.length / st.rowsPerPage));
-    if (st.currentPage < max){
-      st.currentPage++;
+    function prevPage(prefix){
+      const st = state[prefix];
+      if (st.currentPage > 1){
+        st.currentPage--;
+        renderTable(prefix);
+      }
+    }
+
+    function nextPage(prefix){
+      const st = state[prefix];
+      const max = Math.max(1, Math.ceil(st.filteredData.length / st.rowsPerPage));
+      if (st.currentPage < max){
+        st.currentPage++;
+        renderTable(prefix);
+      }
+    }
+
+    function changeRowsPerPage(prefix){
+      const st = state[prefix];
+      st.rowsPerPage = parseInt(byId(prefix + "RowsPerPage").value, 10) || 100;
+      st.currentPage = 1;
       renderTable(prefix);
     }
-  }
 
-  function changeRowsPerPage(prefix){
-    const st = state[prefix];
-    st.rowsPerPage = parseInt(byId(prefix + "RowsPerPage").value, 10) || 100;
-    st.currentPage = 1;
-    renderTable(prefix);
-  }
-
-  function clearAllFilters(prefix){
-    if (byId(prefix + "GlobalSearch")) byId(prefix + "GlobalSearch").value = "";
-    byId(prefix + "FilterRow")?.querySelectorAll("input[data-col]").forEach(i => i.value = "");
-    byId(prefix + "FilterRow")?.querySelectorAll("select[data-col]").forEach(s => s.value = "");
-    state[prefix].filteredData = [...state[prefix].fullData];
-    state[prefix].currentPage = 1;
-    renderTable(prefix);
-  }
-
-  function exportCSV(prefix, filename){
-    const st = state[prefix];
-    if (!st.filteredData.length) return;
-
-    const headers = getVisibleColumns(prefix);
-    let csv = headers.join(",") + "\n";
-    st.filteredData.forEach(row => {
-      const values = headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`);
-      csv += values.join(",") + "\n";
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename || `${prefix}_filtered.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  function populateCopyColumnSelect(prefix){
-    const sel = byId(prefix + "CopyColumnSelect");
-    if (!sel) return;
-    sel.innerHTML = "";
-
-    const cols = getVisibleColumns(prefix);
-    cols.forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c;
-      opt.textContent = c;
-      sel.appendChild(opt);
-    });
-  }
-
-  function copyColumnValues(prefix){
-    const st = state[prefix];
-    const sel = byId(prefix + "CopyColumnSelect");
-    const scope = byId(prefix + "CopyScope")?.value || "filtered";
-
-    if (!sel || !sel.value){
-      alert("Choose a column first.");
-      return;
+    function clearAllFilters(prefix){
+      byId(prefix + "GlobalSearch").value = "";
+      byId(prefix + "FilterRow").querySelectorAll("input[data-col]").forEach(i => i.value = "");
+      byId(prefix + "FilterRow").querySelectorAll("select[data-col]").forEach(s => s.value = "");
+      state[prefix].filteredData = [...state[prefix].fullData];
+      state[prefix].currentPage = 1;
+      renderTable(prefix);
     }
 
-    const col = sel.value;
-    let rows = [];
-    if (scope === "page"){
-      const start = (st.currentPage - 1) * st.rowsPerPage;
-      rows = st.filteredData.slice(start, start + st.rowsPerPage);
-    } else {
-      rows = st.filteredData;
+    function exportCSV(prefix, filename){
+      const st = state[prefix];
+      if (!st.filteredData.length) return;
+
+      const headers = getVisibleColumns(prefix);
+      let csv = headers.join(",") + "\n";
+      st.filteredData.forEach(row => {
+        const values = headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`);
+        csv += values.join(",") + "\n";
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename || `${prefix}_filtered.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
 
-    const lines = rows.map(r => String(r[col] ?? "").trim());
-    navigator.clipboard.writeText(lines.join("\n")).then(() => {
-      alert(`Copied ${lines.length} cells from "${col}".`);
-    }).catch(() => {
-      alert("Copy failed. Please copy manually.");
-    });
-  }
+    function populateCopyColumnSelect(prefix){
+      const sel = byId(prefix + "CopyColumnSelect");
+      if (!sel) return;
+      sel.innerHTML = "";
 
-  function buildGoogleQueryForRow(row){
-    const w = getFirstNonEmpty(row, [
-      "Word","word","FLemma","Lemma","Baseword","GPT_Root","Root","Greek_Latin_Root_1","Compound"
-    ]);
-    return w ? `${w} meaning etymology morphology` : "";
-  }
-
-  // =========================
-  // MAIN TABS + SUBTABS
-  // =========================
-  function openTab(tabName, btnEl){
-    document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-    byId(tabName)?.classList.add("active");
-    btnEl?.classList.add("active");
-
-    if (tabName === "word-families") ensureLoaded("wf");
-    if (tabName === "compounds"){
-      const activeSub = document.querySelector("#compounds .subtab-btn.active");
-      if (!activeSub || activeSub.textContent.includes("Main")) ensureLoaded("cm");
-      else ensureLoaded("cs");
-    }
-    if (tabName === "definitions") ensureLoaded("de");
-  }
-
-  function openCompoundSubTab(id, btnEl){
-    document.querySelectorAll("#compounds .subtab-pane").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll("#compounds .subtab-btn").forEach(b => b.classList.remove("active"));
-    byId(id)?.classList.add("active");
-    btnEl?.classList.add("active");
-
-    if (id === "comp-main") ensureLoaded("cm");
-    if (id === "comp-stats") ensureLoaded("cs");
-  }
-
-  async function ensureLoaded(prefix){
-    if (!DATASETS[prefix].loaded) await loadDataset(prefix);
-  }
-
-  // =========================
-  // COLUMN KEY MODAL
-  // =========================
-  function showColumnKey() {
-    byId("columnModal").classList.add("show");
-    document.body.classList.add("modal-open");
-  }
-  function closeModal() {
-    byId("columnModal").classList.remove("show");
-    document.body.classList.remove("modal-open");
-  }
-
-  // =========================
-  // EXPLAIN MODAL
-  // =========================
-  function buildExplainPrompt(row, task="both"){
-    const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
-    const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
-    const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
-    const definition = getFirstNonEmpty(row, ["Definition","Definitions","Etymology","Meaning"]);
-
-    let instruction = "";
-    if (task === "explain") {
-      instruction = "Explain this morphology entry clearly for teachers and students.";
-    } else if (task === "history") {
-      instruction = "Focus on etymology/history if available; if uncertain, say so clearly and avoid guessing.";
-    } else {
-      instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
+      const cols = getVisibleColumns(prefix);
+      cols.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        sel.appendChild(opt);
+      });
     }
 
-    return `You are a literacy and morphology expert supporting teachers.
+    function copyColumnValues(prefix){
+      const st = state[prefix];
+      const sel = byId(prefix + "CopyColumnSelect");
+      const scope = byId(prefix + "CopyScope")?.value || "filtered";
+
+      if (!sel || !sel.value){
+        alert("Choose a column first.");
+        return;
+      }
+
+      const col = sel.value;
+      let rows = [];
+      if (scope === "page"){
+        const start = (st.currentPage - 1) * st.rowsPerPage;
+        rows = st.filteredData.slice(start, start + st.rowsPerPage);
+      } else {
+        rows = st.filteredData;
+      }
+
+      const lines = rows.map(r => String(r[col] ?? "").trim());
+      navigator.clipboard.writeText(lines.join("\n")).then(() => {
+        alert(`Copied ${lines.length} cells from "${col}".`);
+      }).catch(() => {
+        alert("Copy failed. Please copy manually.");
+      });
+    }
+
+    function buildGoogleQueryForRow(row){
+      const w = getFirstNonEmpty(row, [
+        "Word","word","FLemma","Lemma","Baseword","GPT_Root","Root","Greek_Latin_Root_1","Compound"
+      ]);
+      return w ? `${w} meaning etymology morphology` : "";
+    }
+
+    // =========================
+    // MAIN TABS + SUBTABS
+    // =========================
+    function openTab(tabName, btnEl){
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      byId(tabName)?.classList.add("active");
+      btnEl?.classList.add("active");
+
+      if (tabName === "word-families") ensureLoaded("wf");
+      if (tabName === "compounds"){
+        const activeSub = document.querySelector("#compounds .subtab-btn.active");
+        if (!activeSub || activeSub.textContent.includes("Main")) ensureLoaded("cm");
+        else ensureLoaded("cs");
+      }
+      if (tabName === "definitions") ensureLoaded("de");
+    }
+
+    function openCompoundSubTab(id, btnEl){
+      document.querySelectorAll("#compounds .subtab-pane").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll("#compounds .subtab-btn").forEach(b => b.classList.remove("active"));
+      byId(id)?.classList.add("active");
+      btnEl?.classList.add("active");
+
+      if (id === "comp-main") ensureLoaded("cm");
+      if (id === "comp-stats") ensureLoaded("cs");
+    }
+
+    async function ensureLoaded(prefix){
+      if (!DATASETS[prefix].loaded) await loadDataset(prefix);
+    }
+
+    // =========================
+    // COLUMN KEY MODAL
+    // =========================
+    function showColumnKey() {
+      byId("columnModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+    function closeModal() {
+      byId("columnModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
+    // =========================
+    // EXPLAIN MODAL
+    // =========================
+    function buildExplainPrompt(row, task="both"){
+      const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
+      const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
+      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
+      const definition = getFirstNonEmpty(row, ["Definition","Definitions","Etymology","Meaning"]);
+
+      let instruction = "";
+      if (task === "explain") {
+        instruction = "Explain this morphology entry clearly for teachers and students.";
+      } else if (task === "history") {
+        instruction = "Focus on etymology/history if available; if uncertain, say so clearly and avoid guessing.";
+      } else {
+        instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
+      }
+
+      return `You are a literacy and morphology expert supporting teachers.
 
 ${instruction}
 
@@ -1645,339 +1599,479 @@ Please return:
 - Meaning connection to root(s)
 - Teaching tip for classroom use
 - 2 quick discussion/check-for-understanding questions`;
-  }
-
-  function showExplainModal(prefix, row){
-    currentExplainRow = row;
-    const task = byId("explainTask").value;
-    byId("explainPreview").value = buildExplainPrompt(row, task);
-    byId("explainModalBackdrop").classList.add("show");
-    document.body.classList.add("modal-open");
-  }
-
-  function closeExplainModal(){
-    byId("explainModalBackdrop").classList.remove("show");
-    document.body.classList.remove("modal-open");
-  }
-
-  function copyExplainPrompt(){
-    const p = byId("explainPreview").value.trim();
-    if (!p){ alert("No prompt to copy."); return; }
-    navigator.clipboard.writeText(p).then(() => alert("Prompt copied.")).catch(() => alert("Copy failed."));
-  }
-
-  function openExplainInAI(){
-    const provider = byId("explainProvider").value;
-    const prompt = byId("explainPreview").value.trim();
-    if (!prompt) return;
-
-    const encoded = encodeURIComponent(prompt);
-    let url = `https://chatgpt.com/?q=${encoded}`;
-    if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
-    if (provider === "claude") url = "https://claude.ai/new";
-
-    const w = window.open(url, "_blank");
-    if (!w){ alert("Popup blocked. Allow popups and try again."); return; }
-    navigator.clipboard.writeText(prompt).catch(() => {});
-    closeExplainModal();
-  }
-
-  document.addEventListener("change", (e) => {
-    if (e.target && e.target.id === "explainTask" && currentExplainRow){
-      byId("explainPreview").value = buildExplainPrompt(currentExplainRow, e.target.value);
-    }
-  });
-
-  window.addEventListener("click", (e) => {
-    const colModal = byId("columnModal");
-    const exModal = byId("explainModalBackdrop");
-    if (e.target === colModal) closeModal();
-    if (e.target === exModal) closeExplainModal();
-  });
-
-  // =========================
-  // WORD CLOUD
-  // =========================
-  function generateWordCloud() {
-    const status = byId("cloudStatus");
-    const inputEl = byId("wordInput");
-    const canvas = byId("wordCanvas");
-
-    const input = inputEl.value.trim();
-    status.style.color = "#6b7280";
-    status.textContent = "Processing...";
-
-    if (!input) {
-      status.style.color = "red";
-      status.textContent = "Please paste word-frequency data first.";
-      return;
     }
 
-    if (typeof window.WordCloud !== "function") {
-      status.style.color = "red";
-      status.textContent = "❌ WordCloud library failed to load.";
-      return;
+    function showExplainModal(prefix, row){
+      currentExplainRow = row;
+      const task = byId("explainTask").value;
+      byId("explainPreview").value = buildExplainPrompt(row, task);
+      byId("explainModalBackdrop").classList.add("show");
+      document.body.classList.add("modal-open");
     }
 
-    const list = [];
-    const lines = input.split(/\r?\n/);
-
-    for (let line of lines) {
-      line = line.trim();
-      if (!line) continue;
-      const match = line.match(/^(.*?)\s+(-?\d*\.?\d+)$/);
-      if (!match) continue;
-
-      const word = match[1].trim();
-      const freq = parseFloat(match[2]);
-      if (word && Number.isFinite(freq) && freq > 0) list.push([word, freq]);
+    function closeExplainModal(){
+      byId("explainModalBackdrop").classList.remove("show");
+      document.body.classList.remove("modal-open");
     }
+
+    function copyExplainPrompt(){
+      const p = byId("explainPreview").value.trim();
+      if (!p){ alert("No prompt to copy."); return; }
+      navigator.clipboard.writeText(p).then(() => alert("Prompt copied.")).catch(() => alert("Copy failed."));
+    }
+
+    function openExplainInAI(){
+      const provider = byId("explainProvider").value;
+      const prompt = byId("explainPreview").value.trim();
+      if (!prompt) return;
+
+      const encoded = encodeURIComponent(prompt);
+      let url = `https://chatgpt.com/?q=${encoded}`;
+      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
+      if (provider === "claude") url = "https://claude.ai/new";
+
+      const w = window.open(url, "_blank");
+      if (!w){ alert("Popup blocked. Allow popups and try again."); return; }
+      navigator.clipboard.writeText(prompt).catch(() => {});
+      closeExplainModal();
+    }
+
+    document.addEventListener("change", (e) => {
+      if (e.target && e.target.id === "explainTask" && currentExplainRow){
+        byId("explainPreview").value = buildExplainPrompt(currentExplainRow, e.target.value);
+      }
+    });
+
+    window.addEventListener("click", (e) => {
+      const colModal = byId("columnModal");
+      const exModal = byId("explainModalBackdrop");
+      if (e.target === colModal) closeModal();
+      if (e.target === exModal) closeExplainModal();
+    });
+
+    // =========================
+    // WORD CLOUD
+    // =========================
+    function generateWordCloud() {
+      const status = byId("cloudStatus");
+      const inputEl = byId("wordInput");
+      const canvas = byId("wordCanvas");
+
+      const input = inputEl.value.trim();
+      status.style.color = "#6b7280";
+      status.textContent = "Processing...";
+
+      if (!input) {
+        status.style.color = "red";
+        status.textContent = "Please paste word-frequency data first.";
+        return;
+      }
+
+      if (typeof window.WordCloud !== "function") {
+        status.style.color = "red";
+        status.textContent = "❌ WordCloud library failed to load.";
+        return;
+      }
+
+      const list = [];
+      const lines = input.split(/\r?\n/);
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        const match = line.match(/^(.*?)\s+(-?\d*\.?\d+)$/);
+        if (!match) continue;
+
+        const word = match[1].trim();
+        const freq = parseFloat(match[2]);
+        if (word && Number.isFinite(freq) && freq > 0) list.push([word, freq]);
+      }
+
+      if (!list.length) {
+        status.style.color = "red";
+        status.textContent = "No valid data. Example: analysis 120";
+        return;
+      }
+
+      list.sort((a, b) => b[1] - a[1]);
+      canvas.width = 1100;
+      canvas.height = 700;
+
+      status.style.color = "#6b7280";
+      status.textContent = `Generating cloud with ${list.length} words...`;
+
+      setTimeout(() => {
+        window.WordCloud(canvas, {
+          list,
+          gridSize: 8,
+          weightFactor: 22,
+          fontFamily: "Segoe UI, Arial, sans-serif",
+          color: "random-dark",
+          rotateRatio: 0.3,
+          backgroundColor: "#ffffff",
+          minSize: 10,
+          shrinkToFit: true
+        });
+        status.style.color = "#15803d";
+        status.textContent = `✅ Success! ${list.length} words generated.`;
+      }, 80);
+    }
+
+    // =========================
+    // LLM PROMPT BUILDER
+    // =========================
+    function getActiveDatasetPrefix(){
+      const activeMain = document.querySelector(".tab-content.active")?.id;
+      if (activeMain === "word-families") return "wf";
+      if (activeMain === "definitions") return "de";
+      if (activeMain === "compounds"){
+        const sub = document.querySelector("#compounds .subtab-pane.active")?.id;
+        return sub === "comp-stats" ? "cs" : "cm";
+      }
+      return "wf";
+    }
+
+    function sampleRows(arr, n, mode = "random") {
+      if (!Array.isArray(arr) || !arr.length || n <= 0) return [];
+      if (n >= arr.length) return [...arr];
+      if (mode === "first") return arr.slice(0, n);
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy.slice(0, n);
+    }
+
+    function addWordsFromFilteredRows(){
+      const status = byId("llmStatus");
+      const pick = byId("llmDatasetPick").value;
+      const prefix = pick === "active" ? getActiveDatasetPrefix() : pick;
+
+      if (!DATASETS[prefix]?.loaded){
+        status.style.color = "red";
+        status.textContent = "❌ Selected dataset is not loaded yet. Open that tab first.";
+        return;
+      }
+
+      const st = state[prefix];
+      const rows = st.filteredData;
+      if (!rows.length){
+        status.style.color = "red";
+        status.textContent = "❌ No filtered rows available.";
+        return;
+      }
+
+      const n = Math.max(1, parseInt(byId("llmDbTake").value, 10) || 10);
+      const mode = byId("llmDbMode").value || "random";
+      const picked = sampleRows(rows, n, mode);
+
+      const lines = [];
+      const seen = new Set();
+      for (const row of picked){
+        const word = getFirstNonEmpty(row, ["Word","word","FLemma","Lemma","Baseword","Compound"]);
+        const zipf = getFirstNonEmpty(row, ["Word_frq_Zipf","Zipf","Baseword_frq_Zipf","Frequency"]);
+        if (!word) continue;
+        const line = zipf ? `${word} ${zipf}` : word;
+        const key = line.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        lines.push(line);
+      }
+
+      byId("llmInput").value = lines.join("\n");
+      status.style.color = "#15803d";
+      status.textContent = `✅ Added ${lines.length} items from ${DATASETS[prefix].name}.`;
+    }
+
+    function buildPromptText(words, cfg) {
+      const lenMap = {
+        short: "150–250 words per text",
+        medium: "250–450 words per text",
+        long: "450–700 words per text"
+      };
+
+      let prompt = `You are an expert literacy teacher and curriculum writer specializing in morphology instruction.\n\n`;
+      prompt += `TARGET WORDS (use ALL naturally and repeatedly):\n${words.join("\n")}\n\n`;
+      prompt += `SETTINGS:\n`;
+      prompt += `- Text type: ${cfg.textType}\n`;
+      prompt += `- Grade band: ${cfg.grade}\n`;
+      prompt += `- Length: ${lenMap[cfg.length] || lenMap.medium}\n`;
+      prompt += `- Content area/theme: ${cfg.contentArea || "General"}\n`;
+      prompt += `- Teacher focus area: ${cfg.focus || "Morphology, meaning, and usage"}\n\n`;
+
+      prompt += `REQUIRED OUTPUT:\n`;
+
+      if (cfg.activities.some(a => a.includes("Story with comprehension"))) {
+        if (cfg.textType === "informational") prompt += `1) Write one engaging informational text.\n`;
+        else if (cfg.textType === "fiction") prompt += `1) Write one engaging fiction story.\n`;
+        else prompt += `1) Write one worksheet-focused output.\n`;
+      } else if (cfg.textType !== "Worksheet") {
+        prompt += `1) Write one ${cfg.textType} text incorporating the target words.\n`;
+      }
+
+      prompt += `2) For EACH target word include:\n`;
+      prompt += `   - Morphological breakdown (prefix/base/suffix when relevant)\n`;
+      prompt += `   - Student-friendly meaning\n`;
+      prompt += `   - One usage sentence\n\n`;
+
+      if (cfg.activities.length) {
+        prompt += `3) Create these activities:\n`;
+        cfg.activities.forEach((a, i) => {
+          if (a.includes("Word ladder")) prompt += `   ${i + 1}. Word ladder activity.\n`;
+          else if (a.includes("Gap-fill")) prompt += `   ${i + 1}. Gap-fill with 2 gaps per target word.\n`;
+          else if (a.includes("Sentence frames")) prompt += `   ${i + 1}. 10 sentence frames.\n`;
+          else prompt += `   ${i + 1}. ${a}\n`;
+        });
+        prompt += "\n";
+      }
+
+      prompt += `4) Include teacher supports:\n`;
+      prompt += `   - Suggested differentiation (below/on/above level)\n`;
+      prompt += `   - Printable-friendly headings and sections\n\n`;
+      prompt += `Use clear, engaging, classroom-ready language appropriate to the grade level.`;
+
+      return prompt;
+    }
+
+    function generateWithLLM() {
+      const raw = byId("llmInput").value.trim();
+      const status = byId("llmStatus");
+      const out = byId("finalPrompt");
+
+      if (!raw) {
+        status.style.color = "red";
+        status.textContent = "❌ Please paste target words first.";
+        return;
+      }
+
+      const words = raw.split(/\r?\n|,/).map(w => w.trim()).filter(Boolean);
+      const activities = Array.from(document.querySelectorAll(".act-option:checked")).map(el => el.value);
+
+      const cfg = {
+        textType: byId("llmTextType").value || "informational",
+        grade: byId("llmGrade").value || "4–6",
+        length: byId("llmLength").value || "medium",
+        contentArea: byId("llmContentArea").value.trim() || "",
+        focus: byId("llmFocus").value.trim() || "",
+        activities
+      };
+
+      out.value = buildPromptText(words, cfg);
+      status.style.color = "#15803d";
+      status.textContent = `✅ Prompt ready (${words.length} words, ${activities.length} activities).`;
+    }
+
+    function copyLLMPrompt() {
+      const out = byId("finalPrompt");
+      const status = byId("llmStatus");
+      const text = out.value.trim();
+      if (!text) {
+        status.style.color = "red";
+        status.textContent = "❌ Generate a prompt first.";
+        return;
+      }
+
+      navigator.clipboard.writeText(text).then(() => {
+        status.style.color = "#15803d";
+        status.textContent = "✅ Prompt copied.";
+      }).catch(() => {
+        status.style.color = "red";
+        status.textContent = "❌ Copy failed. Please copy manually.";
+      });
+    }
+
+    function openInLLM() {
+      const prompt = byId("finalPrompt").value.trim();
+      const provider = byId("llmProvider").value || "chatgpt";
+      const status = byId("llmStatus");
+
+      if (!prompt) {
+        status.style.color = "red";
+        status.textContent = "❌ Generate a prompt first.";
+        return;
+      }
+
+      const w = window.open("about:blank", "_blank");
+      if (!w) {
+        status.style.color = "red";
+        status.textContent = "❌ Popup blocked. Allow popups, then try again.";
+        return;
+      }
+
+      const encoded = encodeURIComponent(prompt);
+      let url = "https://chatgpt.com/";
+      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
+      if (provider === "chatgpt") url = `https://chatgpt.com/?q=${encoded}`;
+      if (provider === "claude") url = "https://claude.ai/new";
+      w.location.href = url;
+
+      navigator.clipboard.writeText(prompt).then(() => {
+        status.style.color = "#15803d";
+        status.textContent = "✅ Opened new tab. Prompt copied — paste if not auto-filled.";
+      }).catch(() => {
+        status.style.color = "#15803d";
+        status.textContent = "✅ Opened new tab. Paste prompt manually if needed.";
+      });
+    }
+
+    function clearLLMForm() {
+      ["llmInput", "llmContentArea", "llmFocus", "finalPrompt"].forEach(id => {
+        const el = byId(id);
+        if (el) el.value = "";
+      });
+      byId("llmStatus").textContent = "";
+    }
+
+    function refreshPage() { location.reload(); }
+
+    // =========================
+    // INITIAL LOAD
+    // =========================
+    window.addEventListener("load", async () => {
+      await ensureLoaded("wf");
+    });
+  </script>
+
+<script type="module">
+  import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+  let engine = null;
+  let messages = [
+    { role: "system", content: "You are a helpful literacy assistant for teachers." }
+  ];
+
+  const statusEl = () => document.getElementById("webllmStatus");
+  const modelEl = () => document.getElementById("webllmModel");
+  const chatEl = () => document.getElementById("webllmChat");
+  const inputEl = () => document.getElementById("webllmInput");
+  const loadBtnEl = () => document.getElementById("loadWebLLMBtn");
+
+  function isChatCapableModelId(id = "") {
+    const s = id.toLowerCase();
+    return !s.includes("embed") && !s.includes("embedding") && !s.includes("rerank");
+  }
+
+  function addChat(role, text) {
+    const wrap = document.createElement("div");
+    wrap.style.margin = "8px 0";
+    wrap.innerHTML = `<strong>${role}:</strong> <span></span>`;
+    wrap.querySelector("span").textContent = text;
+    chatEl().appendChild(wrap);
+    chatEl().scrollTop = chatEl().scrollHeight;
+    return wrap.querySelector("span");
+  }
+
+  function setStatus(msg, color = "#374151") {
+    const el = statusEl();
+    if (el) { el.textContent = msg; el.style.color = color; }
+  }
+
+  function populateModels() {
+    const list = (webllm.prebuiltAppConfig?.model_list || [])
+      .filter(m => isChatCapableModelId(m.model_id));
+
+    const select = modelEl();
+    select.innerHTML = "";
 
     if (!list.length) {
-      status.style.color = "red";
-      status.textContent = "No valid data. Example: analysis 120";
+      const opt = document.createElement("option");
+      opt.textContent = "No chat models available";
+      select.appendChild(opt);
       return;
     }
 
-    list.sort((a, b) => b[1] - a[1]);
-    canvas.width = 1100;
-    canvas.height = 700;
+    const sorted = [...list].sort((a, b) => {
+      const getSize = m => parseFloat(m.model_id.match(/(\d+\.?\d*)/)?.[1] || 999);
+      return getSize(a) - getSize(b);
+    });
 
-    status.style.color = "#6b7280";
-    status.textContent = `Generating cloud with ${list.length} words...`;
+    sorted.forEach(model => {
+      const opt = document.createElement("option");
+      opt.value = model.model_id;
+      const vram = model.vram_required_MB ? ` ~${Math.round(model.vram_required_MB / 1024)}GB` : "";
+      opt.textContent = `${model.model_id}${vram}`;
+      select.appendChild(opt);
+    });
+  }
 
+  async function initWebLLMInternal() {
+    if (!window.isSecureContext) { setStatus("❌ WebLLM needs HTTPS (or localhost)", "red"); return; }
+    if (!navigator.gpu) { setStatus("❌ WebGPU not available in this browser/device", "red"); return; }
+
+    const selected = modelEl().value;
+    if (!selected) { setStatus("❌ Please select a model first", "red"); return; }
+    if (!isChatCapableModelId(selected)) { setStatus("❌ Select a chat/instruct model.", "red"); return; }
+
+    loadBtnEl().disabled = true;
+    setStatus("Loading model... (first time can take 30–180 seconds)", "#1d4ed8");
+
+    try {
+      engine = await webllm.CreateMLCEngine(selected, {
+        initProgressCallback: (report) => {
+          const pct = report.progress ? ` ${(report.progress * 100).toFixed(0)}%` : "";
+          setStatus(`Loading ${selected}... ${report.text || ""}${pct}`, "#1d4ed8");
+        }
+      });
+      setStatus(`✅ Model loaded: ${selected}`, "#15803d");
+      addChat("System", `Model ready: ${selected}`);
+    } catch (err) {
+      console.error(err);
+      setStatus(`❌ Failed to load model: ${err?.message || err}`, "red");
+    } finally {
+      loadBtnEl().disabled = false;
+    }
+  }
+
+  async function sendWebLLMInternal() {
+    if (!engine) { setStatus("❌ Load a model first.", "red"); return; }
+
+    const userText = inputEl().value.trim();
+    if (!userText) return;
+
+    inputEl().value = "";
+    addChat("You", userText);
+    messages.push({ role: "user", content: userText });
+
+    const assistantSpan = addChat("AI", "");
+    let acc = "";
+
+    try {
+      const stream = await engine.chat.completions.create({
+        messages,
+        stream: true,
+        temperature: 0.7
+      });
+
+      for await (const chunk of stream) {
+        const token = chunk?.choices?.[0]?.delta?.content || "";
+        acc += token;
+        assistantSpan.textContent = acc;
+        chatEl().scrollTop = chatEl().scrollHeight;
+      }
+
+      messages.push({ role: "assistant", content: acc || "(No output)" });
+      setStatus("✅ Response complete.", "#15803d");
+    } catch (err) {
+      console.error("WebLLM generation error:", err);
+      setStatus(`❌ Generation failed: ${err?.message || err}`, "red");
+    }
+  }
+
+  function resetWebLLMChatInternal() {
+    messages = [{ role: "system", content: "You are a helpful literacy assistant for teachers." }];
+    chatEl().innerHTML = "";
+    setStatus("Chat reset.", "#374151");
+  }
+
+  window.initWebLLM = initWebLLMInternal;
+  window.sendWebLLM = sendWebLLMInternal;
+  window.resetWebLLMChat = resetWebLLMChatInternal;
+
+  window.addEventListener("load", () => {
     setTimeout(() => {
-      window.WordCloud(canvas, {
-        list,
-        gridSize: 8,
-        weightFactor: 22,
-        fontFamily: "Segoe UI, Arial, sans-serif",
-        color: "random-dark",
-        rotateRatio: 0.3,
-        backgroundColor: "#ffffff",
-        minSize: 10,
-        shrinkToFit: true
-      });
-      status.style.color = "#15803d";
-      status.textContent = `✅ Success! ${list.length} words generated.`;
-    }, 80);
-  }
-
-  // =========================
-  // LLM PROMPT BUILDER
-  // =========================
-  function getActiveDatasetPrefix(){
-    const activeMain = document.querySelector(".tab-content.active")?.id;
-    if (activeMain === "word-families") return "wf";
-    if (activeMain === "definitions") return "de";
-    if (activeMain === "compounds"){
-      const sub = document.querySelector("#compounds .subtab-pane.active")?.id;
-      return sub === "comp-stats" ? "cs" : "cm";
-    }
-    return "wf";
-  }
-
-  function sampleRows(arr, n, mode = "random") {
-    if (!Array.isArray(arr) || !arr.length || n <= 0) return [];
-    if (n >= arr.length) return [...arr];
-    if (mode === "first") return arr.slice(0, n);
-    const copy = [...arr];
-    for (let i = copy.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy.slice(0, n);
-  }
-
-  function addWordsFromFilteredRows(){
-    const status = byId("llmStatus");
-    const pick = byId("llmDatasetPick").value;
-    const prefix = pick === "active" ? getActiveDatasetPrefix() : pick;
-
-    if (!DATASETS[prefix]?.loaded){
-      status.style.color = "red";
-      status.textContent = "❌ Selected dataset is not loaded yet. Open that tab first.";
-      return;
-    }
-
-    const st = state[prefix];
-    const rows = st.filteredData;
-    if (!rows.length){
-      status.style.color = "red";
-      status.textContent = "❌ No filtered rows available.";
-      return;
-    }
-
-    const n = Math.max(1, parseInt(byId("llmDbTake").value, 10) || 10);
-    const mode = byId("llmDbMode").value || "random";
-    const picked = sampleRows(rows, n, mode);
-
-    const lines = [];
-    const seen = new Set();
-    for (const row of picked){
-      const word = getFirstNonEmpty(row, ["Word","word","FLemma","Lemma","Baseword","Compound"]);
-      const zipf = getFirstNonEmpty(row, ["Word_frq_Zipf","Zipf","Baseword_frq_Zipf","Frequency"]);
-      if (!word) continue;
-      const line = zipf ? `${word} ${zipf}` : word;
-      const key = line.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      lines.push(line);
-    }
-
-    byId("llmInput").value = lines.join("\n");
-    status.style.color = "#15803d";
-    status.textContent = `✅ Added ${lines.length} items from ${DATASETS[prefix].name}.`;
-  }
-
-  function buildPromptText(words, cfg) {
-    const lenMap = {
-      short: "150–250 words per text",
-      medium: "250–450 words per text",
-      long: "450–700 words per text"
-    };
-
-    let prompt = `You are an expert literacy teacher and curriculum writer specializing in morphology instruction.\n\n`;
-    prompt += `TARGET WORDS (use ALL naturally and repeatedly):\n${words.join("\n")}\n\n`;
-    prompt += `SETTINGS:\n`;
-    prompt += `- Text type: ${cfg.textType}\n`;
-    prompt += `- Grade band: ${cfg.grade}\n`;
-    prompt += `- Length: ${lenMap[cfg.length] || lenMap.medium}\n`;
-    prompt += `- Content area/theme: ${cfg.contentArea || "General"}\n`;
-    prompt += `- Teacher focus area: ${cfg.focus || "Morphology, meaning, and usage"}\n\n`;
-
-    prompt += `REQUIRED OUTPUT:\n`;
-
-    if (cfg.activities.some(a => a.includes("Story with comprehension"))) {
-      if (cfg.textType === "informational") prompt += `1) Write one engaging informational text.\n`;
-      else if (cfg.textType === "fiction") prompt += `1) Write one engaging fiction story.\n`;
-      else prompt += `1) Write one worksheet-focused output.\n`;
-    } else if (cfg.textType !== "Worksheet") {
-      prompt += `1) Write one ${cfg.textType} text incorporating the target words.\n`;
-    }
-
-    prompt += `2) For EACH target word include:\n`;
-    prompt += `   - Morphological breakdown (prefix/base/suffix when relevant)\n`;
-    prompt += `   - Student-friendly meaning\n`;
-    prompt += `   - One usage sentence\n\n`;
-
-    if (cfg.activities.length) {
-      prompt += `3) Create these activities:\n`;
-      cfg.activities.forEach((a, i) => {
-        if (a.includes("Word ladder")) prompt += `   ${i + 1}. Word ladder activity.\n`;
-        else if (a.includes("Gap-fill")) prompt += `   ${i + 1}. Gap-fill with 2 gaps per target word.\n`;
-        else if (a.includes("Sentence frames")) prompt += `   ${i + 1}. 10 sentence frames.\n`;
-        else prompt += `   ${i + 1}. ${a}\n`;
-      });
-      prompt += "\n";
-    }
-
-    prompt += `4) Include teacher supports:\n`;
-    prompt += `   - Suggested differentiation (below/on/above level)\n`;
-    prompt += `   - Printable-friendly headings and sections\n\n`;
-    prompt += `Use clear, engaging, classroom-ready language appropriate to the grade level.`;
-
-    return prompt;
-  }
-
-  function generateWithLLM() {
-    const raw = byId("llmInput").value.trim();
-    const status = byId("llmStatus");
-    const out = byId("finalPrompt");
-
-    if (!raw) {
-      status.style.color = "red";
-      status.textContent = "❌ Please paste target words first.";
-      return;
-    }
-
-    const words = raw.split(/\r?\n|,/).map(w => w.trim()).filter(Boolean);
-    const activities = Array.from(document.querySelectorAll(".act-option:checked")).map(el => el.value);
-
-    const cfg = {
-      textType: byId("llmTextType").value || "informational",
-      grade: byId("llmGrade").value || "4–6",
-      length: byId("llmLength").value || "medium",
-      contentArea: byId("llmContentArea").value.trim() || "",
-      focus: byId("llmFocus").value.trim() || "",
-      activities
-    };
-
-    out.value = buildPromptText(words, cfg);
-    status.style.color = "#15803d";
-    status.textContent = `✅ Prompt ready (${words.length} words, ${activities.length} activities).`;
-  }
-
-  function copyLLMPrompt() {
-    const out = byId("finalPrompt");
-    const status = byId("llmStatus");
-    const text = out.value.trim();
-    if (!text) {
-      status.style.color = "red";
-      status.textContent = "❌ Generate a prompt first.";
-      return;
-    }
-
-    navigator.clipboard.writeText(text).then(() => {
-      status.style.color = "#15803d";
-      status.textContent = "✅ Prompt copied.";
-    }).catch(() => {
-      status.style.color = "red";
-      status.textContent = "❌ Copy failed. Please copy manually.";
-    });
-  }
-
-  function openInLLM() {
-    const prompt = byId("finalPrompt").value.trim();
-    const provider = byId("llmProvider").value || "chatgpt";
-    const status = byId("llmStatus");
-
-    if (!prompt) {
-      status.style.color = "red";
-      status.textContent = "❌ Generate a prompt first.";
-      return;
-    }
-
-    const w = window.open("about:blank", "_blank");
-    if (!w) {
-      status.style.color = "red";
-      status.textContent = "❌ Popup blocked. Allow popups, then try again.";
-      return;
-    }
-
-    const encoded = encodeURIComponent(prompt);
-    let url = "https://chatgpt.com/";
-    if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
-    if (provider === "chatgpt") url = `https://chatgpt.com/?q=${encoded}`;
-    if (provider === "claude") url = "https://claude.ai/new";
-    w.location.href = url;
-
-    navigator.clipboard.writeText(prompt).then(() => {
-      status.style.color = "#15803d";
-      status.textContent = "✅ Opened new tab. Prompt copied — paste if not auto-filled.";
-    }).catch(() => {
-      status.style.color = "#15803d";
-      status.textContent = "✅ Opened new tab. Paste prompt manually if needed.";
-    });
-  }
-
-  function clearLLMForm() {
-    ["llmInput", "llmContentArea", "llmFocus", "finalPrompt"].forEach(id => {
-      const el = byId(id);
-      if (el) el.value = "";
-    });
-    byId("llmStatus").textContent = "";
-  }
-
-  function refreshPage() { location.reload(); }
-
-  // =========================
-  // INITIAL LOAD
-  // =========================
-  window.addEventListener("load", async () => {
-    await ensureLoaded("wf");
+      populateModels();
+      setStatus("Select a model, then click 'Load Model'.", "#374151");
+    }, 600);
   });
 </script>
-
-
-  
