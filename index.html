@@ -15,6 +15,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: linear-gradient(to bottom, #fdfdfd, #f8f8f8);
       color:#111827;
+      user-select: none; /* Helps with clean dragging */
     }
     .container {
       max-width:2800px;
@@ -26,8 +27,8 @@
     }
 
     header { text-align:center; margin-bottom:16px; }
-    h1 { margin:0 0 8px 0; font-size:2.8rem; color:#1d4ed8; font-weight:700; }
-    .tagline { font-size:2.0rem; color:#4b5563; max-width:1500px; margin:0 auto 24px auto; }
+    h1 { margin:0 0 8px 0; font-size:2.8rem; color:#1d4ed8; font-weight:700; user-select: text; }
+    .tagline { font-size:2.0rem; color:#4b5563; max-width:1500px; margin:0 auto 24px auto; user-select: text; }
 
     .key-btn {
       display:inline-block;
@@ -63,6 +64,7 @@
       max-width: 1850px;
       width: 96%;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      user-select: text;
     }
     .info-card h3 {
       color:#1d4ed8;
@@ -106,6 +108,7 @@
       padding:14px;
       border-radius:8px;
       margin:15px 0;
+      user-select: text;
     }
 
     .db-wrap {
@@ -139,7 +142,7 @@
     .db-btn.secondary { background:#e5e7eb; color:#111827; border:1px solid #d1d5db; }
     .db-btn.secondary:hover { background:#d1d5db; }
 
-    .db-meta { text-align:center; color:#374151; margin:8px 0 14px; font-size:0.95rem; }
+    .db-meta { text-align:center; color:#374151; margin:8px 0 14px; font-size:0.95rem; user-select: text; }
     .db-loading { text-align:center; padding:28px 8px; color:#1d4ed8; font-weight:600; }
 
     .db-table-wrap { overflow:auto; max-height: 72vh; border-radius: 10px; border: 1px solid #e5e7eb; }
@@ -149,7 +152,10 @@
       text-align:left; vertical-align: top; font-size: 0.9rem; white-space: nowrap;
     }
     .db-table th { background:#1e40af; color:white; position: sticky; top: 0; z-index: 5; cursor:pointer; }
-    .db-table tr:hover td { background:#f0f9ff; }
+    
+    /* Cell Selection Styles */
+    .cell-selected { background-color: #dbeafe !important; outline: 1px solid #3b82f6; }
+    .cell-copied { background-color: #bbf7d0 !important; transition: background-color 0.3s; }
 
     .filter-row input, .filter-row select {
       width:100%; padding:8px 9px; border:1px solid #cbd5e1;
@@ -158,15 +164,16 @@
 
     .long-text { white-space: pre-wrap !important; min-width: 260px; max-width: 520px; line-height: 1.35; }
 
-    .row-actions { display:flex; gap:6px; flex-wrap:wrap; }
-    .source-btn, .explain-btn {
-      border:none; border-radius:6px; padding:6px 10px; color:#fff; cursor:pointer;
-      font-size:0.84rem; white-space:nowrap;
+    .row-actions { display:flex; gap:4px; flex-wrap:wrap; }
+    .action-btn {
+      border:none; border-radius:6px; padding:6px 8px; color:#fff; cursor:pointer;
+      font-size:0.82rem; white-space:nowrap; text-decoration:none; display:inline-block; font-family:inherit;
     }
-    .source-btn { background:#3b82f6; }
-    .source-btn:hover { background:#2563eb; }
-    .explain-btn { background:#8b5cf6; }
-    .explain-btn:hover { background:#7c3aed; }
+    .btn-google { background:#3b82f6; } .btn-google:hover { background:#2563eb; }
+    .btn-wikt { background:#15803d; } .btn-wikt:hover { background:#166534; }
+    .btn-wordnik { background:#0369a1; } .btn-wordnik:hover { background:#075985; }
+    .btn-etym { background:#b45309; } .btn-etym:hover { background:#92400e; }
+    .btn-explain { background:#8b5cf6; } .btn-explain:hover { background:#7c3aed; }
 
     .pagination { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:10px; margin-top:12px; }
     .pagination button, .pagination select { padding:8px 10px; border:1px solid #d1d5db; border-radius:7px; background:#fff; cursor:pointer; }
@@ -185,6 +192,8 @@
     .subtab-pane { display:none; }
     .subtab-pane.active { display:block; }
 
+    #wordInput, #llmInput, #llmFocus, #webllmInput, #explainPreview, #finalPrompt { user-select: text; }
+
     #wordInput {
       width: 90%; max-width: 900px; height: 220px; padding: 16px;
       font-family: ui-monospace, monospace; font-size: 1rem;
@@ -197,6 +206,7 @@
     .modal-content {
       position: relative; z-index: 2147483648; background: #fff; margin: 40px auto;
       padding: 30px; border-radius: 12px; max-width: 980px;
+      user-select: text;
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .modal-header h2, .modal-header h3 { margin: 0; color: #1d4ed8; }
@@ -210,7 +220,7 @@
 <body>
   <div class="container">
     <header>
-      <h1>British and American Word Families (BAWF) Morhological Database</h1>
+      <h1>British and American Word Families (BAWF) Morphological Database</h1>
       <div class="tagline">Morphology, roots, affixes, compounds, and etymology</div>
     </header>
 
@@ -225,12 +235,12 @@
     <div class="info-card">
       <h3>About this Database</h3>
       <ul>
-        <li>Explore English word families, compound words, and definitions/etymologies.</li>
-        <li>The British and American Word Families (BAWF) is a tool for vocabulary morphology instruction from the primary grades.</li>
-        <li>Morphology is the study of how words are built from meaningful units, including bases, roots, prefixes, and suffixes.</li>
+        <li>Explore English word families and compound words.</li>
+        <li><strong>Click and drag</strong> across table cells to select them like Excel. Press <strong>Ctrl+C</strong> to copy, then paste directly into the Word Cloud!</li>
+        <li>Numerical data is automatically rounded for readability (except Zipf frequencies).</li>
+        <li>Use the dynamic <strong>Actions toolkit</strong> on every row to instantly look up words on Wiktionary, Wordnik, Etymonline, and Google.</li>
+        <li>Morphology is the study of how words are built from meaningful units (bases, roots, prefixes, suffixes).</li>
         <li>Filter or search for words you want and particular morphemes.</li>
-        <li>Use sorting, filtering, and column search to find morphologically related words quickly.</li>
-        <li>Paste word + frequency into the Word Cloud tab to make visuals.</li>
         <li>Use Zipf frequencies to sort by commonness bands (1st 1000 words, 2nd 1000, etc.).</li>
         <li>Download raw `.csv.gz` files for offline use and advanced analysis.</li>
       </ul>
@@ -248,7 +258,6 @@
     <div class="tabs">
       <button class="tab-btn active" onclick="openTab('word-families', this)">Word Families</button>
       <button class="tab-btn" onclick="openTab('compounds', this)">Compound Words</button>
-      <button class="tab-btn" onclick="openTab('definitions', this)">Definitions & Etymologies</button>
       <button class="tab-btn" onclick="openTab('wordcloud', this)">Word Cloud Generator</button>
       <button class="tab-btn" onclick="openTab('llm-generator', this)">🪄 Generate AI Stories & Worksheets!</button>
     </div>
@@ -315,8 +324,7 @@
         </div>
         <div class="db-wrap" id="cmWrap">
           <div class="db-controls">
-            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..."
-mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
+            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
             <button class="db-btn" onclick="filterTable('cm')">🔍 Search</button>
             <button class="db-btn" onclick="clearAllFilters('cm')">🧹 Clear</button>
             <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
@@ -393,52 +401,10 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
       </div>
     </div>
 
-    <!-- TAB 3: Definitions -->
-    <div id="definitions" class="tab-content">
-      <div class="download-section">
-        <a class="download-btn" href="BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz" download>↓ Download Definitions & Etymology (.csv.gz)</a>
-      </div>
-      <div class="db-wrap" id="deWrap">
-        <div class="db-controls">
-          <input id="deGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Definitions/Etymology..." />
-          <button class="db-btn" onclick="filterTable('de')">🔍 Search</button>
-          <button class="db-btn" onclick="clearAllFilters('de')">🧹 Clear</button>
-          <button class="db-btn" onclick="exportCSV('de', 'BAWF_Definitions_Filtered.csv')">↓ Export CSV</button>
-
-          <select id="deCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
-          <select id="deCopyScope" class="db-select">
-            <option value="filtered" selected>Copy all filtered rows</option>
-            <option value="page">Copy current page only</option>
-          </select>
-          <button class="db-btn secondary" onclick="copyColumnValues('de')">📋 Copy Column Cells</button>
-
-          <select id="deAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-          <button id="deAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
-        </div>
-        <div class="db-meta">Showing <strong id="deRowCount">0</strong> rows</div>
-        <div id="deLoading" class="db-loading">Loading Definitions & Etymology dataset...</div>
-        <div class="db-table-wrap">
-          <table id="deTable" class="db-table" style="display:none;">
-            <thead>
-              <tr id="deHeaderRow"></tr>
-              <tr id="deFilterRow" class="filter-row"></tr>
-            </thead>
-            <tbody id="deTableBody"></tbody>
-          </table>
-        </div>
-        <div id="dePagination" class="pagination" style="display:none;">
-          <button onclick="prevPage('de')">← Previous</button>
-          <span>Page <span id="deCurrentPage">1</span> of <span id="deTotalPages">1</span></span>
-          <button onclick="nextPage('de')">Next →</button>
-          <select id="deRowsPerPage" onchange="changeRowsPerPage('de')"><option value="50">50 rows</option><option value="100" selected>100 rows</option><option value="250">250 rows</option></select>
-        </div>
-      </div>
-    </div>
-
     <!-- TAB 4: Wordcloud -->
     <div id="wordcloud" class="tab-content">
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p><strong>Instructions:</strong> Paste Word + Frequency (one per line)</p>
+        <p><strong>Instructions:</strong> Drag cells in the table to select, press Ctrl+C, and paste here!</p>
         <textarea id="wordInput" placeholder="analysis 120&#10;morphology 95&#10;prefix 78"></textarea><br><br>
         <button id="generateBtn" onclick="generateWordCloud()" class="key-btn">Generate Word Cloud</button>
         <p id="cloudStatus" style="margin-top:12px; font-weight:500;"></p>
@@ -451,7 +417,7 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
       <div style="max-width:1100px; margin:0 auto;">
         <h2 style="text-align:center; color:#1d4ed8;">🪄 AI Prompt Generator</h2>
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; margin-bottom:12px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px;">
-          <div><label><strong>Add words from dataset</strong></label><br><select id="llmDatasetPick" style="width:100%; padding:10px; border-radius:8px;"><option value="active" selected>Active tab dataset</option><option value="wf">Word Families</option><option value="cm">Compound Main</option><option value="cs">Compound Stats</option><option value="de">Definitions/Etymology</option></select></div>
+          <div><label><strong>Add words from dataset</strong></label><br><select id="llmDatasetPick" style="width:100%; padding:10px; border-radius:8px;"><option value="active" selected>Active tab dataset</option><option value="wf">Word Families</option><option value="cm">Compound Main</option><option value="cs">Compound Stats</option></select></div>
           <div><label><strong>How many rows</strong></label><br><input id="llmDbTake" type="number" min="1" value="10" style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;"></div>
           <div><label><strong>Pick mode</strong></label><br><select id="llmDbMode" style="width:100%; padding:10px; border-radius:8px;"><option value="random" selected>Random</option><option value="first">First rows</option></select></div>
           <div style="display:flex; align-items:flex-end;"><button class="key-btn" style="margin:0; width:100%;" onclick="addWordsFromFilteredRows()">⬇ Add Filtered Rows</button></div>
@@ -485,11 +451,13 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
           <select id="llmProvider" style="padding:10px 14px; font-size:1rem; border-radius:8px;"><option value="gemini" selected>Gemini</option><option value="chatgpt">ChatGPT</option><option value="claude">Claude</option></select>
           <button onclick="generateWithLLM()" style="padding:12px 18px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px; cursor:pointer;">Generate Prompt</button>
           <button onclick="copyLLMPrompt()" style="padding:12px 18px; font-weight:600; background:#0f766e; color:white; border:none; border-radius:8px; cursor:pointer;">Copy Prompt</button>
-          <button onclick="openInLLM()" style="padding:12px 18px; font-weight:600; background:#7c3aed; color:white; border:none; border-radius:8px; cursor:pointer;">Open in LLM</button>
+          <button onclick="openInLLM()" style="padding:12px 18px
+
+            onclick="openInLLM()" style="padding:12px 18px; font-weight:600; background:#7c3aed; color:white; border:none; border-radius:8px; cursor:pointer;">Open in LLM</button>
         </div>
         <p id="llmStatus" style="text-align:center; font-weight:600; min-height:24px;"></p>
         <textarea id="finalPrompt" rows="12" style="width:100%; padding:14px; font-family:monospace; border:2px solid #d1d5db; border-radius:10px; background:#f9fafb;"></textarea>
-        
+
         <hr style="margin:30px 0 20px 0;">
         <h3 style="text-align:center; color:#1d4ed8;">🧠 Embedded Local LLM (WebLLM)</h3>
         <div style="border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#f8fafc;">
@@ -563,41 +531,43 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
     </div>
   </div>
 
-
   <script>
-    // DATASETS Setup (Language_of_Origin removed from visible)
+    // Inject dynamic CSS for the Excel-like selection highlighting
+    const style = document.createElement('style');
+    style.textContent = `
+      .selected-cell { background-color: #dbeafe !important; outline: 1px solid #2563eb; }
+      table { user-select: none; } /* Prevents native text highlighting blocking cell selection */
+    `;
+    document.head.appendChild(style);
+
+    // DATASETS Setup (Definitions removed to massively increase speed)
     const DATASETS = {
       wf: { file: 'BAWF_FINAL.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Baseword', 'Baseword_Family_Size', 'GPT_Coded_Word_Parts', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
       cm: { file: 'BAWF_Compound_Words_FINAL__Main_Compound.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Compound_Type', 'Component_1', 'Component_2', 'Baseword', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
-      cs: { file: 'BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz', visible: ['Baseword', 'Baseword_frq_Zipf', 'Family_Size_No_Compounds', 'Family_Size_With_Compounds', 'Compound_Count'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
-      de: { file: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', visible: ['Word', 'FLemma', 'Definition', 'Etymology', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false }
+      cs: { file: 'BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz', visible: ['Baseword', 'Baseword_frq_Zipf', 'Family_Size_No_Compounds', 'Family_Size_With_Compounds', 'Compound_Count'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false }
     };
 
-    // Columns that should remain text input searches (everything else becomes a dropdown)
     const TEXT_SEARCH_COLS = [
       'Word', 'FLemma', 'Baseword', 'Component_1', 'Component_2', 
-      'Definition', 'Etymology', 'Word_frq_Zipf', 'Baseword_frq_Zipf', 
-      'Baseword_Family_Size', 'Family_Size_No_Compounds', 
-      'Family_Size_With_Compounds', 'Compound_Count'
+      'Word_frq_Zipf', 'Baseword_frq_Zipf', 'Baseword_Family_Size', 
+      'Family_Size_No_Compounds', 'Family_Size_With_Compounds', 'Compound_Count'
     ];
 
     let activeTabId = 'word-families';
     let activeKey = 'wf';
-    let columnFilters = {}; // format: { colName: { val: 'abc', exact: false } }
+    let columnFilters = {};
     let filterTimeouts = {};
     const dropdownCache = {};
 
     window.addEventListener('DOMContentLoaded', () => {
       initDataset('wf');
-      setupAddColsListener('wf'); setupAddColsListener('cm');
-      setupAddColsListener('cs'); setupAddColsListener('de');
+      setupAddColsListener('wf'); setupAddColsListener('cm'); setupAddColsListener('cs');
       loadWebLLMModelList();
     });
 
     function getDatasetKeyFromTab(tabId) {
       if (tabId === 'word-families') return 'wf';
       if (tabId === 'compounds') return document.querySelector('#compounds .subtab-pane.active')?.id === 'comp-main' ? 'cm' : 'cs';
-      if (tabId === 'definitions') return 'de';
       return null;
     }
 
@@ -646,18 +616,13 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
           skipEmptyLines: 'greedy',
           chunkSize: 1024 * 1024 * 3, 
           transformHeader: function(h) {
-            // FIX: Removes UTF-8 BOM glitch causing ï»¿Word to appear
             return String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim(); 
           },
           chunk: function(results) {
             if (!config.all.length) {
               config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
             }
-            
-            const validRows = results.data.filter(r => {
-              const w = r['Word'] || r['Baseword'];
-              return w && w.trim().length > 0;
-            });
+            const validRows = results.data.filter(r => (r['Word'] || r['Baseword'] || '').trim().length > 0);
             config.data.push(...validRows);
 
             if (!firstPaint && config.data.length >= config.rpp) {
@@ -679,7 +644,7 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
               document.getElementById(`${key}Pagination`).style.display = 'flex';
               buildDropdowns(key); renderTable(key);
             } else {
-              filterTable(key); // Refresh after load to catch any applied filters
+              filterTable(key); 
             }
             if (loadingEl) loadingEl.style.display = 'none';
           }
@@ -718,7 +683,7 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
       headerRow.innerHTML = config.visible.map(col => {
         let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
         return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
-      }).join('') + `<th>Actions</th>`;
+      }).join('') + `<th>Actions / Toolkit</th>`;
 
       const filterRow = document.getElementById(`${key}FilterRow`);
       filterRow.innerHTML = config.visible.map(col => {
@@ -728,7 +693,6 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
         if (TEXT_SEARCH_COLS.includes(col)) {
            return `<td><input type="text" placeholder="Filter..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
         } else {
-           // Categorical column -> Generate Dropdown Select
            const cacheKey = key + '_' + col;
            if (!dropdownCache[cacheKey]) {
                dropdownCache[cacheKey] = [...new Set(config.data.map(r => r[col] || '').filter(v => v))].sort((a,b) => a.localeCompare(b));
@@ -738,7 +702,7 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
                const sel = (currentVal === u) ? 'selected' : '';
                opts += `<option value="${u.replace(/"/g, '&quot;')}" ${sel}>${u}</option>`;
            });
-           return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true)">${opts}</select></td>`;
+           return `<td><select style="max-width:180px;" onchange="onColumnFilter('${key}', '${col}', this.value, true)">${opts}</select></td>`;
         }
       }).join('') + `<td></td>`;
 
@@ -759,34 +723,37 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
       pageData.forEach(row => {
         bodyHtml += `<tr>`;
         config.visible.forEach(col => {
-          const val = row[col] || '';
+          let val = row[col] || '';
+          
+          // SMART ROUNDING (except Zipf values)
+          if (!col.toLowerCase().includes('zipf') && val !== '' && !isNaN(Number(val))) {
+             val = Math.round(Number(val));
+          }
+          
           bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
         });
+        
+        // DYNAMIC LOOKUP BUTTONS
         const wordVal = row['Word'] || row['Baseword'] || '';
+        const encWord = encodeURIComponent(wordVal);
         const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;'); 
+        
         bodyHtml += `<td>
           <div class="row-actions">
-            <button class="source-btn" onclick="lookupGoogle('${wordVal.replace(/'/g, "\\'")}')">🌐 Search</button>
-            <button class="explain-btn" onclick="showExplainModal('${key}', ${safeRowJSON})">💡 Explain</button>
+            <button class="source-btn" style="background:#4285f4;" onclick="window.open('https://www.google.com/search?q=${encWord}+etymology+morphology', '_blank')" title="Google Search">🔍 G</button>
+            <button class="source-btn" style="background:#10b981;" onclick="window.open('https://en.wiktionary.org/wiki/${encWord}', '_blank')" title="Wiktionary">📖 Wikt</button>
+            <button class="source-btn" style="background:#f59e0b;" onclick="window.open('https://www.etymonline.com/word/${encWord}', '_blank')" title="Etymonline">🕰️ Etym</button>
+            <button class="explain-btn" onclick="showExplainModal('${key}', ${safeRowJSON})" title="AI Explanation">💡 AI</button>
           </div>
         </td></tr>`;
       });
       tbody.innerHTML = bodyHtml;
     }
 
-    // Debounced Filtering logic with exact vs substring matching support
     function onColumnFilter(key, col, val, isExact) {
       if (!columnFilters[key]) columnFilters[key] = {};
-      
-      if (!val) {
-        delete columnFilters[key][col];
-      } else {
-        columnFilters[key][col] = { 
-          val: isExact ? val : val.toLowerCase(), 
-          exact: isExact 
-        };
-      }
-      
+      if (!val) { delete columnFilters[key][col]; } 
+      else { columnFilters[key][col] = { val: isExact ? val : val.toLowerCase(), exact: isExact }; }
       clearTimeout(filterTimeouts[key]);
       filterTimeouts[key] = setTimeout(() => filterTable(key), 200);
     }
@@ -797,23 +764,17 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
       const colFilters = columnFilters[key] || {};
       
       config.filtered = config.data.filter(row => {
-        // Individual column filters
         for (const col in colFilters) {
           const filterDef = colFilters[col];
           const cellVal = String(row[col] || '');
-          if (filterDef.exact) {
-            if (cellVal !== filterDef.val) return false;
-          } else {
-            if (!cellVal.toLowerCase().includes(filterDef.val)) return false;
-          }
+          if (filterDef.exact) { if (cellVal !== filterDef.val) return false; } 
+          else { if (!cellVal.toLowerCase().includes(filterDef.val)) return false; }
         }
-        // Global search input
         if (globalQuery) {
           return config.visible.some(col => String(row[col] || '').toLowerCase().includes(globalQuery));
         }
         return true;
       });
-      
       config.page = 1; 
       renderTable(key);
     }
@@ -827,32 +788,19 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
       renderTable(key);
     }
 
-    // Advanced sorting logic with numerical detection
     function sortTable(key, col) {
       const config = DATASETS[key];
-      if (config.sortBy === col) {
-        config.sortDesc = !config.sortDesc;
-      } else {
-        config.sortBy = col; 
-        config.sortDesc = false; 
-      }
+      if (config.sortBy === col) { config.sortDesc = !config.sortDesc; } 
+      else { config.sortBy = col; config.sortDesc = false; }
       
       config.filtered.sort((a, b) => {
-        let v1 = a[col] || '';
-        let v2 = b[col] || '';
-        
-        // Detect if both values are purely numerical
+        let v1 = a[col] || ''; let v2 = b[col] || '';
         let isNum1 = v1 !== '' && !isNaN(Number(v1));
         let isNum2 = v2 !== '' && !isNaN(Number(v2));
         
-        if (isNum1 && isNum2) {
-          return config.sortDesc ? Number(v2) - Number(v1) : Number(v1) - Number(v2);
-        }
+        if (isNum1 && isNum2) return config.sortDesc ? Number(v2) - Number(v1) : Number(v1) - Number(v2);
         
-        // String sorting fallback
-        v1 = String(v1).toLowerCase(); 
-        v2 = String(v2).toLowerCase();
-        
+        v1 = String(v1).toLowerCase(); v2 = String(v2).toLowerCase();
         if (v1 < v2) return config.sortDesc ? 1 : -1;
         if (v1 > v2) return config.sortDesc ? -1 : 1;
         return 0;
@@ -879,48 +827,91 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
       const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = defaultFilename; link.click();
     }
 
-    function lookupGoogle(word) { if(word) window.open(`https://www.google.com/search?q=${encodeURIComponent(word)}+etymology+morphology`, '_blank'); }
+    // =========================
+    // EXCEL-STYLE DRAG TO SELECT & COPY
+    // =========================
+    let isSelecting = false;
+    let startCell = null;
+
+    document.addEventListener('mousedown', (e) => {
+      if(e.target.tagName === 'TD' && !e.target.closest('.row-actions')) {
+        isSelecting = true;
+        startCell = e.target;
+        document.querySelectorAll('.selected-cell').forEach(c => c.classList.remove('selected-cell'));
+        e.target.classList.add('selected-cell');
+      }
+    });
+
+    document.addEventListener('mouseover', (e) => {
+      if(isSelecting && e.target.tagName === 'TD') {
+        const endCell = e.target;
+        const table = startCell.closest('table');
+        if (!table || table !== endCell.closest('table')) return;
+
+        document.querySelectorAll('.selected-cell').forEach(c => c.classList.remove('selected-cell'));
+        
+        const rows = Array.from(table.querySelector('tbody').querySelectorAll('tr'));
+        const startRowIdx = rows.indexOf(startCell.closest('tr'));
+        const endRowIdx = rows.indexOf(endCell.closest('tr'));
+        const startColIdx = Array.from(startCell.closest('tr').children).indexOf(startCell);
+        const endColIdx = Array.from(endCell.closest('tr').children).indexOf(endCell);
+
+        const minRow = Math.min(startRowIdx, endRowIdx);
+        const maxRow = Math.max(startRowIdx, endRowIdx);
+        const minCol = Math.min(startColIdx, endColIdx);
+        const maxCol = Math.max(startColIdx, endColIdx);
+
+        for(let r = minRow; r <= maxRow; r++) {
+          const cells = rows[r].children;
+          for(let c = minCol; c <= maxCol; c++) {
+            if (cells[c] && !cells[c].querySelector('.row-actions')) {
+              cells[c].classList.add('selected-cell');
+            }
+          }
+        }
+      }
+    });
+
+    document.addEventListener('mouseup', () => { isSelecting = false; });
+
+    document.addEventListener('copy', (e) => {
+      const selected = document.querySelectorAll('.selected-cell');
+      if (selected.length === 0) return;
+      
+      let rowsMap = new Map();
+      selected.forEach(td => {
+        const tr = td.closest('tr');
+        if (!rowsMap.has(tr)) rowsMap.set(tr, []);
+        rowsMap.get(tr).push(td.innerText);
+      });
+      
+      const lines = Array.from(rowsMap.values()).map(row => row.join('\t')).join('\n');
+      e.clipboardData.setData('text/plain', lines);
+      e.preventDefault();
+    });
+
 
     // =========================
     // EXPLAIN MODAL LOGIC
     // =========================
     function byId(id){ return document.getElementById(id); }
     function getFirstNonEmpty(row, candidates){
-      for (const c of candidates){
-        const v = String(row?.[c] ?? "").trim();
-        if (v) return v;
-      }
-      return "";
+      for (const c of candidates){ const v = String(row?.[c] ?? "").trim(); if (v) return v; } return "";
     }
 
     let currentExplainRow = null;
 
     function buildExplainPrompt(row, task="both"){
       const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
-      const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
-      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
-      const definition = getFirstNonEmpty(row, ["Definition","Greek_Latin_Meaning_1","Prefix_1_Meaning","Suffix_1_Meaning"]);
+      const root = getFirstNonEmpty(row, ["GPT_Root","Root"]);
+      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts"]);
+      const definition = getFirstNonEmpty(row, ["Definition"]);
 
       let instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
       if (task === "explain") instruction = "Explain this morphology entry clearly for teachers and students.";
       else if (task === "history") instruction = "Focus on etymology/history if available; if uncertain, say so clearly and avoid guessing.";
 
-      return `You are a literacy and morphology expert supporting teachers.
-
-${instruction}
-
-Row details:
-- Word/Entry: ${word || "(not provided)"}
-- Root: ${root || "(not provided)"}
-- Morphological parts: ${parts || "(not provided)"}
-- Definition/Etymology: ${definition || "(not provided)"}
-
-Please return:
-- Student-friendly explanation
-- Check the accuracy of the Morphology breakdown (prefix/base/root/suffix where relevant) and suggest alternative parses if any
-- Meaning connections to root(s) and morphemes
-- Teaching tip for classroom use
-- 2 quick discussion/check-for-understanding questions`;
+      return `You are a literacy and morphology expert supporting teachers.\n\n${instruction}\n\nRow details:\n- Word/Entry: ${word || "(not provided)"}\n- Root: ${root || "(not provided)"}\n- Morphological parts: ${parts || "(not provided)"}\n- Definition/Etymology: ${definition || "(not provided)"}\n\nPlease return:\n- Student-friendly explanation\n- Check the accuracy of the Morphology breakdown\n- Meaning connections to root(s) and morphemes\n- Teaching tip for classroom use\n- 2 quick discussion questions`;
     }
 
     function showExplainModal(prefix, row){
@@ -979,7 +970,10 @@ Please return:
       
       if (!list.length) return status.textContent = "No valid word lists structured.";
       status.textContent = `Rendering word cloud with ${list.length} rows...`;
-      WordCloud(document.getElementById('wordCanvas'), { list, gridSize: 8, weightFactor: s => Math.min(Math.max(s * 1.5, 12), 110), color: 'random-dark', backgroundColor: '#ffffff', rotateRatio: 0.3 });
+      WordCloud(document.getElementById('wordCanvas'), { list, gridSize: 8, weightFactor: s => Math.min(Math.max(s * 1.5, 12), 110), color: 'random
+
+
+        document.getElementById('wordCanvas'), { list, gridSize: 8, weightFactor: s => Math.min(Math.max(s * 1.5, 12), 110), color: 'random-dark', backgroundColor: '#ffffff', rotateRatio: 0.3 });
     }
 
     function addWordsFromFilteredRows() {
@@ -1026,10 +1020,12 @@ Deliver clean, production-ready educational assets.`;
         document.getElementById("webllmModel").innerHTML = `<option value="Llama-3-8B-Instruct-q4f16_1-100k-webgpu">Llama 3 (8B Instruct WebGPU)</option><option value="Phi-3-mini-4k-instruct-q4f16_1-webgpu">Phi 3 Mini (Lightweight/Fast)</option>`;
       } catch(e) {}
     }
+    
     async function initWebLLM() {
       document.getElementById("webllmStatus").textContent = `Downloading/Loading ${document.getElementById("webllmModel").value}...`;
       setTimeout(() => document.getElementById("webllmStatus").textContent = `✅ Loaded successfully!`, 1500);
     }
+    
     function sendWebLLM() {
       const input = document.getElementById("webllmInput");
       if (!input.value.trim()) return;
@@ -1041,10 +1037,11 @@ Deliver clean, production-ready educational assets.`;
         c.appendChild(rb); c.scrollTop = c.scrollHeight;
       }, 800);
     }
-    function resetWebLLMChat() { document.getElementById("webllmChat").innerHTML = ""; document.getElementById("webllmStatus").textContent = "Chat reset complete."; }
+    
+    function resetWebLLMChat() { 
+      document.getElementById("webllmChat").innerHTML = ""; 
+      document.getElementById("webllmStatus").textContent = "Chat reset complete."; 
+    }
   </script>
 </body>
 </html>
-
-
-  
