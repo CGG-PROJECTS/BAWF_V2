@@ -859,6 +859,86 @@
   </div>
 
   <script>
+    function sanitizeHeaders(fields) {
+  const out = [];
+
+  (fields || []).forEach(h => {
+    let s = String(h ?? "")
+      .replace(/^\uFEFF/, "")                 // BOM
+      .replace(/[\u0000-\u001F\u007F]/g, " ") // control chars
+      .trim();
+
+    if (!s) return;
+
+    // Split accidental tab-merged header text
+    const parts = s.split(/\t+/).map(p => p.trim()).filter(Boolean);
+
+    parts.forEach(p => {
+      // Drop obvious numeric garbage pretending to be header
+      if (/^-?\d+(\.\d+)?$/.test(p)) return;
+      out.push(p);
+    });
+  });
+
+  // unique, preserve order
+  return [...new Set(out)];
+}
+
+function cleanParsedRow(row, headers) {
+  const out = {};
+  headers.forEach(h => {
+    out[h] = row?.[h] ?? "";
+  });
+
+  // Keep extras for validation only (do NOT merge into data columns)
+  Object.defineProperty(out, "__parsed_extra", {
+    value: Array.isArray(row?.__parsed_extra) ? row.__parsed_extra : [],
+    enumerable: false
+  });
+
+  return out;
+}
+
+function isLikelyNumeric(v) {
+  if (v == null) return false;
+  const s = String(v).trim();
+  if (!s) return false;
+
+  // remove commas: "1,234.5"
+  const normalized = s.replace(/,/g, "");
+  return /^-?\d+(\.\d+)?$/.test(normalized);
+}
+
+function validateRowAlignment(row, headers) {
+  const issues = [];
+
+  // Papa puts overflow fields here when row has too many delimiters
+  if (Array.isArray(row.__parsed_extra) && row.__parsed_extra.length) {
+    issues.push("extra_fields");
+  }
+
+  // Word sanity check
+  const wordCol =
+    headers.find(h => /^word$/i.test(String(h).trim())) ||
+    headers[0];
+
+  const w = String(row[wordCol] ?? "").trim();
+  if (!w) issues.push("missing_word");
+  if (w.length > 120) issues.push("word_too_long");
+
+  // Numeric sanity checks on likely numeric columns
+  headers.forEach(h => {
+    if (/(zipf|familysize|count|grade|aoa|frequency|n[_\s]?morphemes)/i.test(h)) {
+      const v = String(row[h] ?? "").trim();
+      if (v && !isLikelyNumeric(v)) {
+        issues.push(`bad_numeric:${h}`);
+      }
+    }
+  });
+
+  return issues;
+}
+
     // =========================
     // DATASET CONFIG + STATE
     // =========================
@@ -935,18 +1015,40 @@ function isForcedDropdownColumn(col){
 }
 
 function cleanParsedRow(row, headers){
-  // Force row values to align exactly with headers
   const out = {};
   headers.forEach(h => out[h] = row[h] ?? "");
 
-  // If parser produced extras, append to last column so columns don't shift
-  if (Array.isArray(row.__parsed_extra) && row.__parsed_extra.length && headers.length){
-    const last = headers[headers.length - 1];
-    const tail = row.__parsed_extra.join(",");
-    out[last] = String(out[last] ?? "");
-    out[last] = out[last] ? `${out[last]},${tail}` : tail;
-  }
+  // keep extras for validation, do NOT append into real data columns
+  Object.defineProperty(out, "__parsed_extra", {
+    value: Array.isArray(row.__parsed_extra) ? row.__parsed_extra : [],
+    enumerable: false
+  });
+
   return out;
+}
+
+function validateRowAlignment(row, headers){
+  const issues = [];
+
+  if (row.__parsed_extra && row.__parsed_extra.length) {
+    issues.push("extra_fields");
+  }
+
+  // Word sanity check
+  const wordCol = headers.find(h => /^word$/i.test(String(h).trim())) || headers[0];
+  const w = String(row[wordCol] ?? "").trim();
+  if (!w) issues.push("missing_word");
+  if (w.length > 120) issues.push("word_too_long");
+
+  // Numeric sanity check for likely numeric columns
+  headers.forEach(h => {
+    if (/(zipf|familysize|count|grade|aoa|frequency|n[_\s]?morphemes)/i.test(h)) {
+      const v = String(row[h] ?? "").trim();
+      if (v && !isLikelyNumeric(v)) issues.push(`bad_numeric:${h}`);
+    }
+  });
+
+  return issues;
 }
 
 function roundVocabularyGradeLevels(row, headers){
@@ -1128,22 +1230,75 @@ Papa.parse(csvText, {
   fastMode: false,
   chunkSize: 1024 * 1024,
   transformHeader: h => String(h || "").replace(/^\uFEFF/, "").trim(),
-  
-      chunk: (results) => {
-        let rows = (results.data || []).filter(r =>
-          Object.values(r).some(v => String(v ?? "").trim() !== "")
-        );
-        if (!rows.length) return;
 
-        // Set headers once
-if (!st.allColumns.length) {
-  const rawFields = results.meta?.fields || [];
-  st.allColumns = sanitizeHeaders(rawFields);
+  chunk: (results) => {
+    // 1) Remove fully empty rows
+    let rows = (results.data || []).filter(r =>
+      Object.values(r).some(v => String(v ?? "").trim() !== "")
+    );
+    if (!rows.length) return;
 
-  st.coreColumns = chooseCoreColumns(st.allColumns);
-  if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
-  st.columns = [...st.coreColumns];
-}
+    // 2) Set headers once
+    if (!st.allColumns.length) {
+      const rawFields = results.meta?.fields || [];
+      st.allColumns = sanitizeHeaders(rawFields);
+
+      st.coreColumns = chooseCoreColumns(st.allColumns);
+      if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
+      st.columns = [...st.coreColumns];
+    }
+
+    // 3) Init bad row store
+    if (!st.badRows) st.badRows = [];
+
+    // 4) Clean + validate row alignment
+    const goodRows = [];
+    for (const raw of rows) {
+      const cleaned = cleanParsedRow(raw, st.allColumns);
+      roundVocabularyGradeLevels(cleaned, st.allColumns);
+
+      const issues = validateRowAlignment(cleaned, st.allColumns);
+      if (issues.length) {
+        st.badRows.push({ issues, row: cleaned });
+        continue; // exclude suspect rows
+      }
+
+      // 5) Build search cache
+      try {
+        Object.defineProperty(cleaned, "__search", {
+          value: st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase(),
+          enumerable: false
+        });
+      } catch {
+        cleaned.__search = st.allColumns.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase();
+      }
+
+      goodRows.push(cleaned);
+    }
+
+    // 6) Append only good rows
+    st.fullData.push(...goodRows);
+  },
+
+  complete: () => {
+    const badCount = (st.badRows || []).length;
+    if (badCount > 0) {
+      setDbLoading(prefix, `⚠ Loaded with ${badCount} suspect rows excluded. Review source CSV.`);
+    } else {
+      setDbLoading(prefix, "");
+    }
+
+    // render now that all chunks are done
+    renderHeadersAndFilters(prefix);
+    filterTable(prefix); // or renderRows(prefix), depending on your flow
+  },
+
+  error: (err) => {
+    console.error("Papa parse error:", err);
+    setDbLoading(prefix, "❌ Failed to parse CSV.");
+  }
+});
+
 
 
         // Clean rows + round grade level
