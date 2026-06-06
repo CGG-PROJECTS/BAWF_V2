@@ -612,145 +612,100 @@
       if (!DATASETS[key].data.length) initDataset(key); else renderTable(key);
     }
 
-// ==========================================
-// HIGH-PERFORMANCE LOADER (Custom Safe Chunker)
-// ==========================================
-async function initDataset(key) {
-  const config = DATASETS[key];
-  const loadingEl = document.getElementById(`${key}Loading`);
-  try {
-    if (loadingEl) loadingEl.textContent = `Downloading dataset...`;
-    
-    const res = await fetch(config.file);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
-    if (loadingEl) loadingEl.textContent = `Decompressing data...`;
-    const buffer = await res.arrayBuffer();
-    const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
+    // ==========================================
+    // HIGH-PERFORMANCE LOADER (Native PapaParse Streaming)
+    // ==========================================
+    async function initDataset(key) {
+      const config = DATASETS[key];
+      const loadingEl = document.getElementById(`${key}Loading`);
+      try {
+        if (loadingEl) loadingEl.textContent = `Downloading dataset...`;
 
-    if (loadingEl) loadingEl.textContent = `Decoding text...`;
-    let csvText = new TextDecoder('utf-8').decode(inflatedBytes);
+        const res = await fetch(config.file);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    // Strip invisible Byte Order Mark (BOM) if present
-    if (csvText.charCodeAt(0) === 0xFEFF) {
-      csvText = csvText.substring(1);
-    }
+        if (loadingEl) loadingEl.textContent = `Decompressing data...`;
+        const buffer = await res.arrayBuffer();
+        const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
 
-    if (loadingEl) loadingEl.textContent = `Parsing records...`;
+        if (loadingEl) loadingEl.textContent = `Decoding text...`;
+        let csvText = new TextDecoder('utf-8').decode(inflatedBytes);
 
-    config.data = [];
-    let firstPaint = false;
-    let offset = 0;
-    
-    // Process in 2MB chunks (fast enough to not freeze, large enough to be efficient)
-    const chunkSize = 1024 * 1024 * 2; 
-    let headerLine = "";
-
-    function processNextChunk() {
-      if (offset >= csvText.length) {
-        // We are finished!
-        config.filtered = [...config.data];
-        if (!firstPaint) {
-          document.getElementById(`${key}Table`).style.display = 'table';
-          document.getElementById(`${key}Pagination`).style.display = 'flex';
-          buildDropdowns(key);
-          renderTable(key);
-        } else {
-          filterTable(key); // Re-apply any search the user typed
+        // Safely strip invisible Byte Order Mark (BOM) if it exists
+        if (csvText.charCodeAt(0) === 0xFEFF) {
+          csvText = csvText.substring(1);
         }
-        if (loadingEl) loadingEl.style.display = 'none';
-        return;
-      }
+        
+        // Strip any accidental blank lines at the very top so Row 1 is perfectly read
+        csvText = csvText.replace(/^\s*[\r\n]+/, '');
 
-      let end = offset + chunkSize;
-      
-      // Ensure we don't go out of bounds
-      if (end >= csvText.length) {
-        end = csvText.length;
-      } else {
-        // FIND SAFE ROW BOUNDARY: Find the next newline
-        let nextNewline = csvText.indexOf('\n', end);
-        if (nextNewline === -1) {
-          end = csvText.length;
-        } else {
-          // Count quotes to ensure we aren't cutting a multiline definition in half!
-          let chunk = csvText.substring(offset, nextNewline);
-          let quotes = (chunk.match(/"/g) || []).length;
+        if (loadingEl) loadingEl.textContent = `Parsing records...`;
 
-          // If quotes are odd, we are trapped inside a quote. Keep going to next newline!
-          while (quotes % 2 !== 0) {
-            let nextNextNewline = csvText.indexOf('\n', nextNewline + 1);
-            if (nextNextNewline === -1) {
-              nextNewline = csvText.length;
-              break;
+        // MAGIC TRICK: Convert the text into a standard File Blob. 
+        // This allows PapaParse to natively stream it in the background!
+        const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+
+        config.data = [];
+        let firstPaint = false;
+
+        Papa.parse(blob, {
+          header: true,
+          skipEmptyLines: 'greedy',
+          worker: true, // Background thread = no freezing!
+          chunk: function(results) {
+            // Grab the real column headers on the very first chunk
+            if (!config.all || config.all.length === 0) {
+              config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
             }
-            let extra = csvText.substring(nextNewline, nextNextNewline);
-            quotes += (extra.match(/"/g) || []).length;
-            nextNewline = nextNextNewline;
-          }
-          end = nextNewline + 1; // Include the newline in this chunk safely
-        }
-      }
 
-      let chunkStr = csvText.substring(offset, end);
+            // Keep only valid rows
+            const validRows = results.data.filter(r => {
+              const w = r['Word'] || r['Baseword'];
+              return w && String(w).trim().length > 0;
+            });
 
-      if (offset === 0) {
-        // Save the first line so we can prepend it to future chunks (PapaParse needs headers)
-        headerLine = chunkStr.substring(0, chunkStr.indexOf('\n') + 1);
-      } else {
-        // Prepend headers to middle chunks so columns align perfectly
-        chunkStr = headerLine + chunkStr;
-      }
+            config.data.push(...validRows);
 
-      offset = end; // Update offset for the next loop
+            // Show the table immediately after the first chunk finishes!
+            if (!firstPaint && config.data.length > 0) {
+              firstPaint = true;
+              config.filtered = [...config.data];
+              document.getElementById(`${key}Table`).style.display = 'table';
+              document.getElementById(`${key}Pagination`).style.display = 'flex';
+              buildDropdowns(key);
+              renderTable(key);
+            }
 
-      Papa.parse(chunkStr, {
-        header: true,
-        skipEmptyLines: 'greedy',
-        complete: function(results) {
-          // Extract valid headers safely on first pass
-          if (!config.all || config.all.length === 0) {
-            config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
-          }
-
-          // Filter garbage rows
-          const validRows = results.data.filter(r => {
-            const w = r['Word'] || r['Baseword'];
-            return w && w.trim().length > 0;
-          });
-
-          config.data.push(...validRows);
-
-          // PROGRESSIVE RENDER: Show table instantly after the first chunk!
-          if (!firstPaint && config.data.length > 0) {
-            firstPaint = true;
+            if (firstPaint && loadingEl) {
+              loadingEl.textContent = `Loading remaining records... (${config.data.length.toLocaleString()} loaded)`;
+            }
+          },
+          complete: function() {
             config.filtered = [...config.data];
-            document.getElementById(`${key}Table`).style.display = 'table';
-            document.getElementById(`${key}Pagination`).style.display = 'flex';
-            buildDropdowns(key);
-            renderTable(key);
+            
+            // Just in case it was a tiny file and finished in one chunk
+            if (!firstPaint) {
+              document.getElementById(`${key}Table`).style.display = 'table';
+              document.getElementById(`${key}Pagination`).style.display = 'flex';
+              buildDropdowns(key);
+              renderTable(key);
+            } else {
+              // If the user started searching while it was loading, apply their search now
+              filterTable(key);
+            }
+            if (loadingEl) loadingEl.style.display = 'none';
+          },
+          error: function(err) {
+            console.error("Parse error:", err);
+            if (loadingEl) loadingEl.textContent = `Parse error: ${err}`;
           }
+        });
 
-          if (firstPaint && loadingEl) {
-            loadingEl.textContent = `Loading remaining records... (${config.data.length.toLocaleString()} loaded)`;
-          }
-
-          // Use setTimeout to yield back to the browser so the UI doesn't freeze!
-          setTimeout(processNextChunk, 10); 
-        },
-        error: function(err) {
-          console.error("Chunk parse error:", err);
-        }
-      });
+      } catch (e) {
+        console.error(e);
+        if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
+      }
     }
-
-    // Kick off the chunking process
-    processNextChunk();
-
-  } catch (e) {
-    if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
-  }
-}
 
 
 
