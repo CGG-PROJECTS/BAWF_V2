@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BAWF Morphological Database</title>
 
-  <!-- Data parsing -->
- <script src="https://cdn.jsdelivr.net/npm/apache-arrow@13"></script>
+
   <!-- Word cloud -->
   <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
 
@@ -400,7 +399,7 @@
     <!-- WORD FAMILIES -->
     <div id="word-families" class="tab-content active">
       <div class="download-section">
-        <a class="download-btn" href="BAWF_FINAL.csv.gz" download>↓ Download Word Families (.csv.gz)</a>
+        <a class="download-btn" href="BAWF_FINAL.csv.parquet" download>↓ Download Word Families (.csv.gz)</a>
       </div>
       <div class="db-wrap" id="wfWrap">
         <div class="db-controls">
@@ -456,7 +455,7 @@
       <!-- Compound Main -->
       <div id="comp-main" class="subtab-pane active">
         <div class="download-section">
-          <a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>↓ Download Compound Main (.csv.gz)</a>
+          <a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.parquet" download>↓ Download Compound Main (.csv.gz)</a>
         </div>
         <div class="db-wrap" id="cmWrap">
           <div class="db-controls">
@@ -555,7 +554,7 @@
     <!-- DEFINITIONS -->
     <div id="definitions" class="tab-content">
       <div class="download-section">
-        <a class="download-btn" href="BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz" download>↓ Download Definitions & Etymology (.csv.gz)</a>
+        <a class="download-btn" href="BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.parquet" download>↓ Download Definitions & Etymology (.csv.gz)</a>
       </div>
       <div class="db-wrap" id="deWrap">
         <div class="db-controls">
@@ -855,6 +854,35 @@
       </div>
     </div>
   </div>
+<script type="module">
+  import initWasm, { readParquet } from "https://cdn.jsdelivr.net/npm/parquet-wasm@0.6.1/esm/parquet_wasm.js";
+  import { tableFromIPC } from "https://cdn.jsdelivr.net/npm/apache-arrow@13/+esm";
+
+  await initWasm();
+
+  // Expose helper for your non-module script
+  window.readParquetRows = async function (arrayBuffer) {
+    const wasmTable = readParquet(new Uint8Array(arrayBuffer));
+    const ipc = wasmTable.intoIPCStream();
+    const table = tableFromIPC(ipc);
+    wasmTable.drop?.();
+
+    const columns = table.schema.fields.map(f => f.name);
+    const rows = [];
+
+    for (let i = 0; i < table.numRows; i++) {
+      const r = table.get(i) || {};
+      const obj = {};
+      for (const c of columns) {
+        const v = r[c];
+        obj[c] = v == null ? "" : String(v);
+      }
+      rows.push(obj);
+    }
+
+    return { columns, rows };
+  };
+</script>
 
   <script>
     // =========================
@@ -1091,7 +1119,17 @@ const DATASETS = {
       populateAddColsSelect(prefix);
     }
 
- async function loadDataset(prefix) {
+async function waitForParquetReader(timeoutMs = 20000) {
+  const start = Date.now();
+  while (typeof window.readParquetRows !== "function") {
+    if (Date.now() - start > timeoutMs) {
+      throw new Error("Parquet reader did not initialize in time.");
+    }
+    await new Promise(r => setTimeout(r, 60));
+  }
+}
+
+async function loadDataset(prefix) {
   const cfg = DATASETS[prefix];
   if (!cfg || cfg.loaded) return;
   cfg.loaded = true;
@@ -1107,33 +1145,42 @@ const DATASETS = {
   st.coreColumns = [];
   st.parseDone = false;
   st.firstPaintDone = false;
+  st.badRowCount = 0;
 
   setDbLoading(prefix, `Loading ${cfg.name} (Parquet)...`);
 
   try {
-    const resp = await fetch(cfg.file);
+    await waitForParquetReader();
+
+    const resp = await fetch(cfg.file, { cache: "no-cache" });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
     const arrayBuffer = await resp.arrayBuffer();
-    const table = await tableFromIPC(arrayBuffer);
+    const { columns, rows } = await window.readParquetRows(arrayBuffer);
 
-    st.allColumns = table.schema.names;
+    st.allColumns = columns.map(h => String(h || "").replace(/^\uFEFF/, "").trim());
     st.coreColumns = chooseCoreColumns(st.allColumns);
     if (!st.coreColumns.length) st.coreColumns = st.allColumns.slice(0, 12);
     st.columns = [...st.coreColumns];
 
-    const data = table.toArray().map(row => {
-      const obj = {};
-      for (const col of st.allColumns) {
-        let val = row[col];
-        obj[col] = (val != null) ? String(val) : "";
+    st.fullData = rows.map(r => {
+      const row = cleanParsedRow(r, st.allColumns);
+      roundVocabularyGradeLevels(row, st.allColumns);
+
+      try {
+        Object.defineProperty(row, "__search", {
+          value: st.allColumns.map(c => String(row[c] ?? "")).join(" ").toLowerCase(),
+          enumerable: false
+        });
+      } catch {
+        row.__search = st.allColumns.map(c => String(row[c] ?? "")).join(" ").toLowerCase();
       }
-      obj.__search = st.allColumns.map(c => String(obj[c] ?? "")).join(" ").toLowerCase();
-      return obj;
+      return row;
     });
 
-    st.fullData = data;
-    st.filteredData = [...data];
+    st.filteredData = [...st.fullData];
+    st.parseDone = true;
+    st.firstPaintDone = true;
 
     initializeDatasetUI(prefix);
     detectDropdownColumns(prefix);
@@ -1142,17 +1189,21 @@ const DATASETS = {
     populateCopyColumnSelect(prefix);
     populateAddColsSelect(prefix);
 
+    const tableEl = byId(prefix + "Table");
+    const pagerEl = byId(prefix + "Pagination");
     const loadingEl = byId(prefix + "Loading");
+    if (tableEl) tableEl.style.display = "table";
+    if (pagerEl) pagerEl.style.display = "flex";
     if (loadingEl) loadingEl.style.display = "none";
 
-    console.log(`✅ ${cfg.name} loaded successfully: ${data.length.toLocaleString()} rows`);
-
+    console.log(`✅ ${cfg.name} loaded: ${st.fullData.length.toLocaleString()} rows`);
   } catch (err) {
     console.error(err);
     setDbLoading(prefix, `Error loading ${cfg.file}: ${err.message}`);
     cfg.loaded = false;
   }
 }
+
 
     function initializeDatasetUI(prefix){
       renderHeadersAndFilters(prefix);
@@ -1332,12 +1383,12 @@ const DATASETS = {
     }
 
     function sortTable(prefix, column){
-      const st = state[prefix];
-      if (st.sort.column === column) st.sort.asc = !st.sort.asc;
-      else {
-        st.sort.column = column;
-        st.sort.asc = true;
-      }
+ const an = parseFloat(a[column]);
+const bn = parseFloat(b[column]);
+if (Number.isFinite(an) && Number.isFinite(bn)) {
+  return st.sort.asc ? an - bn : bn - an;
+}
+
 
       st.filteredData.sort((a,b) => {
         const av = String(a[column] ?? "").toLowerCase();
