@@ -210,7 +210,7 @@
 <body>
   <div class="container">
     <header>
-      <h1>BAWF Morphological Database</h1>
+      <h1>British and American Word Families (BAWF) Morhological Database</h1>
       <div class="tagline">Morphology, roots, affixes, compounds, and etymology</div>
     </header>
 
@@ -567,10 +567,10 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
   <script>
     // DATASETS Setup (Language_of_Origin removed from visible)
     const DATASETS = {
-      wf: { file: 'BAWF_FINAL.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Baseword', 'Baseword_Family_Size', 'GPT_Coded_Word_Parts', 'GPT_Root', 'Root_Meaning'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
+      wf: { file: 'BAWF_FINAL.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Baseword', 'Baseword_Family_Size', 'GPT_Coded_Word_Parts', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
       cm: { file: 'BAWF_Compound_Words_FINAL__Main_Compound.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Compound_Type', 'Component_1', 'Component_2', 'Baseword', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
       cs: { file: 'BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz', visible: ['Baseword', 'Baseword_frq_Zipf', 'Family_Size_No_Compounds', 'Family_Size_With_Compounds', 'Compound_Count'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
-      de: { file: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', visible: ['Word', 'FLemma', 'Definition', 'Etymology', 'GPT_Root', 'Root_Meaning'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false }
+      de: { file: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', visible: ['Word', 'FLemma', 'Definition', 'Etymology', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false }
     };
 
     // Columns that should remain text input searches (everything else becomes a dropdown)
@@ -899,7 +899,7 @@ mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Comp
       const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
       const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
       const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
-      const definition = getFirstNonEmpty(row, ["Definition","Definitions","Etymology","Meaning"]);
+      const definition = getFirstNonEmpty(row, ["Definition","Greek_Latin_Meaning_1","Prefix_1_Meaning","Suffix_1_Meaning"]);
 
       let instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
       if (task === "explain") instruction = "Explain this morphology entry clearly for teachers and students.";
@@ -917,8 +917,8 @@ Row details:
 
 Please return:
 - Student-friendly explanation
-- Morphology breakdown (prefix/base/suffix where relevant)
-- Meaning connection to root(s)
+- Check the accuracy of the Morphology breakdown (prefix/base/root/suffix where relevant) and suggest alternative parses if any
+- Meaning connections to root(s) and morphemes
 - Teaching tip for classroom use
 - 2 quick discussion/check-for-understanding questions`;
     }
