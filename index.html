@@ -599,9 +599,7 @@ function chooseDefaultColumns(key, headers){
   return found.length ? found : headers.slice(0, 12);
 }
 
-
-};
-
+ 
 
     // Columns that should remain text input searches (everything else becomes a dropdown)
     const TEXT_SEARCH_COLS = [
@@ -651,7 +649,7 @@ function openTab(tabName, btnEl){
     activeKey = activeSub === "comp-stats" ? "cs" : "cm";
     ensureLoaded(activeKey);
   }
-}
+
 
 
 }
@@ -683,11 +681,12 @@ function openTab(tabName, btnEl){
         const blob = new Blob([inflatedBytes], { type: 'text/csv;charset=utf-8' });
 
         let firstPaint = false;
-        config.data = [];
+config.data = [];
 config.filtered = [];
 config.all = [];
 config.visible = [];
-        config.loaded = true;
+config.loaded = false;
+
 
 
         Papa.parse(blob, {
@@ -734,6 +733,8 @@ config.visible = [];
             }
           },
           complete: function() {
+            config.loaded = true;
+
             config.filtered = [...config.data];
             if (!firstPaint) {
               document.getElementById(`${key}Table`).style.display = 'table';
