@@ -1086,10 +1086,7 @@
         return;
       }
 
-      if (isNumericColumn(prefix, col)) {
-        st.dropdownColumns.add(String(col).toLowerCase().trim());
-        return;
-      }
+  
 
       const vals = new Set();
       for (let i = 0; i < sampleSize; i++) {
@@ -1202,34 +1199,30 @@
           }
 
           const goodRows = [];
-          for (const raw of rows) {
-            const cleaned = cleanParsedRow(raw, st.allColumns);
-            roundVocabularyGradeLevels(cleaned, st.allColumns);
+const searchCols = (PERF.searchColumns === "core" && st.coreColumns.length)
+  ? st.coreColumns
+  : st.allColumns;
 
-            const issues = validateRowAlignment(cleaned, st.allColumns);
-            if (issues.length) {
-              st.badRows.push({ issues, row: cleaned });
-              continue;
-            }
+for (const raw of rows) {
+  const cleaned = cleanParsedRow(raw, st.allColumns);
+  roundVocabularyGradeLevels(cleaned, st.allColumns);
 
-            const searchText = st.allColumns
-              .map(c => String(cleaned[c] ?? ""))
-              .join(" ")
-              .toLowerCase();
+  if (PERF.validateRows) {
+    const issues = validateRowAlignment(cleaned, st.allColumns);
+    if (issues.length) {
+      st.badRows.push({ issues, row: cleaned });
+      continue;
+    }
+  }
 
-            try {
-              Object.defineProperty(cleaned, "__search", {
-                value: searchText,
-                enumerable: false
-              });
-            } catch {
-              cleaned.__search = searchText;
-            }
+  if (PERF.precomputeSearch) {
+    cleaned.__search = searchCols.map(c => String(cleaned[c] ?? "")).join(" ").toLowerCase();
+  }
 
-            goodRows.push(cleaned);
-          }
+  goodRows.push(cleaned);
+}
+st.fullData.push(...goodRows);
 
-          st.fullData.push(...goodRows);
           setDbLoading(prefix, `Loading ${cfg.name}... ${st.fullData.length.toLocaleString()} rows parsed`);
         },
 
