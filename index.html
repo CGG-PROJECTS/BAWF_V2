@@ -859,6 +859,13 @@
   </div>
 
 <script>
+  const PERF = {
+  validateRows: false,          // turn on only when auditing data
+  precomputeSearch: false,      // build __search lazily instead
+  searchColumns: "core",        // "core" or "all"
+  firstPaintMinRows: 800
+};
+
   // =========================
   // HELPERS
   // =========================
@@ -1175,8 +1182,8 @@
         delimiter: ",",
         skipEmptyLines: "greedy",
         worker: false,
-        fastMode: false,
-        chunkSize: 1024 * 1024,
+        fastMode: true,
+        chunkSize: 2/8 1024 * 1024,
         transformHeader: h => String(h || "").replace(/^\uFEFF/, "").trim(),
 
         chunk: (results) => {
