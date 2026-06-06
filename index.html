@@ -1109,7 +1109,7 @@
         Papa.parse(csvText, {
           header: true,
           skipEmptyLines: "greedy",
-          worker: true,
+          worker: false,
           fastMode: false,
           chunkSize: 1024 * 1024,
           transformHeader: (h) => String(h || "").replace(/^\uFEFF/, "").trim(),
