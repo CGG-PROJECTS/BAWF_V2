@@ -862,21 +862,29 @@
   await initWasm();
 
   // expose helper for your non-module script
-  window.readParquetRows = async function (arrayBuffer) {
-    const wasmTable = readParquet(new Uint8Array(arrayBuffer));   // parquet -> wasm table
-    const ipc = wasmTable.intoIPCStream();                        // wasm table -> Arrow IPC
-    const table = tableFromIPC(ipc);                              // Arrow IPC -> Arrow table
-    wasmTable.drop();
+window.readParquetRows = async function (arrayBuffer) {
+  const wasmTable = readParquet(new Uint8Array(arrayBuffer));
 
-    const columns = table.schema.fields.map(f => f.name);
-    const rows = table.toArray().map(r => {
-      const obj = {};
-      for (const c of columns) obj[c] = r[c] ?? "";
-      return obj;
-    });
+  // Get IPC stream and COPY it before releasing wasm object
+  const ipcRaw = wasmTable.intoIPCStream();
+  const ipc = ipcRaw.slice ? ipcRaw.slice() : new Uint8Array(ipcRaw);
 
-    return { columns, rows };
-  };
+  // Different parquet-wasm versions expose different cleanup methods
+  if (typeof wasmTable.drop === "function") wasmTable.drop();
+  else if (typeof wasmTable.free === "function") wasmTable.free();
+
+  const table = tableFromIPC(ipc);
+
+  const columns = table.schema.fields.map(f => f.name);
+  const rows = table.toArray().map(r => {
+    const obj = {};
+    for (const c of columns) obj[c] = r[c] ?? "";
+    return obj;
+  });
+
+  return { columns, rows };
+};
+
 </script>
 
 
@@ -1445,12 +1453,30 @@ async function loadDataset(prefix) {
       byId(prefix + "TotalPages").textContent = totalPages;
     }
 
-    function sortTable(prefix, column){
- const an = parseFloat(a[column]);
-const bn = parseFloat(b[column]);
-if (Number.isFinite(an) && Number.isFinite(bn)) {
-  return st.sort.asc ? an - bn : bn - an;
+function sortTable(prefix, column){
+  const st = state[prefix];
+
+  if (st.sort.column === column) st.sort.asc = !st.sort.asc;
+  else st.sort = { column, asc: true };
+
+  st.filteredData.sort((a,b) => {
+    const an = parseFloat(a[column]);
+    const bn = parseFloat(b[column]);
+
+    if (Number.isFinite(an) && Number.isFinite(bn)) {
+      return st.sort.asc ? an - bn : bn - an;
+    }
+
+    const av = String(a[column] ?? "").toLowerCase();
+    const bv = String(b[column] ?? "").toLowerCase();
+    const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" });
+    return st.sort.asc ? cmp : -cmp;
+  });
+
+  st.currentPage = 1;
+  renderTable(prefix);
 }
+
 
 
       st.filteredData.sort((a,b) => {
