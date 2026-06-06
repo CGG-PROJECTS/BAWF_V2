@@ -612,74 +612,74 @@
       if (!DATASETS[key].data.length) initDataset(key); else renderTable(key);
     }
 
-    // HIGH-PERFORMANCE DATA LOADER (Asynchronous Blob Chunking + Fixed Bytes/BOM)
-    async function initDataset(key) {
-      const config = DATASETS[key];
-      const loadingEl = document.getElementById(`${key}Loading`);
-      try {
-        if (loadingEl) loadingEl.textContent = `Downloading dataset...`;
-        const res = await fetch(config.file);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
-        if (loadingEl) loadingEl.textContent = `Decompressing data...`;
-        const buffer = await res.arrayBuffer();
-        
-        // FIX: Extract RAW bytes to prevent UTF-8 corruption
-        const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
+  // ==========================================
+// HIGH-PERFORMANCE LOADER (100% Accurate Rows)
+// ==========================================
+async function initDataset(key) {
+  const config = DATASETS[key];
+  const loadingEl = document.getElementById(`${key}Loading`);
+  try {
+    if (loadingEl) loadingEl.textContent = `Downloading dataset...`;
+    
+    const res = await fetch(config.file);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+    if (loadingEl) loadingEl.textContent = `Decompressing data...`;
+    const buffer = await res.arrayBuffer();
+    const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
 
-        if (loadingEl) loadingEl.textContent = `Parsing records...`;
-        const blob = new Blob([inflatedBytes], { type: 'text/csv;charset=utf-8' });
+    if (loadingEl) loadingEl.textContent = `Decoding text...`;
+    
+    // FIX 1: Decode explicitly to UTF-8. 
+    // This perfectly preserves all special characters and newlines.
+    let csvText = new TextDecoder('utf-8').decode(inflatedBytes);
 
-        let firstPaint = false;
-        config.data = [];
-
-        Papa.parse(blob, {
-          header: true,
-          skipEmptyLines: 'greedy',   // FIX: Prevents empty lines breaking chunks
-          chunkSize: 1024 * 1024 * 3, // FIX: 3MB chunk ensures large quotes aren't split
-          transformHeader: function(h) {
-            // FIX: Remove Byte Order Mark (\uFEFF) which corrupted the first row headers
-            return String(h || "").replace(/^\uFEFF/, "").trim(); 
-          },
-          chunk: function(results) {
-            if (!config.all.length) {
-              config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
-            }
-            
-            const validRows = results.data.filter(r => {
-              const w = r['Word'] || r['Baseword'];
-              return w && w.trim().length > 0;
-            });
-            config.data.push(...validRows);
-
-            if (!firstPaint && config.data.length >= config.rpp) {
-              firstPaint = true;
-              config.filtered = [...config.data];
-              if (loadingEl) loadingEl.textContent = `Loading remaining records in background...`;
-              document.getElementById(`${key}Table`).style.display = 'table';
-              document.getElementById(`${key}Pagination`).style.display = 'flex';
-              buildDropdowns(key);
-              renderTable(key);
-            } else if (firstPaint && loadingEl) {
-              loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`;
-            }
-          },
-          complete: function() {
-            config.filtered = [...config.data];
-            if (!firstPaint) {
-              document.getElementById(`${key}Table`).style.display = 'table';
-              document.getElementById(`${key}Pagination`).style.display = 'flex';
-              buildDropdowns(key); renderTable(key);
-            } else {
-              filterTable(key);
-            }
-            if (loadingEl) loadingEl.style.display = 'none';
-          }
-        });
-      } catch (e) {
-        if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
-      }
+    // FIX 2: Manually strip the invisible Byte Order Mark (BOM) if it exists at the very beginning
+    if (csvText.charCodeAt(0) === 0xFEFF) {
+      csvText = csvText.substring(1);
     }
+
+    if (loadingEl) loadingEl.textContent = `Parsing ${key} records...`;
+
+    // FIX 3: Parse the entire text at once. 
+    // No chunks = no broken quotes, bringing back rows 1 through 111!
+    Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: 'greedy', 
+      worker: true, // Uses a background thread so the page doesn't freeze!
+      complete: function(results) {
+        // Safely extract headers (ignoring any broken ones)
+        if (!config.all || config.all.length === 0) {
+          config.all = results.meta.fields.filter(f => f && f.length < 100 && !f.includes(','));
+        }
+        
+        // Clean up rows to ensure only valid data is pushed
+        config.data = results.data.filter(r => {
+          const w = r['Word'] || r['Baseword'];
+          return w && w.trim().length > 0;
+        });
+        
+        // Sync the filtered list
+        config.filtered = [...config.data];
+
+        // Render the UI
+        document.getElementById(`${key}Table`).style.display = 'table';
+        document.getElementById(`${key}Pagination`).style.display = 'flex';
+        
+        buildDropdowns(key);
+        renderTable(key);
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+      },
+      error: function(err) {
+        if (loadingEl) loadingEl.textContent = `Parsing error: ${err}`;
+      }
+    });
+  } catch (e) {
+    if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
+  }
+}
+
 
     function buildDropdowns(key) {
       const config = DATASETS[key];
