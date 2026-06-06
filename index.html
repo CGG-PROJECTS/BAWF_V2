@@ -315,7 +315,8 @@
         </div>
         <div class="db-wrap" id="cmWrap">
           <div class="db-controls">
-            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
+            <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..."
+mGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
             <button class="db-btn" onclick="filterTable('cm')">🔍 Search</button>
             <button class="db-btn" onclick="clearAllFilters('cm')">🧹 Clear</button>
             <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
@@ -526,7 +527,7 @@
     </div>
   </div>
 
-  <!-- Explain Row Modal (RESTORED) -->
+  <!-- Explain Row Modal -->
   <div id="explainModalBackdrop" class="modal">
     <div class="modal-content" style="max-width:780px;">
       <div class="modal-header">
@@ -564,17 +565,27 @@
 
 
   <script>
+    // DATASETS Setup (Language_of_Origin removed from visible)
     const DATASETS = {
-      wf: { file: 'BAWF_FINAL.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Baseword', 'Baseword_Family_Size', 'GPT_Coded_Word_Parts', 'GPT_Root', 'Root_Meaning', 'Language_of_Origin'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
-      cm: { file: 'BAWF_Compound_Words_FINAL__Main_Compound.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Compound_Type', 'Component_1', 'Component_2', 'Baseword', 'GPT_Root', 'Language_of_Origin'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
+      wf: { file: 'BAWF_FINAL.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Baseword', 'Baseword_Family_Size', 'GPT_Coded_Word_Parts', 'GPT_Root', 'Root_Meaning'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
+      cm: { file: 'BAWF_Compound_Words_FINAL__Main_Compound.csv.gz', visible: ['Word', 'Word_frq_Zipf', 'FLemma', 'Compound_Type', 'Component_1', 'Component_2', 'Baseword', 'GPT_Root'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
       cs: { file: 'BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz', visible: ['Baseword', 'Baseword_frq_Zipf', 'Family_Size_No_Compounds', 'Family_Size_With_Compounds', 'Compound_Count'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false },
-      de: { file: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', visible: ['Word', 'FLemma', 'Definition', 'Etymology', 'Language_of_Origin', 'GPT_Root', 'Root_Meaning'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false }
+      de: { file: 'BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.gz', visible: ['Word', 'FLemma', 'Definition', 'Etymology', 'GPT_Root', 'Root_Meaning'], all: [], data: [], filtered: [], page: 1, rpp: 100, sortBy: '', sortDesc: false }
     };
+
+    // Columns that should remain text input searches (everything else becomes a dropdown)
+    const TEXT_SEARCH_COLS = [
+      'Word', 'FLemma', 'Baseword', 'Component_1', 'Component_2', 
+      'Definition', 'Etymology', 'Word_frq_Zipf', 'Baseword_frq_Zipf', 
+      'Baseword_Family_Size', 'Family_Size_No_Compounds', 
+      'Family_Size_With_Compounds', 'Compound_Count'
+    ];
 
     let activeTabId = 'word-families';
     let activeKey = 'wf';
-    let columnFilters = {};
+    let columnFilters = {}; // format: { colName: { val: 'abc', exact: false } }
     let filterTimeouts = {};
+    const dropdownCache = {};
 
     window.addEventListener('DOMContentLoaded', () => {
       initDataset('wf');
@@ -612,7 +623,6 @@
       if (!DATASETS[key].data.length) initDataset(key); else renderTable(key);
     }
 
-    // HIGH-PERFORMANCE DATA LOADER (Asynchronous Blob Chunking + Fixed Bytes/BOM)
     async function initDataset(key) {
       const config = DATASETS[key];
       const loadingEl = document.getElementById(`${key}Loading`);
@@ -623,8 +633,6 @@
         
         if (loadingEl) loadingEl.textContent = `Decompressing data...`;
         const buffer = await res.arrayBuffer();
-        
-        // FIX: Extract RAW bytes to prevent UTF-8 corruption
         const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
 
         if (loadingEl) loadingEl.textContent = `Parsing records...`;
@@ -635,11 +643,11 @@
 
         Papa.parse(blob, {
           header: true,
-          skipEmptyLines: 'greedy',   // FIX: Prevents empty lines breaking chunks
-          chunkSize: 1024 * 1024 * 3, // FIX: 3MB chunk ensures large quotes aren't split
+          skipEmptyLines: 'greedy',
+          chunkSize: 1024 * 1024 * 3, 
           transformHeader: function(h) {
-            // FIX: Remove Byte Order Mark (\uFEFF) which corrupted the first row headers
-            return String(h || "").replace(/^\uFEFF/, "").trim(); 
+            // FIX: Removes UTF-8 BOM glitch causing ï»¿Word to appear
+            return String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim(); 
           },
           chunk: function(results) {
             if (!config.all.length) {
@@ -671,7 +679,7 @@
               document.getElementById(`${key}Pagination`).style.display = 'flex';
               buildDropdowns(key); renderTable(key);
             } else {
-              filterTable(key);
+              filterTable(key); // Refresh after load to catch any applied filters
             }
             if (loadingEl) loadingEl.style.display = 'none';
           }
@@ -697,7 +705,8 @@
         const selected = Array.from(select.selectedOptions).map(o => o.value);
         if (!selected.length) return;
         DATASETS[key].visible = [...DATASETS[key].visible, ...selected];
-        buildDropdowns(key); renderTable(key);
+        buildDropdowns(key); 
+        renderTable(key);
       };
     }
 
@@ -713,8 +722,24 @@
 
       const filterRow = document.getElementById(`${key}FilterRow`);
       filterRow.innerHTML = config.visible.map(col => {
-        const val = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : '';
-        return `<td><input type="text" placeholder="Filter..." value="${val}" oninput="onColumnFilter('${key}', '${col}', this.value)" /></td>`;
+        const filterData = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : null;
+        const currentVal = filterData ? filterData.val : '';
+        
+        if (TEXT_SEARCH_COLS.includes(col)) {
+           return `<td><input type="text" placeholder="Filter..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
+        } else {
+           // Categorical column -> Generate Dropdown Select
+           const cacheKey = key + '_' + col;
+           if (!dropdownCache[cacheKey]) {
+               dropdownCache[cacheKey] = [...new Set(config.data.map(r => r[col] || '').filter(v => v))].sort((a,b) => a.localeCompare(b));
+           }
+           let opts = `<option value="">All</option>`;
+           dropdownCache[cacheKey].forEach(u => {
+               const sel = (currentVal === u) ? 'selected' : '';
+               opts += `<option value="${u.replace(/"/g, '&quot;')}" ${sel}>${u}</option>`;
+           });
+           return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true)">${opts}</select></td>`;
+        }
       }).join('') + `<td></td>`;
 
       const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
@@ -738,7 +763,7 @@
           bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
         });
         const wordVal = row['Word'] || row['Baseword'] || '';
-        const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;'); // SAFE HTML ESCAPING
+        const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;'); 
         bodyHtml += `<td>
           <div class="row-actions">
             <button class="source-btn" onclick="lookupGoogle('${wordVal.replace(/'/g, "\\'")}')">🌐 Search</button>
@@ -749,10 +774,19 @@
       tbody.innerHTML = bodyHtml;
     }
 
-    // DEBOUNCED FILTERING
-    function onColumnFilter(key, col, val) {
+    // Debounced Filtering logic with exact vs substring matching support
+    function onColumnFilter(key, col, val, isExact) {
       if (!columnFilters[key]) columnFilters[key] = {};
-      if (!val) delete columnFilters[key][col]; else columnFilters[key][col] = val.toLowerCase();
+      
+      if (!val) {
+        delete columnFilters[key][col];
+      } else {
+        columnFilters[key][col] = { 
+          val: isExact ? val : val.toLowerCase(), 
+          exact: isExact 
+        };
+      }
+      
       clearTimeout(filterTimeouts[key]);
       filterTimeouts[key] = setTimeout(() => filterTable(key), 200);
     }
@@ -761,14 +795,27 @@
       const config = DATASETS[key];
       const globalQuery = document.getElementById(`${key}GlobalSearch`)?.value.trim().toLowerCase() || '';
       const colFilters = columnFilters[key] || {};
+      
       config.filtered = config.data.filter(row => {
-        for (const col in colFilters) if (!String(row[col] || '').toLowerCase().includes(colFilters[col])) return false;
+        // Individual column filters
+        for (const col in colFilters) {
+          const filterDef = colFilters[col];
+          const cellVal = String(row[col] || '');
+          if (filterDef.exact) {
+            if (cellVal !== filterDef.val) return false;
+          } else {
+            if (!cellVal.toLowerCase().includes(filterDef.val)) return false;
+          }
+        }
+        // Global search input
         if (globalQuery) {
           return config.visible.some(col => String(row[col] || '').toLowerCase().includes(globalQuery));
         }
         return true;
       });
-      config.page = 1; renderTable(key);
+      
+      config.page = 1; 
+      renderTable(key);
     }
 
     function clearAllFilters(key) {
@@ -776,18 +823,36 @@
       const globalInput = document.getElementById(`${key}GlobalSearch`);
       if (globalInput) globalInput.value = '';
       DATASETS[key].filtered = [...DATASETS[key].data];
-      DATASETS[key].page = 1; renderTable(key);
+      DATASETS[key].page = 1; 
+      renderTable(key);
     }
 
+    // Advanced sorting logic with numerical detection
     function sortTable(key, col) {
       const config = DATASETS[key];
-      if (config.sortBy === col) config.sortDesc = !config.sortDesc;
-      else { config.sortBy = col; config.sortDesc = false; }
+      if (config.sortBy === col) {
+        config.sortDesc = !config.sortDesc;
+      } else {
+        config.sortBy = col; 
+        config.sortDesc = false; 
+      }
+      
       config.filtered.sort((a, b) => {
-        let v1 = a[col] || '', v2 = b[col] || '';
-        let n1 = parseFloat(v1), n2 = parseFloat(v2);
-        if (!isNaN(n1) && !isNaN(n2)) return config.sortDesc ? n2 - n1 : n1 - n2;
-        v1 = String(v1).toLowerCase(); v2 = String(v2).toLowerCase();
+        let v1 = a[col] || '';
+        let v2 = b[col] || '';
+        
+        // Detect if both values are purely numerical
+        let isNum1 = v1 !== '' && !isNaN(Number(v1));
+        let isNum2 = v2 !== '' && !isNaN(Number(v2));
+        
+        if (isNum1 && isNum2) {
+          return config.sortDesc ? Number(v2) - Number(v1) : Number(v1) - Number(v2);
+        }
+        
+        // String sorting fallback
+        v1 = String(v1).toLowerCase(); 
+        v2 = String(v2).toLowerCase();
+        
         if (v1 < v2) return config.sortDesc ? 1 : -1;
         if (v1 > v2) return config.sortDesc ? -1 : 1;
         return 0;
@@ -800,7 +865,9 @@
     function changeRowsPerPage(key) { DATASETS[key].rpp = parseInt(document.getElementById(`${key}RowsPerPage`).value, 10); DATASETS[key].page = 1; renderTable(key); }
 
     function copyColumnValues(key) {
-      const config = DATASETS[key], col = document.getElementById(`${key}CopyColumnSelect`).value, scope = document.getElementById(`${key}CopyScope`).value;
+      const config = DATASETS[key];
+      const col = document.getElementById(`${key}CopyColumnSelect`).value;
+      const scope = document.getElementById(`${key}CopyScope`).value;
       const targetRows = scope === 'page' ? config.filtered.slice((config.page - 1) * config.rpp, config.page * config.rpp) : config.filtered;
       navigator.clipboard.writeText(targetRows.map(r => r[col] || '').filter(v => v).join('\n')).then(() => alert(`Copied column "${col}"!`));
     }
@@ -978,3 +1045,6 @@ Deliver clean, production-ready educational assets.`;
   </script>
 </body>
 </html>
+
+
+  
