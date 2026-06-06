@@ -783,28 +783,29 @@
     import { asyncBufferFromUrl, parquetRead } from "https://cdn.jsdelivr.net/npm/hyparquet/+esm";
     import { compressors } from "https://cdn.jsdelivr.net/npm/hyparquet-compressors/+esm";
 
-    const DATASETS = {
-      wf: {
-        file: "BAWF_FINAL.csv.parquet",
-        name: "Word Families",
-        area: "wfArea"
-      },
-      cm: {
-        file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.parquet",
-        name: "Compound Main",
-        area: "cmArea"
-      },
-      cs: {
-        file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.parquet",
-        name: "Compound Stats",
-        area: "csArea"
-      },
-      de: {
-        file: "BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.parquet",
-        name: "Definitions & Etymology",
-        area: "deArea"
-      }
-    };
+ const DATASETS = {
+  wf: {
+    file: "./BAWF_FINAL.csv.parquet",
+    name: "Word Families",
+    area: "wfArea"
+  },
+  cm: {
+    file: "./BAWF_Compound_Words_FINAL__Main_Compound.csv.parquet",
+    name: "Compound Main",
+    area: "cmArea"
+  },
+  cs: {
+    file: "./BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.parquet",
+    name: "Compound Stats",
+    area: "csArea"
+  },
+  de: {
+    file: "./BAWF_Definitions_Etymologies__Definitions_and_Etymology.csv.parquet",
+    name: "Definitions & Etymology",
+    area: "deArea"
+  }
+};
+
 
     const state = {};
     Object.keys(DATASETS).forEach(prefix => {
@@ -937,35 +938,40 @@
       }
     }
 
-    async function readParquetObjects(url) {
-      const file = await asyncBufferFromUrl(url);
+  async function readParquetObjects(url) {
+  const resolvedUrl = new URL(url, window.location.href).href;
 
-      return await new Promise((resolve, reject) => {
-        let done = false;
+  const file = await asyncBufferFromUrl({
+    url: resolvedUrl
+  });
 
-        const options = {
-          file,
-          rowFormat: "object",
-          compressors,
-          onComplete: data => {
-            done = true;
-            resolve(data || []);
-          }
-        };
+  return await new Promise((resolve, reject) => {
+    let done = false;
 
-        try {
-          const result = parquetRead(options);
+    const options = {
+      file,
+      rowFormat: "object",
+      compressors,
+      onComplete: data => {
+        done = true;
+        resolve(data || []);
+      }
+    };
 
-          if (result && typeof result.then === "function") {
-            result.then(data => {
-              if (!done && data) resolve(data);
-            }).catch(reject);
-          }
-        } catch (err) {
-          reject(err);
-        }
-      });
+    try {
+      const result = parquetRead(options);
+
+      if (result && typeof result.then === "function") {
+        result.then(data => {
+          if (!done && data) resolve(data);
+        }).catch(reject);
+      }
+    } catch (err) {
+      reject(err);
     }
+  });
+}
+
 
     function renderShell(prefix) {
       const cfg = DATASETS[prefix];
