@@ -1358,7 +1358,7 @@ document.addEventListener("copy", function (e) {
     .writeText(lines.join("\n"))
     .then(() => alert("Copied rendered rows (Excel format)."));
 }
-/* ===== Excel-like rectangular drag selection + copy TSV ===== */
+/* ===== Merged Excel-like selection: rectangle + sparse non-adjacent ===== */
 
 const excelSelection = {
   dragging: false,
@@ -1370,21 +1370,16 @@ const excelSelection = {
   endCol: -1
 };
 
+// sparse keys: `${tableId}|${row}:${col}`
+const sparseSelection = new Set();
+
+function getTableId(tableEl) {
+  return tableEl?.id || "db-table";
+}
+
 function getDataCells(tr) {
   // Exclude Actions column
   return Array.from(tr.cells).filter(td => !td.querySelector('.row-actions'));
-}
-function applyDefaultZipfSort(columns, rows) {
-  const zipfIndex = columns.findIndex(c => /zipf/i.test(c));
-  if (zipfIndex === -1) return rows;
-
-  return [...rows].sort((a, b) => {
-    const av = parseFloat(a[zipfIndex]);
-    const bv = parseFloat(b[zipfIndex]);
-    const aNum = Number.isFinite(av) ? av : -Infinity;
-    const bNum = Number.isFinite(bv) ? bv : -Infinity;
-    return bNum - aNum; // descending
-  });
 }
 
 function getCellPos(cell) {
@@ -1400,7 +1395,7 @@ function getCellPos(cell) {
   return { table, tbody, row, col };
 }
 
-function clearExcelSelection() {
+function clearRectangleSelection() {
   if (excelSelection.table) {
     excelSelection.table
       .querySelectorAll('td.excel-selected, td.excel-anchor')
@@ -1414,7 +1409,23 @@ function clearExcelSelection() {
   document.body.classList.remove('excel-dragging');
 }
 
-function paintExcelSelection() {
+function clearSparseSelection(tableEl = null) {
+  if (!tableEl) {
+    // clear all tables sparse UI
+    document.querySelectorAll('table.db-table td.excel-sparse')
+      .forEach(td => td.classList.remove('excel-sparse'));
+    sparseSelection.clear();
+    return;
+  }
+
+  const tableId = getTableId(tableEl);
+  for (const key of [...sparseSelection]) {
+    if (key.startsWith(tableId + "|")) sparseSelection.delete(key);
+  }
+  tableEl.querySelectorAll('td.excel-sparse').forEach(td => td.classList.remove('excel-sparse'));
+}
+
+function paintRectangleSelection() {
   const s = excelSelection;
   if (!s.table || !s.tbody) return;
 
@@ -1440,13 +1451,13 @@ function paintExcelSelection() {
   if (anchorTd) anchorTd.classList.add('excel-anchor');
 }
 
-function hasExcelSelection() {
+function hasRectangleSelection() {
   const s = excelSelection;
   return !!(s.table && s.tbody && s.startRow >= 0 && s.startCol >= 0 && s.endRow >= 0 && s.endCol >= 0);
 }
 
-function toTSVFromExcelSelection(includeHeader = false) {
-  if (!hasExcelSelection()) return '';
+function toTSVFromRectangle(includeHeader = false) {
+  if (!hasRectangleSelection()) return '';
 
   const s = excelSelection;
   const r1 = Math.min(s.startRow, s.endRow);
@@ -1477,32 +1488,134 @@ function toTSVFromExcelSelection(includeHeader = false) {
   return lines.join('\n');
 }
 
-// Start drag selection
+function toTSVFromSparse({ preserveGaps = true, includeHeader = false } = {}) {
+  if (!sparseSelection.size) return '';
+
+  // group by tableId
+  const byTable = new Map();
+  for (const k of sparseSelection) {
+    const [tableId, rc] = k.split('|');
+    if (!byTable.has(tableId)) byTable.set(tableId, []);
+    byTable.get(tableId).push(rc);
+  }
+
+  // If multiple tables selected, copy first table group only
+  const firstTableId = byTable.keys().next().value;
+  const coords = byTable.get(firstTableId) || [];
+  const table = document.getElementById(firstTableId);
+  const tbody = table?.querySelector('tbody');
+  if (!table || !tbody || !coords.length) return '';
+
+  const parsed = coords.map(rc => {
+    const [r, c] = rc.split(':').map(Number);
+    return { r, c };
+  }).filter(x => Number.isInteger(x.r) && Number.isInteger(x.c));
+
+  if (!parsed.length) return '';
+
+  const rows = [...new Set(parsed.map(x => x.r))].sort((a,b)=>a-b);
+  const cols = [...new Set(parsed.map(x => x.c))].sort((a,b)=>a-b);
+
+  const minC = cols[0], maxC = cols[cols.length - 1];
+  const lookup = new Set(coords.map(rc => `${firstTableId}|${rc}`));
+
+  const clean = v => String(v ?? '').replace(/\r?\n+/g, ' ').replace(/\t/g, ' ').trim();
+  const lines = [];
+
+  if (includeHeader) {
+    const headers = Array.from(table.querySelectorAll('thead tr:first-child th'))
+      .filter(th => !/^\s*actions\s*$/i.test(th.textContent));
+
+    if (preserveGaps) {
+      const h = [];
+      for (let c = minC; c <= maxC; c++) h.push(clean(headers[c]?.textContent || ''));
+      lines.push(h.join('\t'));
+    } else {
+      lines.push(cols.map(c => clean(headers[c]?.textContent || '')).join('\t'));
+    }
+  }
+
+  for (const r of rows) {
+    const tr = tbody.rows[r];
+    if (!tr) continue;
+    const cells = getDataCells(tr);
+
+    if (preserveGaps) {
+      const out = [];
+      for (let c = minC; c <= maxC; c++) {
+        if (lookup.has(`${firstTableId}|${r}:${c}`)) out.push(clean(cells[c]?.innerText || ''));
+        else out.push('');
+      }
+      lines.push(out.join('\t'));
+    } else {
+      const out = cols
+        .filter(c => lookup.has(`${firstTableId}|${r}:${c}`))
+        .map(c => clean(cells[c]?.innerText || ''));
+      lines.push(out.join('\t'));
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function toggleSparseCell(td) {
+  const pos = getCellPos(td);
+  if (!pos) return;
+  const tableId = getTableId(pos.table);
+  const key = `${tableId}|${pos.row}:${pos.col}`;
+
+  if (sparseSelection.has(key)) {
+    sparseSelection.delete(key);
+    td.classList.remove('excel-sparse');
+  } else {
+    sparseSelection.add(key);
+    td.classList.add('excel-sparse');
+  }
+}
+
+/* Mouse down:
+   - Ctrl/Cmd + click => toggle sparse cell
+   - normal click/drag => rectangle selection
+*/
 document.addEventListener('mousedown', (e) => {
   const td = e.target.closest('table.db-table tbody td');
 
+  // click outside table => clear both
   if (!td) {
-    if (!e.target.closest('table.db-table')) clearExcelSelection();
+    if (!e.target.closest('table.db-table')) {
+      clearRectangleSelection();
+      clearSparseSelection();
+    }
     return;
   }
 
-  // Skip actions/buttons cell
+  // skip actions cell
   if (td.querySelector('.row-actions')) return;
 
+  // sparse toggle with Ctrl/Cmd
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault();
+    clearRectangleSelection(); // keep modes separate for clean copy behavior
+    toggleSparseCell(td);
+    return;
+  }
+
+  // normal rectangle start
   const pos = getCellPos(td);
   if (!pos) return;
 
   e.preventDefault();
+  clearSparseSelection(pos.table); // optional: clear sparse on normal drag in same table
   excelSelection.dragging = true;
   excelSelection.table = pos.table;
   excelSelection.tbody = pos.tbody;
   excelSelection.startRow = excelSelection.endRow = pos.row;
   excelSelection.startCol = excelSelection.endCol = pos.col;
   document.body.classList.add('excel-dragging');
-  paintExcelSelection();
+  paintRectangleSelection();
 });
 
-// Drag update
+// Drag rectangle
 document.addEventListener('mousemove', (e) => {
   if (!excelSelection.dragging) return;
 
@@ -1515,7 +1628,7 @@ document.addEventListener('mousemove', (e) => {
   if (pos.row !== excelSelection.endRow || pos.col !== excelSelection.endCol) {
     excelSelection.endRow = pos.row;
     excelSelection.endCol = pos.col;
-    paintExcelSelection();
+    paintRectangleSelection();
   }
 });
 
@@ -1526,18 +1639,33 @@ document.addEventListener('mouseup', () => {
   document.body.classList.remove('excel-dragging');
 });
 
-// Ctrl/Cmd+C copy selected rectangle as TSV
+// Copy: sparse first, else rectangle
 document.addEventListener('copy', (e) => {
-  const tsv = toTSVFromExcelSelection(false); // set true if you want headers
-  if (!tsv) return; // fallback normal browser copy
-  e.preventDefault();
-  e.clipboardData.setData('text/plain', tsv);
+  // 1) sparse copy (preserve grid gaps between selected columns)
+  const sparseTSV = toTSVFromSparse({ preserveGaps: true, includeHeader: false });
+  if (sparseTSV) {
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', sparseTSV);
+    return;
+  }
+
+  // 2) rectangle copy
+  const rectTSV = toTSVFromRectangle(false);
+  if (rectTSV) {
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', rectTSV);
+  }
+  // 3) else normal browser copy
 });
 
-// ESC clears selected rectangle
+// ESC clears both modes
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') clearExcelSelection();
+  if (e.key === 'Escape') {
+    clearRectangleSelection();
+    clearSparseSelection();
+  }
 });
+
 
   </script>
 </body>
