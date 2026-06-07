@@ -277,6 +277,7 @@ body.excel-dragging {
         <li>The British and American Word Families (BAWF) is a tool for vocabulary morphology instruction. </li>
         <li>Morphology is the study of how words are built from meaningful units, including bases, roots, prefixes, and suffixes.</li>
         <li>Filter or search for words you want and particular morphemes.</li>
+        <li>Word Parts coded by GPT + direct links to AI models, dictionaries and etymological resources for further information and classroom resources.</li>
         <li>Use sorting, filtering, and column search to find morphologically related words quickly.</li>
         <li>Copy and Paste word + frequency (Right click and Ctrl) into the Word Cloud tab to make visuals.</li>
         <li>Use Zipf frequencies to sort by freq. bands (1st 1000 words, 2nd 1000, etc.).</li>
@@ -1201,51 +1202,79 @@ Please return:
     function showColumnKey() { document.getElementById('columnModal').classList.add('show'); document.body.classList.add('modal-open'); }
     function closeModal() { document.getElementById('columnModal').classList.remove('show'); document.body.classList.remove('modal-open'); }
 
-    function generateWordCloud() {
+function generateWordCloud() {
   const input = document.getElementById("wordInput").value;
   const status = document.getElementById("cloudStatus");
+  const canvas = document.getElementById("wordCanvas");
 
-  // Keep non-empty lines only
   const lines = input
-    .split('\n')
+    .split(/\r?\n/)
     .map(l => l.trim())
-    .filter(l => l.length > 0);
+    .filter(Boolean);
 
   if (!lines.length) {
-    status.textContent = "Please fill in word frequencies first.";
+    status.textContent = "Please paste word + frequency rows first.";
     return;
   }
 
-  const list = lines.map(line => {
-    // Supports: "word 25" OR "multi word term 25"
-    const parts = line.split(/\s+/);
-    if (parts.length < 2) return null; // require frequency
+  // Parse rows: supports TAB-separated (Excel copy) and space-separated
+  const parsed = [];
+  for (const line of lines) {
+    let word = "";
+    let val = NaN;
 
-    const freq = Number(parts[parts.length - 1]);
-    const word = parts.slice(0, -1).join(' ').trim();
+    if (line.includes("\t")) {
+      // Excel/tab paste
+      const cols = line.split("\t").map(c => c.trim());
+      // find last numeric column as frequency
+      for (let i = cols.length - 1; i >= 0; i--) {
+        const n = Number(cols[i]);
+        if (Number.isFinite(n)) {
+          val = n;
+          word = cols.slice(0, i).join(" ").trim();
+          break;
+        }
+      }
+    } else {
+      // space-separated
+      const parts = line.split(/\s+/);
+      if (parts.length >= 2) {
+        val = Number(parts[parts.length - 1]); // parseFloat behavior via Number
+        word = parts.slice(0, -1).join(" ").trim();
+      }
+    }
 
-    // Ignore blank word or invalid/blank frequency
-    if (!word || !Number.isFinite(freq) || freq <= 0) return null;
+    if (!word || !Number.isFinite(val) || val <= 0) continue;
+    parsed.push([word, val]);
+  }
 
-    return [word, freq];
-  }).filter(Boolean);
-
-  if (!list.length) {
-    status.textContent = "No valid rows found. Use format: word frequency";
+  if (!parsed.length) {
+    status.textContent = "No valid rows found. Use: word<TAB>frequency or word frequency.";
     return;
   }
+
+  // Auto-detect Zipf-like values (typically 1..8) and boost scale
+  const vals = parsed.map(x => x[1]);
+  const looksLikeZipf = vals.every(v => v >= 1 && v <= 8);
+
+  const list = parsed.map(([w, v]) => {
+    const weight = looksLikeZipf
+      ? Math.pow(10, v - 1)   // boost Zipf
+      : v;                    // regular counts stay as-is
+    return [w, weight];
+  });
 
   status.textContent = `Rendering word cloud with ${list.length} rows...`;
-  WordCloud(document.getElementById('wordCanvas'), {
+
+  WordCloud(canvas, {
     list,
     gridSize: 8,
-    weightFactor: s => Math.min(Math.max(s * 1.5, 12), 110),
-    color: 'random-dark',
-    backgroundColor: '#ffffff',
+    weightFactor: (s) => Math.min(Math.max(Math.sqrt(s) * 8, 14), 120),
+    color: "random-dark",
+    backgroundColor: "#ffffff",
     rotateRatio: 0.3
   });
 }
-
 
     function addWordsFromFilteredRows() {
       const config = DATASETS[activeKey];
