@@ -395,20 +395,7 @@ body.excel-dragging {
         </div>
         <div class="db-wrap" id="csWrap">
           <div class="db-controls">
-            <input id="csGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Stats..." />
-            <button class="db-btn" onclick="filterTable('cs')">🔍 Search</button>
-            <button class="db-btn" onclick="clearAllFilters('cs')">🧹 Clear</button>
-            <button class="db-btn" onclick="exportCSV('cs', 'BAWF_Compound_Stats_Filtered.csv')">↓ Export CSV</button>
-
-            <select id="csCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
-            <select id="csCopyScope" class="db-select">
-              <option value="filtered" selected>Copy all filtered rows</option>
-              <option value="page">Copy current page only</option>
-            </select>
-            <button class="db-btn secondary" onclick="copyColumnValues('cs')">📋 Copy Column Cells</button>
-
-            <select id="csAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-            <button id="csAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
+         
           </div>
           <div class="db-meta">Showing <strong id="csRowCount">0</strong> rows</div>
           <div id="csLoading" class="db-loading">Loading Compound Stats dataset...</div>
