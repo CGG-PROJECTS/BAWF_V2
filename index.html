@@ -43,10 +43,28 @@
       border:none;
     }
     /* Add this to your style block */
-.db-table th, .db-table td {
-  user-select: text;
-  -webkit-user-select: text;
-  cursor: text;
+/* Excel-like selection */
+.db-table td, .db-table th {
+  cursor: cell;
+}
+
+.db-table td {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.db-table td.excel-selected {
+  background: #dbeafe !important;
+}
+
+.db-table td.excel-anchor {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+body.excel-dragging {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
     .key-btn:hover { background:#1e40af; }
@@ -1149,9 +1167,7 @@ Please return:
       closeExplainModal();
     }
 
-    document.addEventListener("change", (e) => {
-      if (e.target?.id === "explainTask" && currentExplainRow) byId("explainPreview").value = buildExplainPrompt(currentExplainRow, e.target.value);
-    });
+    
 
     window.addEventListener("click", (e) => {
       if (e.target === byId("columnModal")) closeModal();
@@ -1318,6 +1334,174 @@ document.addEventListener("copy", function (e) {
     .writeText(lines.join("\n"))
     .then(() => alert("Copied rendered rows (Excel format)."));
 }
+/* ===== Excel-like rectangular drag selection + copy TSV ===== */
+
+const excelSelection = {
+  dragging: false,
+  table: null,
+  tbody: null,
+  startRow: -1,
+  startCol: -1,
+  endRow: -1,
+  endCol: -1
+};
+
+function getDataCells(tr) {
+  // Exclude Actions column
+  return Array.from(tr.cells).filter(td => !td.querySelector('.row-actions'));
+}
+
+function getCellPos(cell) {
+  const tr = cell.closest('tr');
+  const tbody = tr?.closest('tbody');
+  const table = tbody?.closest('table.db-table');
+  if (!tr || !tbody || !table) return null;
+
+  const row = Array.prototype.indexOf.call(tbody.rows, tr);
+  const col = getDataCells(tr).indexOf(cell);
+  if (row < 0 || col < 0) return null;
+
+  return { table, tbody, row, col };
+}
+
+function clearExcelSelection() {
+  if (excelSelection.table) {
+    excelSelection.table
+      .querySelectorAll('td.excel-selected, td.excel-anchor')
+      .forEach(td => td.classList.remove('excel-selected', 'excel-anchor'));
+  }
+  excelSelection.dragging = false;
+  excelSelection.table = null;
+  excelSelection.tbody = null;
+  excelSelection.startRow = excelSelection.startCol = -1;
+  excelSelection.endRow = excelSelection.endCol = -1;
+  document.body.classList.remove('excel-dragging');
+}
+
+function paintExcelSelection() {
+  const s = excelSelection;
+  if (!s.table || !s.tbody) return;
+
+  s.table.querySelectorAll('td.excel-selected, td.excel-anchor')
+    .forEach(td => td.classList.remove('excel-selected', 'excel-anchor'));
+
+  const r1 = Math.min(s.startRow, s.endRow);
+  const r2 = Math.max(s.startRow, s.endRow);
+  const c1 = Math.min(s.startCol, s.endCol);
+  const c2 = Math.max(s.startCol, s.endCol);
+
+  for (let r = r1; r <= r2; r++) {
+    const tr = s.tbody.rows[r];
+    if (!tr) continue;
+    const cells = getDataCells(tr);
+    for (let c = c1; c <= c2; c++) {
+      if (cells[c]) cells[c].classList.add('excel-selected');
+    }
+  }
+
+  const anchorTr = s.tbody.rows[s.startRow];
+  const anchorTd = anchorTr ? getDataCells(anchorTr)[s.startCol] : null;
+  if (anchorTd) anchorTd.classList.add('excel-anchor');
+}
+
+function hasExcelSelection() {
+  const s = excelSelection;
+  return !!(s.table && s.tbody && s.startRow >= 0 && s.startCol >= 0 && s.endRow >= 0 && s.endCol >= 0);
+}
+
+function toTSVFromExcelSelection(includeHeader = false) {
+  if (!hasExcelSelection()) return '';
+
+  const s = excelSelection;
+  const r1 = Math.min(s.startRow, s.endRow);
+  const r2 = Math.max(s.startRow, s.endRow);
+  const c1 = Math.min(s.startCol, s.endCol);
+  const c2 = Math.max(s.startCol, s.endCol);
+
+  const clean = v => String(v ?? '').replace(/\r?\n+/g, ' ').replace(/\t/g, ' ').trim();
+  const lines = [];
+
+  if (includeHeader) {
+    const headers = Array.from(s.table.querySelectorAll('thead tr:first-child th'))
+      .filter(th => !/^\s*actions\s*$/i.test(th.textContent));
+    const h = [];
+    for (let c = c1; c <= c2; c++) h.push(clean(headers[c]?.textContent || ''));
+    lines.push(h.join('\t'));
+  }
+
+  for (let r = r1; r <= r2; r++) {
+    const tr = s.tbody.rows[r];
+    if (!tr) continue;
+    const cells = getDataCells(tr);
+    const row = [];
+    for (let c = c1; c <= c2; c++) row.push(clean(cells[c]?.innerText || ''));
+    lines.push(row.join('\t'));
+  }
+
+  return lines.join('\n');
+}
+
+// Start drag selection
+document.addEventListener('mousedown', (e) => {
+  const td = e.target.closest('table.db-table tbody td');
+
+  if (!td) {
+    if (!e.target.closest('table.db-table')) clearExcelSelection();
+    return;
+  }
+
+  // Skip actions/buttons cell
+  if (td.querySelector('.row-actions')) return;
+
+  const pos = getCellPos(td);
+  if (!pos) return;
+
+  e.preventDefault();
+  excelSelection.dragging = true;
+  excelSelection.table = pos.table;
+  excelSelection.tbody = pos.tbody;
+  excelSelection.startRow = excelSelection.endRow = pos.row;
+  excelSelection.startCol = excelSelection.endCol = pos.col;
+  document.body.classList.add('excel-dragging');
+  paintExcelSelection();
+});
+
+// Drag update
+document.addEventListener('mousemove', (e) => {
+  if (!excelSelection.dragging) return;
+
+  const td = e.target.closest('table.db-table tbody td');
+  if (!td || td.querySelector('.row-actions')) return;
+
+  const pos = getCellPos(td);
+  if (!pos || pos.table !== excelSelection.table) return;
+
+  if (pos.row !== excelSelection.endRow || pos.col !== excelSelection.endCol) {
+    excelSelection.endRow = pos.row;
+    excelSelection.endCol = pos.col;
+    paintExcelSelection();
+  }
+});
+
+// End drag
+document.addEventListener('mouseup', () => {
+  if (!excelSelection.dragging) return;
+  excelSelection.dragging = false;
+  document.body.classList.remove('excel-dragging');
+});
+
+// Ctrl/Cmd+C copy selected rectangle as TSV
+document.addEventListener('copy', (e) => {
+  const tsv = toTSVFromExcelSelection(false); // set true if you want headers
+  if (!tsv) return; // fallback normal browser copy
+  e.preventDefault();
+  e.clipboardData.setData('text/plain', tsv);
+});
+
+// ESC clears selected rectangle
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') clearExcelSelection();
+});
 
   </script>
 </body>
