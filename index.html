@@ -847,7 +847,7 @@
       }
       
       clearTimeout(filterTimeouts[key]);
-      filterTimeouts[key] = setTimeout(() => filterTable(key), 400); // 400ms debounce prevents freezing
+      filterTimeouts[key] = setTimeout(() => filterTable(key), 700); // 400ms debounce prevents freezing
     }
 
     function filterTable(key) {
@@ -1006,10 +1006,17 @@
           }
           if (!pass) continue;
 
-          // Extract unique targets
+          // Extract unique targets with Word pairs
           if (pass) {
               const val = row[target];
-              if (val && val.trim() !== '') results.add(val.trim());
+              const surfaceWord = row['Word'] || row['Baseword'] || '';
+              if (val && val.trim() !== '') {
+                  if (target === 'Word') {
+                      results.add(val.trim());
+                  } else if (surfaceWord.trim() !== '') {
+                      results.add(`${surfaceWord.trim()}: ${val.trim()}`);
+                  }
+              }
           }
        }
 
@@ -1033,13 +1040,36 @@
     function downloadAdvancedList() {
        const text = document.getElementById('advResultsText').value;
        if (!text) return alert("Please generate a wordlist first.");
-       const target = document.getElementById('advTarget').options[document.getElementById('advTarget').selectedIndex].text.replace(/[^a-zA-Z0-9]/g, "_");
        
-       const csvContent = "Extracted_Item\n" + text;
+       const targetSelect = document.getElementById('advTarget');
+       const targetValue = targetSelect.value;
+       const targetName = targetSelect.options[targetSelect.selectedIndex].text;
+       const safeTargetName = targetName.replace(/[^a-zA-Z0-9]/g, "_");
+       
+       let csvContent = "";
+       
+       // If the output is paired (Word: Target), split it into two proper CSV columns
+       if (targetValue === 'Word') {
+           csvContent = "Word\n" + text;
+       } else {
+           csvContent = `"Word","${targetName.replace(/"/g, '""')}"\n`;
+           const lines = text.split('\n');
+           lines.forEach(line => {
+               const splitIdx = line.indexOf(': ');
+               if (splitIdx !== -1) {
+                   const w = line.substring(0, splitIdx).replace(/"/g, '""');
+                   const t = line.substring(splitIdx + 2).replace(/"/g, '""');
+                   csvContent += `"${w}","${t}"\n`;
+               } else {
+                   csvContent += `"${line.replace(/"/g, '""')}"\n`;
+               }
+           });
+       }
+
        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
        const link = document.createElement("a");
        link.href = URL.createObjectURL(blob);
-       link.download = `Custom_Wordlist_${target}.csv`;
+       link.download = `Custom_Wordlist_${safeTargetName}.csv`;
        link.click();
     }
 
