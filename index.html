@@ -650,6 +650,18 @@ body.excel-dragging {
         sortDesc: false
       }
     };
+function parseNum(v) {
+  const s = String(v ?? '').trim().replace(/,/g, '');
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function clearDropdownCache(key) {
+  Object.keys(dropdownCache).forEach(k => {
+    if (k.startsWith(key + '_')) delete dropdownCache[k];
+  });
+}
 
     function isLikelyNumeric(v){
       if (v === null || v === undefined) return false;
@@ -663,36 +675,41 @@ body.excel-dragging {
       return Number.isFinite(n) ? Math.round(n) : null;
     }
 
-  function getDropdownMeta(key, col) {
+function getDropdownMeta(key, col) {
   const cacheKey = key + '_' + col;
   if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
 
   const config = DATASETS[key];
   const raw = config.data
     .map(r => String(r[col] ?? '').trim())
-    .filter(Boolean);
+    .filter(v => v !== '');
 
-  const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
-  const isZipf = /zipf/i.test(col); // detect Word_frq_Zipf etc.
+  const isZipf = /zipf/i.test(col);
+  const nums = raw.map(parseNum).filter(v => v !== null);
 
-  let options;
-  if (numericLike) {
-    if (isZipf) {
-      // FIX: keep full Zipf numeric values (no integer rounding)
-      options = [...new Set(raw)].sort((a, b) => Number(a) - Number(b));
-    } else {
-      // keep rounding for other numeric columns
-      options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))]
-        .sort((a, b) => a - b)
-        .map(String);
-    }
+  let numericLike = nums.length > 0 && (nums.length / raw.length) >= 0.95;
+  let options = [];
+
+  if (isZipf && nums.length) {
+    // no rounding for Zipf
+    options = [...new Set(nums.map(n => String(n)))]
+      .sort((a, b) => Number(a) - Number(b));
+    numericLike = true;
+  } else if (numericLike) {
+    // keep rounding for non-Zipf numeric columns
+    options = [...new Set(nums.map(n => Math.round(n)))]
+      .sort((a, b) => a - b)
+      .map(String);
   } else {
-    options = [...new Set(raw)].sort((a, b) => a.localeCompare(b));
+    options = [...new Set(raw)]
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
   }
 
-  dropdownCache[cacheKey] = { numericLike, isZipf, options };
-  return dropdownCache[cacheKey];
+  const meta = { numericLike, isZipf, options };
+  dropdownCache[cacheKey] = meta;
+  return meta;
 }
+
 function clearDropdownCache(key) {
   Object.keys(dropdownCache).forEach(k => {
     if (k.startsWith(key + '_')) delete dropdownCache[k];
@@ -819,10 +836,15 @@ function chooseDefaultColumns(key, headers){
             }
             
             const validRows = results.data.filter(r => {
-              const w = r['Word'] || r['Baseword'];
-              return w && w.trim().length > 0;
-            });
-            config.data.push(...validRows);
+  const entry = String(r['Word'] ?? r['Baseword'] ?? r['Compound'] ?? '').trim();
+  const zipf = String(r['Word_frq_Zipf'] ?? r['Baseword_frq_Zipf'] ?? '').trim();
+  const any = Object.values(r).some(v => String(v ?? '').trim() !== '');
+  return any && (entry || zipf);
+});
+
+config.data.push(...validRows);
+clearDropdownCache(key); // keep dropdown fresh while streaming
+
 
             if (!firstPaint && config.data.length >= config.rpp) {
               firstPaint = true;
@@ -976,13 +998,10 @@ function chooseDefaultColumns(key, headers){
               const rn = toRoundedInt(cellVal);
               if (rn === null || String(rn) !== String(filterDef.val)) return false;
             } else if (filterDef.numericRounded && filterDef.doNotRound) {
-              if (cellVal === "" || isNaN(cellVal) || Number(cellVal) !== Number(filterDef.val)) return false;
-            } else {
-              if (cellVal !== filterDef.val) return false;
-            }
-          } else {
-            if (!cellVal.toLowerCase().includes(filterDef.val)) return false;
-          }
+  const cellN = parseNum(cellVal);
+  const filtN = parseNum(filterDef.val);
+  if (cellN === null || filtN === null || cellN !== filtN) return false;
+}
         }
 
         if (globalQuery) {
