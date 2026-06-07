@@ -286,7 +286,7 @@ body.excel-dragging {
     </div>
 
     <div class="loading-note">
-      <strong>Note:</strong> Large datasets stream asynchronously so you can browse instantly while the rest loads.
+      <strong>Note:</strong> Large datasets need about 30-60 seconds to load so you can browse instantly.
     </div>
 
     <div style="text-align:center; margin:25px 0;">
@@ -357,11 +357,7 @@ body.excel-dragging {
         </div>
         <div class="db-wrap" id="cmWrap">
           <div class="db-controls">
-        <input id="cmGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Compound Main..." />
-
-            <button class="db-btn" onclick="filterTable('cm')">🔍 Search</button>
-            <button class="db-btn" onclick="clearAllFilters('cm')">🧹 Clear</button>
-            <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
+         <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
 
             <select id="cmCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
             <select id="cmCopyScope" class="db-select">
