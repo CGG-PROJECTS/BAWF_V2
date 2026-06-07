@@ -1100,7 +1100,7 @@ function chooseDefaultColumns(key, headers){
     function buildExplainPrompt(row, task="both"){
       const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
       const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
-      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
+      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","GPT_CODES","Morphological Breakdown"]);
       const definition = getFirstNonEmpty(row, ["Definition","Greek_Latin_Meaning_1","Prefix_1_Meaning","Suffix_1_Meaning"]);
 
       let instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
