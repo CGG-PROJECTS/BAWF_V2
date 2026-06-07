@@ -1185,39 +1185,37 @@ Deliver clean, production-ready educational assets.`;
     }
     function resetWebLLMChat() { document.getElementById("webllmChat").innerHTML = ""; document.getElementById("webllmStatus").textContent = "Chat reset complete."; }
  
-  // Add this to your main script section
-document.addEventListener('keydown', function(e) {
-  // Listen for Ctrl+C or Cmd+C
-  if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return;
+// Add this inside your <script> tags
+document.addEventListener('copy', function(e) {
+  // Only trigger if we are selecting inside a table
+  const selection = window.getSelection();
+  if (!selection.rangeCount) return;
 
-    // Check if the selection is inside a table
-    const table = selection.anchorNode.parentElement.closest('table');
-    if (!table) return;
+  const table = selection.anchorNode.parentElement.closest('table');
+  if (!table) return; // Not in a table, ignore
 
-    // Build TSV content from selected cells
-    let tsvData = "";
-    const rows = table.querySelectorAll('tr');
-    
-    rows.forEach(tr => {
-      let rowContent = [];
-      Array.from(tr.cells).forEach(cell => {
-        // Check if this specific cell is in the user's selection
-        if (selection.containsNode(cell, true)) {
-          rowContent.push(cell.innerText.trim());
-        }
-      });
-      if (rowContent.length > 0) {
-        tsvData += rowContent.join('\t') + '\n';
+  // Prevent default copy behavior and build our own TSV
+  e.preventDefault();
+
+  let tsvData = "";
+  const rows = table.querySelectorAll('tr');
+
+  rows.forEach(tr => {
+    let rowContent = [];
+    Array.from(tr.cells).forEach(cell => {
+      // Check if this specific cell is in the user's selection
+      if (selection.containsNode(cell, true)) {
+        rowContent.push(cell.innerText.trim());
       }
     });
-
-    if (tsvData) {
-      navigator.clipboard.writeText(tsvData).then(() => {
-        alert("Copied selection to clipboard (Excel-ready)!");
-      });
+    if (rowContent.length > 0) {
+      tsvData += rowContent.join('\t') + '\n';
     }
+  });
+
+  if (tsvData) {
+    e.clipboardData.setData('text/plain', tsvData);
+    console.log("Copied to clipboard as TSV");
   }
 });
   </script>
