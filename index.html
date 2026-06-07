@@ -346,18 +346,18 @@ body.excel-dragging {
 
  <!-- TAB 2: Compounds -->
 <div id="compounds" class="tab-content">
-  <style>
-    /* Keep controls in DOM for JS, but hide visually */
+<style>
+      /* Keep controls in DOM for JS, but hide visually */
     #compounds .db-controls {
       display: none !important;
     }
+  /* Show per-column filter rows in Compounds tables */
+  #compounds #cmFilterRow,
+  #compounds #csFilterRow {
+    display: table-row !important;
+  }
+</style>
 
-    /* Hide per-column filter rows */
-    #compounds #cmFilterRow,
-    #compounds #csFilterRow {
-      display: none !important;
-    }
-  </style>
 
   <div class="subtabs">
     <button class="subtab-btn active" onclick="openCompoundSubTab('comp-main', this)">Main Compound</button>
