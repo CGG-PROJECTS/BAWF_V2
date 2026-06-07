@@ -310,17 +310,8 @@ body.excel-dragging {
       </div>
       <div class="db-wrap" id="wfWrap">
         <div class="db-controls">
-          <input id="wfGlobalSearch" class="db-input" type="text" placeholder="Search anywhere in Word Families..." />
-          <button class="db-btn" onclick="filterTable('wf')">🔍 Search</button>
-          <button class="db-btn" onclick="clearAllFilters('wf')">🧹 Clear</button>
-          <button class="db-btn secondary" onclick="copyRenderedRowsAsExcel(activeKey)">  📋 Copy Rendered Rows
           <button class="db-btn" onclick="exportCSV('wf', 'BAWF_Word_Families_Filtered.csv')">↓ Export CSV</button>
 
-          <select id="wfCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
-          <select id="wfCopyScope" class="db-select">
-            <option value="filtered" selected>Copy all filtered rows</option>
-            <option value="page">Copy current page only</option>
-          </select>
           <button class="db-btn secondary" onclick="copyColumnValues('wf')">📋 Copy Column Cells</button>
 
           <select id="wfAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
@@ -677,20 +668,35 @@ body.excel-dragging {
   if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
 
   const config = DATASETS[key];
-  const raw = config.data.map(r => String(r[col] ?? '').trim()).filter(Boolean);
+  const raw = config.data
+    .map(r => String(r[col] ?? '').trim())
+    .filter(Boolean);
+
   const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
-  
-  // Note: Removed the isZipf check to ensure all numeric columns are rounded
+  const isZipf = /zipf/i.test(col); // detect Word_frq_Zipf etc.
+
   let options;
   if (numericLike) {
-    // Round to nearest integer for ALL numeric columns
-    options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a,b)=>a-b);
+    if (isZipf) {
+      // FIX: keep full Zipf numeric values (no integer rounding)
+      options = [...new Set(raw)].sort((a, b) => Number(a) - Number(b));
+    } else {
+      // keep rounding for other numeric columns
+      options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))]
+        .sort((a, b) => a - b)
+        .map(String);
+    }
   } else {
-    options = [...new Set(raw)].sort((a,b)=>a.localeCompare(b));
+    options = [...new Set(raw)].sort((a, b) => a.localeCompare(b));
   }
-  
-  dropdownCache[cacheKey] = { numericLike, options }; // Removed isZipf from return
+
+  dropdownCache[cacheKey] = { numericLike, isZipf, options };
   return dropdownCache[cacheKey];
+}
+function clearDropdownCache(key) {
+  Object.keys(dropdownCache).forEach(k => {
+    if (k.startsWith(key + '_')) delete dropdownCache[k];
+  });
 }
 
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
