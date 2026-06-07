@@ -599,44 +599,47 @@
       return Number.isFinite(n) ? Math.round(n) : null;
     }
 
-    function getDropdownMeta(key, col) {
-      const cacheKey = key + '_' + col;
-      if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
+  function getDropdownMeta(key, col) {
+  const cacheKey = key + '_' + col;
+  if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
 
-      const config = DATASETS[key];
-      const raw = config.data.map(r => String(r[col] ?? '').trim()).filter(Boolean);
-
-      const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
-      
-      // Determine if it is a Zipf/Frequency score based on column name
-      const isZipf = col.toLowerCase().includes('zipf') || col.toLowerCase().includes('frq');
-
-      let options;
-      if (numericLike) {
-        if (isZipf) {
-           // Do not round frequencies/Zipf scores
-           options = [...new Set(raw.map(Number))].sort((a,b)=>a-b);
-        } else {
-           // Round to nearest integer for other numeric columns
-           options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a,b)=>a-b);
-        }
-      } else {
-        options = [...new Set(raw)].sort((a,b)=>a.localeCompare(b));
-      }
-
-      dropdownCache[cacheKey] = { numericLike, isZipf, options };
-      return dropdownCache[cacheKey];
-    }
+  const config = DATASETS[key];
+  const raw = config.data.map(r => String(r[col] ?? '').trim()).filter(Boolean);
+  const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
+  
+  // Note: Removed the isZipf check to ensure all numeric columns are rounded
+  let options;
+  if (numericLike) {
+    // Round to nearest integer for ALL numeric columns
+    options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a,b)=>a-b);
+  } else {
+    options = [...new Set(raw)].sort((a,b)=>a.localeCompare(b));
+  }
+  
+  dropdownCache[cacheKey] = { numericLike, options }; // Removed isZipf from return
+  return dropdownCache[cacheKey];
+}
 
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
 
-    function chooseDefaultColumns(key, headers){
-      if (key === "cm" || key === "cs") return [...headers];
-      const preferred = ["Word","Word_frq_Zipf","FLemma","Baseword","Baseword_frq_Zipf","GPT_Root","Greek_Latin_Root_1"];
-      const found = preferred.filter(col => headers.includes(col));
-      return found.length ? found : headers.slice(0, 12);
-    }
-
+function chooseDefaultColumns(key, headers){
+  if (key === "cm" || key === "cs") return [...headers];
+  
+  // Updated list of default columns
+  const preferred = [
+    "Word", 
+    "Word_frq_Zipf", 
+    "GPT_Coded_Word_Parts", 
+    "Greek_Latin_Root_1", 
+    "Greek_Latin_Root_Meaning_1", 
+    "Prefix_1", 
+    "Suffix_1", 
+    "N_Morphemes"
+  ];
+  
+  const found = preferred.filter(col => headers.includes(col));
+  return found.length ? found : headers.slice(0, 12);
+}
     // Only actual Text Fields remain here. The Numeric columns have been removed
     // so they automatically become dropdowns.
     const TEXT_SEARCH_COLS = [
