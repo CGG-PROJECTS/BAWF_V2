@@ -511,8 +511,8 @@ body.excel-dragging {
         <div style="border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#f8fafc;">
           <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
             <select id="webllmModel" style="padding:8px; border-radius:8px; min-width:320px;"></select>
-            <button onclick="initWebLLM()" style="padding:10px 14px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px;">Load Model</button>
-            <button onclick="resetWebLLMChat()" style="padding:10px 14px; font-weight:600; background:#6b7280; color:white; border:none; border-radius:8px;">Reset Chat</button>
+           <button id="loadWebLLMBtn" onclick="initWebLLM()" style="padding:10px 14px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px;">Load Model</button>
+ <button onclick="resetWebLLMChat()" style="padding:10px 14px; font-weight:600; background:#6b7280; color:white; border:none; border-radius:8px;">Reset Chat</button>
           </div>
           <p id="webllmStatus" style="margin:6px 0 12px 0; font-weight:600; color:#374151;">WebLLM not loaded yet.</p>
           <div id="webllmChat" style="height:300px; overflow:auto; background:white; border:1px solid #d1d5db; border-radius:10px; padding:10px; margin-bottom:10px;"></div>
@@ -1770,5 +1770,172 @@ Deliver a classroom ready educational resource.`;
 
 
   </script>
+  <script type="module">
+  import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+  let engine = null;
+  let messages = [
+    { role: "system", content: "You are a helpful literacy assistant for teachers." }
+  ];
+
+  const statusEl = () => document.getElementById("webllmStatus");
+  const modelEl = () => document.getElementById("webllmModel");
+  const chatEl = () => document.getElementById("webllmChat");
+  const inputEl = () => document.getElementById("webllmInput");
+  const loadBtnEl = () => document.getElementById("loadWebLLMBtn");
+
+  function isChatCapableModelId(id = "") {
+    const s = id.toLowerCase();
+    return !s.includes("embed") && !s.includes("embedding") && !s.includes("rerank");
+  }
+
+  function setStatus(msg, color = "#374151") {
+    const el = statusEl();
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = color;
+  }
+
+  function addChat(role, text) {
+    const wrap = document.createElement("div");
+    wrap.style.margin = "8px 0";
+    wrap.innerHTML = `<strong>${role}:</strong> <span></span>`;
+    wrap.querySelector("span").textContent = text;
+    chatEl().appendChild(wrap);
+    chatEl().scrollTop = chatEl().scrollHeight;
+    return wrap.querySelector("span");
+  }
+
+  function populateModels() {
+    const select = modelEl();
+    if (!select) return;
+
+    const list = (webllm.prebuiltAppConfig?.model_list || [])
+      .filter(m => isChatCapableModelId(m.model_id));
+
+    select.innerHTML = "";
+
+    if (!list.length) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "No chat models available";
+      select.appendChild(opt);
+      return;
+    }
+
+    const sorted = [...list].sort((a, b) => {
+      const getSize = m => parseFloat(m.model_id.match(/(\d+\.?\d*)/)?.[1] || 999);
+      return getSize(a) - getSize(b);
+    });
+
+    sorted.forEach(model => {
+      const opt = document.createElement("option");
+      opt.value = model.model_id;
+      const vram = model.vram_required_MB ? ` ~${Math.round(model.vram_required_MB / 1024)}GB` : "";
+      opt.textContent = `${model.model_id}${vram}`;
+      select.appendChild(opt);
+    });
+  }
+
+  async function initWebLLMInternal() {
+    if (!window.isSecureContext) {
+      setStatus("❌ WebLLM needs HTTPS (or localhost).", "red");
+      return;
+    }
+    if (!navigator.gpu) {
+      setStatus("❌ WebGPU not available in this browser/device.", "red");
+      return;
+    }
+
+    const selected = modelEl()?.value;
+    if (!selected) {
+      setStatus("❌ Please select a model first.", "red");
+      return;
+    }
+    if (!isChatCapableModelId(selected)) {
+      setStatus("❌ Selected model is not chat-capable.", "red");
+      return;
+    }
+
+    if (loadBtnEl()) loadBtnEl().disabled = true;
+    setStatus("Loading model... (first time can take 30–180 seconds)", "#1d4ed8");
+
+    try {
+      engine = await webllm.CreateMLCEngine(selected, {
+        initProgressCallback: (report) => {
+          const pct = report?.progress ? ` ${(report.progress * 100).toFixed(0)}%` : "";
+          setStatus(`Loading ${selected}... ${report?.text || ""}${pct}`, "#1d4ed8");
+        }
+      });
+
+      setStatus(`✅ Model loaded: ${selected}`, "#15803d");
+      addChat("System", `Model ready: ${selected}`);
+    } catch (err) {
+      console.error(err);
+      setStatus(`❌ Failed to load model: ${err?.message || err}`, "red");
+    } finally {
+      if (loadBtnEl()) loadBtnEl().disabled = false;
+    }
+  }
+
+  async function sendWebLLMInternal() {
+    if (!engine) {
+      setStatus("❌ Load a model first.", "red");
+      return;
+    }
+
+    const userText = inputEl()?.value.trim();
+    if (!userText) return;
+
+    inputEl().value = "";
+    addChat("You", userText);
+    messages.push({ role: "user", content: userText });
+
+    const assistantSpan = addChat("AI", "");
+    let acc = "";
+
+    try {
+      const stream = await engine.chat.completions.create({
+        messages,
+        stream: true,
+        temperature: 0.7
+      });
+
+      for await (const chunk of stream) {
+        const token = chunk?.choices?.[0]?.delta?.content || "";
+        acc += token;
+        assistantSpan.textContent = acc;
+        chatEl().scrollTop = chatEl().scrollHeight;
+      }
+
+      messages.push({ role: "assistant", content: acc || "(No output)" });
+      setStatus("✅ Response complete.", "#15803d");
+    } catch (err) {
+      console.error("WebLLM generation error:", err);
+      setStatus(`❌ Generation failed: ${err?.message || err}`, "red");
+    }
+  }
+
+  function resetWebLLMChatInternal() {
+    messages = [
+      { role: "system", content: "You are a helpful literacy assistant for teachers." }
+    ];
+    chatEl().innerHTML = "";
+    setStatus("Chat reset.", "#374151");
+  }
+
+  // expose to existing onclick handlers
+  window.initWebLLM = initWebLLMInternal;
+  window.sendWebLLM = sendWebLLMInternal;
+  window.resetWebLLMChat = resetWebLLMChatInternal;
+  window.loadWebLLMModelList = populateModels;
+
+  // auto-populate model dropdown
+  window.addEventListener("DOMContentLoaded", () => {
+    populateModels();
+    setStatus("Select a model, then click 'Load Model'.", "#374151");
+  });
+</script>
+
 </body>
 </html>
