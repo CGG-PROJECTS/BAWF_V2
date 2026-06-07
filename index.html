@@ -159,38 +159,37 @@
     .long-text { white-space: pre-wrap !important; min-width: 260px; max-width: 520px; line-height: 1.35; }
 
     .row-actions { display:flex; gap:6px; flex-wrap:wrap; }
-.source-btn, .explain-btn, .lookup-btn {
-  border:none;
-  border-radius:6px;
-  padding:6px 10px;
-  color:#fff;
-  cursor:pointer;
-  font-size:0.84rem;
-  white-space:nowrap;
-}
+    .source-btn, .explain-btn, .lookup-btn {
+      border:none;
+      border-radius:6px;
+      padding:6px 10px;
+      color:#fff;
+      cursor:pointer;
+      font-size:0.84rem;
+      white-space:nowrap;
+    }
 
-.source-btn { background:#3b82f6; }
-.source-btn:hover { background:#2563eb; }
+    .source-btn { background:#3b82f6; }
+    .source-btn:hover { background:#2563eb; }
 
-.lookup-btn.wiktionary { background:#059669; }
-.lookup-btn.wiktionary:hover { background:#047857; }
+    .lookup-btn.wiktionary { background:#059669; }
+    .lookup-btn.wiktionary:hover { background:#047857; }
 
-.lookup-btn.etymonline { background:#ea580c; }
-.lookup-btn.etymonline:hover { background:#c2410c; }
+    .lookup-btn.etymonline { background:#ea580c; }
+    .lookup-btn.etymonline:hover { background:#c2410c; }
 
-.lookup-btn.wordnik { background:#16a34a; }
-.lookup-btn.wordnik:hover { background:#15803d; }
+    .lookup-btn.wordnik { background:#16a34a; }
+    .lookup-btn.wordnik:hover { background:#15803d; }
 
-.explain-btn { background:#8b5cf6; }
-.explain-btn:hover { background:#7c3aed; }
+    .explain-btn { background:#8b5cf6; }
+    .explain-btn:hover { background:#7c3aed; }
 
-.source-btn:disabled,
-.explain-btn:disabled,
-.lookup-btn:disabled {
-  opacity:0.45;
-  cursor:not-allowed;
-}
-
+    .source-btn:disabled,
+    .explain-btn:disabled,
+    .lookup-btn:disabled {
+      opacity:0.45;
+      cursor:not-allowed;
+    }
 
     .pagination { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:10px; margin-top:12px; }
     .pagination button, .pagination select { padding:8px 10px; border:1px solid #d1d5db; border-radius:7px; background:#fff; cursor:pointer; }
@@ -416,7 +415,6 @@
       </div>
     </div>
 
-   
     <!-- TAB 4: Wordcloud -->
     <div id="wordcloud" class="tab-content">
       <div style="max-width:900px; margin:0 auto; text-align:center;">
@@ -544,681 +542,509 @@
       </div>
     </div>
   </div>
-<script>
-  // =========================
-  // DATASETS
-  // =========================
-  const DATASETS = {
-    wf: {
-      file: "BAWF_FINAL.csv.gz",
-      name: "Word Families",
-      loaded: false,
-      data: [],
-      filtered: [],
-      all: [],
-      visible: [],
-      page: 1,
-      rpp: 100,
-      sortBy: "",
-      sortDesc: false
-    },
-    cm: {
-      file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz",
-      name: "Compound Main",
-      loaded: false,
-      data: [],
-      filtered: [],
-      all: [],
-      visible: [],
-      page: 1,
-      rpp: 100,
-      sortBy: "",
-      sortDesc: false
-    },
-    cs: {
-      file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz",
-      name: "Compound Stats",
-      loaded: false,
-      data: [],
-      filtered: [],
-      all: [],
-      visible: [],
-      page: 1,
-      rpp: 100,
-      sortBy: "",
-      sortDesc: false
-    }
-  };
 
-  // =========================
-  // FAST MODE SETTINGS
-  // =========================
-  const FAST_MODE = true;
-  const FILTER_DEBOUNCE_MS = 120;
-  const MAX_DROPDOWN_OPTIONS = 250;
-  const DROPDOWN_SAMPLE_LIMIT = 12000;
-  const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
 
-  // keep true text-search columns here; all others become dropdown candidates
-  // (numeric columns removed so they can use rounded dropdown buckets)
-  const TEXT_SEARCH_COLS = [
-    "Word", "FLemma", "Baseword", "Component_1", "Component_2", "Definition", "Etymology"
-  ];
-
-  let activeKey = "wf";
-  let columnFilters = {}; // { key: { col: {val, exact, numericRounded} } }
-  let filterTimeouts = {};
-  const dropdownCache = {};
-  const structureCache = {};
-  const currentPageRows = {};
-
-  // =========================
-  // HELPERS
-  // =========================
-  function byId(id){ return document.getElementById(id); }
-
-  function escapeHtml(s) {
-    return String(s ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  function isLikelyNumeric(v){
-    if (v === null || v === undefined) return false;
-    const s = String(v).trim();
-    if (!s) return false;
-    return /^-?\d+(\.\d+)?$/.test(s);
-  }
-
-  function toRoundedInt(v){
-    const n = parseFloat(String(v ?? "").trim());
-    return Number.isFinite(n) ? Math.round(n) : null;
-  }
-
-  function chooseDefaultColumns(key, headers){
-    if (key === "cm" || key === "cs") return [...headers];
-    const preferred = ["Word","Word_frq_Zipf","FLemma","Baseword","Baseword_frq_Zipf","GPT_Root","Greek_Latin_Root_1"];
-    const found = preferred.filter(col => headers.includes(col));
-    return found.length ? found : headers.slice(0, 12);
-  }
-
-  function getFirstNonEmpty(row, candidates){
-    for (const c of candidates){
-      const v = String(row?.[c] ?? "").trim();
-      if (v) return v;
-    }
-    return "";
-  }
-
-  function clearDatasetCaches(key){
-    Object.keys(dropdownCache).forEach(k => {
-      if (k.startsWith(key + "_")) delete dropdownCache[k];
-    });
-    delete structureCache[key];
-  }
-
-  function getDropdownMeta(key, col) {
-    const cacheKey = key + "_" + col;
-    if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
-
-    const config = DATASETS[key];
-    const src = config.data;
-    const lim = Math.min(src.length, DROPDOWN_SAMPLE_LIMIT);
-
-    const raw = [];
-    for (let i = 0; i < lim; i++) {
-      const v = String(src[i]?.[col] ?? "").trim();
-      if (v) raw.push(v);
-    }
-
-    const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
-
-    let options;
-    if (numericLike) {
-      options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a,b)=>a-b);
-    } else {
-      options = [...new Set(raw)].sort((a,b)=>a.localeCompare(b));
-    }
-
-    const useDropdown = options.length > 0 && options.length <= MAX_DROPDOWN_OPTIONS;
-    dropdownCache[cacheKey] = { numericLike, options, useDropdown };
-    return dropdownCache[cacheKey];
-  }
-
-  // =========================
-  // INIT + TABS
-  // =========================
-  window.addEventListener("DOMContentLoaded", () => {
-    initDataset("wf");
-    setupAddColsListener("wf");
-    setupAddColsListener("cm");
-    setupAddColsListener("cs");
-    setupGlobalSearchListeners("wf");
-    setupGlobalSearchListeners("cm");
-    setupGlobalSearchListeners("cs");
-    loadWebLLMModelList();
-  });
-
-  function setupGlobalSearchListeners(key){
-    const el = byId(`${key}GlobalSearch`);
-    if (!el || el.dataset.wired === "1") return;
-    el.addEventListener("input", () => {
-      clearTimeout(filterTimeouts[key]);
-      filterTimeouts[key] = setTimeout(() => filterTable(key), FILTER_DEBOUNCE_MS);
-    });
-    el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") filterTable(key);
-    });
-    el.dataset.wired = "1";
-  }
-
-  function ensureLoaded(key){
-    if (!DATASETS[key].loaded) initDataset(key);
-    else renderTable(key);
-  }
-
-  function openTab(tabName, btnEl){
-    document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-    byId(tabName)?.classList.add("active");
-    btnEl?.classList.add("active");
-
-    if (tabName === "word-families") {
-      activeKey = "wf";
-      ensureLoaded("wf");
-    }
-    if (tabName === "compounds") {
-      const activeSub = document.querySelector("#compounds .subtab-pane.active")?.id;
-      activeKey = (activeSub === "comp-stats") ? "cs" : "cm";
-      ensureLoaded(activeKey);
-    }
-  }
-
-  function openCompoundSubTab(subPaneId, btn) {
-    const parent = byId("compounds");
-    parent.querySelectorAll(".subtab-btn").forEach(b => b.classList.remove("active"));
-    parent.querySelectorAll(".subtab-pane").forEach(p => p.classList.remove("active"));
-    btn.classList.add("active");
-    byId(subPaneId).classList.add("active");
-
-    const key = (subPaneId === "comp-main") ? "cm" : "cs";
-    activeKey = key;
-    if (!DATASETS[key].data.length) initDataset(key);
-    else renderTable(key);
-  }
-
-  // =========================
-  // DATA LOADING
-  // =========================
-  async function initDataset(key) {
-    const config = DATASETS[key];
-    const loadingEl = byId(`${key}Loading`);
-
-    try {
-      if (loadingEl) {
-        loadingEl.style.display = "block";
-        loadingEl.textContent = "Downloading dataset...";
+  <script>
+    // DATASETS Setup (Language_of_Origin removed from visible)
+    const DATASETS = {
+      wf: {
+        file: "BAWF_FINAL.csv.gz",
+        name: "Word Families",
+        loaded: false,
+        data: [],
+        filtered: [],
+        all: [],
+        visible: [],
+        page: 1,
+        rpp: 100,
+        sortBy: "",
+        sortDesc: false
+      },
+      cm: {
+        file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz",
+        name: "Compound Main",
+        loaded: false,
+        data: [],
+        filtered: [],
+        all: [],
+        visible: [],
+        page: 1,
+        rpp: 100,
+        sortBy: "",
+        sortDesc: false
+      },
+      cs: {
+        file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz",
+        name: "Compound Stats",
+        loaded: false,
+        data: [],
+        filtered: [],
+        all: [],
+        visible: [],
+        page: 1,
+        rpp: 100,
+        sortBy: "",
+        sortDesc: false
       }
-
-      // reset
-      config.loaded = false;
-      config.data = [];
-      config.filtered = [];
-      config.all = [];
-      config.visible = [];
-      config.page = 1;
-      config.sortBy = "";
-      config.sortDesc = false;
-      columnFilters[key] = {};
-      clearDatasetCaches(key);
-
-      const res = await fetch(config.file);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      if (loadingEl) loadingEl.textContent = "Decompressing data...";
-      const buffer = await res.arrayBuffer();
-      const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
-
-      if (loadingEl) loadingEl.textContent = "Parsing records...";
-      const blob = new Blob([inflatedBytes], { type: "text/csv;charset=utf-8" });
-
-      let firstPaint = false;
-
-      Papa.parse(blob, {
-        header: true,
-        skipEmptyLines: "greedy",
-        chunkSize: 1024 * 1024 * 3,
-        worker: FAST_MODE,
-        transformHeader: function(h, i) {
-          const clean = String(h || "")
-            .replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "")
-            .trim();
-          return clean || `${EMPTY_HEADER_PREFIX}${i}`;
-        },
-
-        chunk: function(results) {
-          if (!config.all.length) {
-            const fields = results.meta?.fields || [];
-            config.all = fields.filter(f => f && !String(f).startsWith(EMPTY_HEADER_PREFIX));
-            config.visible = chooseDefaultColumns(key, config.all);
-            buildDropdowns(key);
-          }
-
-          const validRows = (results.data || []).filter(r => {
-            // remove phantom empty-header columns from each row
-            Object.keys(r).forEach(k => {
-              if (String(k).startsWith(EMPTY_HEADER_PREFIX)) delete r[k];
-            });
-            const w = String(r["Word"] || r["Baseword"] || "").trim();
-            return w.length > 0;
-          });
-
-          config.data.push(...validRows);
-
-          if (!firstPaint && config.data.length >= config.rpp) {
-            firstPaint = true;
-            config.filtered = [...config.data];
-
-            if (loadingEl) loadingEl.textContent = "Loading remaining records in background...";
-            byId(`${key}Table`).style.display = "table";
-            byId(`${key}Pagination`).style.display = "flex";
-            renderTable(key);
-          } else if (firstPaint && loadingEl) {
-            loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`;
-          }
-        },
-
-        complete: function() {
-          config.loaded = true;
-          config.filtered = [...config.data];
-
-          if (!firstPaint) {
-            byId(`${key}Table`).style.display = "table";
-            byId(`${key}Pagination`).style.display = "flex";
-            renderTable(key);
-          } else {
-            filterTable(key);
-          }
-
-          if (loadingEl) loadingEl.style.display = "none";
-          buildDropdowns(key);
-        },
-
-        error: function(err) {
-          if (loadingEl) loadingEl.textContent = `CSV parse error: ${err?.message || err}`;
-        }
-      });
-
-    } catch (e) {
-      if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
-    }
-  }
-
-  // =========================
-  // UI BUILDERS
-  // =========================
-  function buildDropdowns(key) {
-    const config = DATASETS[key];
-    const copySelect = byId(`${key}CopyColumnSelect`);
-    if (copySelect) {
-      copySelect.innerHTML = config.visible.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-    }
-
-    const addSelect = byId(`${key}AddCols`);
-    if (addSelect) {
-      addSelect.innerHTML = config.all
-        .filter(c => !config.visible.includes(c))
-        .map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`)
-        .join("");
-    }
-  }
-
-  function setupAddColsListener(key) {
-    const btn = byId(`${key}AddColsBtn`);
-    if (!btn) return;
-    btn.onclick = () => {
-      const select = byId(`${key}AddCols`);
-      const selected = Array.from(select.selectedOptions).map(o => o.value);
-      if (!selected.length) return;
-
-      const set = new Set(DATASETS[key].visible);
-      selected.forEach(c => set.add(c));
-      DATASETS[key].visible = Array.from(set);
-
-      delete structureCache[key];
-      buildDropdowns(key);
-      renderTable(key);
     };
-  }
 
-  // =========================
-  // TABLE RENDER
-  // =========================
-  function renderTable(key) {
-    const config = DATASETS[key];
-    byId(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
-
-    const signature = JSON.stringify({
-      visible: config.visible,
-      sortBy: config.sortBy,
-      sortDesc: config.sortDesc,
-      filters: columnFilters[key] || {}
-    });
-
-    // only rebuild header/filter rows when structure changes
-    if (structureCache[key] !== signature) {
-      const headerRow = byId(`${key}HeaderRow`);
-      headerRow.innerHTML = config.visible.map(col => {
-        const sym = (config.sortBy === col) ? (config.sortDesc ? " 🔽" : " 🔼") : "";
-        return `<th onclick="sortTable('${key}', '${escapeHtml(col)}')">${escapeHtml(col)}${sym}</th>`;
-      }).join("") + `<th>Actions</th>`;
-
-      const filterRow = byId(`${key}FilterRow`);
-      filterRow.innerHTML = config.visible.map(col => {
-        const filterData = columnFilters[key]?.[col] || null;
-        const currentVal = filterData ? String(filterData.val ?? "") : "";
-
-        // force text input
-        if (TEXT_SEARCH_COLS.includes(col)) {
-          return `<td>
-            <input type="text"
-              placeholder="Filter..."
-              value="${escapeHtml(currentVal)}"
-              oninput="onColumnFilter('${key}', '${escapeHtml(col)}', this.value, false)" />
-          </td>`;
-        }
-
-        const meta = getDropdownMeta(key, col);
-
-        // fallback to text if too many unique values
-        if (!meta.useDropdown) {
-          return `<td>
-            <input type="text"
-              placeholder="Filter..."
-              value="${escapeHtml(currentVal)}"
-              oninput="onColumnFilter('${key}', '${escapeHtml(col)}', this.value, false)" />
-          </td>`;
-        }
-
-        let opts = `<option value="">All</option>`;
-        for (const u of meta.options) {
-          const valStr = String(u);
-          const sel = (currentVal === valStr) ? "selected" : "";
-          opts += `<option value="${escapeHtml(valStr)}" ${sel}>${escapeHtml(valStr)}</option>`;
-        }
-
-        return `<td>
-          <select onchange="onColumnFilter('${key}', '${escapeHtml(col)}', this.value, true, ${meta.numericLike ? "true" : "false"})">
-            ${opts}
-          </select>
-        </td>`;
-      }).join("") + `<td></td>`;
-
-      structureCache[key] = signature;
+    function isLikelyNumeric(v){
+      if (v === null || v === undefined) return false;
+      const s = String(v).trim();
+      if (!s) return false;
+      return /^-?\d+(\.\d+)?$/.test(s);
     }
 
-    const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
-    if (config.page > totalPages) config.page = totalPages;
-    byId(`${key}CurrentPage`).textContent = config.page;
-    byId(`${key}TotalPages`).textContent = totalPages;
+    function getDropdownMeta(key, col) {
+      const cacheKey = key + '_' + col;
+      if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
 
-    const start = (config.page - 1) * config.rpp;
-    const pageData = config.filtered.slice(start, start + config.rpp);
-    currentPageRows[key] = pageData;
+      const config = DATASETS[key];
+      const raw = config.data.map(r => String(r[col] ?? '').trim()).filter(Boolean);
 
-    const tbody = byId(`${key}TableBody`);
-    if (!pageData.length) {
-      tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`;
-      return;
-    }
+      const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
 
-    let bodyHtml = "";
-    for (let i = 0; i < pageData.length; i++) {
-      const row = pageData[i];
-      bodyHtml += `<tr>`;
-
-      for (const col of config.visible) {
-        const val = String(row[col] ?? "");
-        bodyHtml += `<td class="${val.length > 50 ? "long-text" : ""}">${escapeHtml(val)}</td>`;
+      let options;
+      if (numericLike) {
+        options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a,b)=>a-b);
+      } else {
+        options = [...new Set(raw)].sort((a,b)=>a.localeCompare(b));
       }
 
-      const lookupWord = getLookupWordFromRow(row);
-      const disabled = lookupWord ? "" : "disabled";
-
-      bodyHtml += `<td>
-        <div class="row-actions">
-          <button class="source-btn" ${disabled} onclick="onLookupAction('${key}', ${i}, 'google')">🔎 Google</button>
-          <button class="lookup-btn wiktionary" ${disabled} onclick="onLookupAction('${key}', ${i}, 'definition')">📖 Definition</button>
-          <button class="lookup-btn etymonline" ${disabled} onclick="onLookupAction('${key}', ${i}, 'etymology')">🏛 Etymology</button>
-          <button class="lookup-btn wordnik" ${disabled} onclick="onLookupAction('${key}', ${i}, 'wordnik')">🧠 Wordnik</button>
-          <button class="explain-btn" onclick="onExplainRowIndex('${key}', ${i})">✨ Explain</button>
-        </div>
-      </td></tr>`;
+      dropdownCache[cacheKey] = { numericLike, options };
+      return dropdownCache[cacheKey];
     }
 
-    tbody.innerHTML = bodyHtml;
-  }
+    const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
 
-  function onExplainRowIndex(key, idx){
-    const row = currentPageRows[key]?.[idx];
-    if (row) showExplainModal(key, row);
-  }
+    function chooseDefaultColumns(key, headers){
+      if (key === "cm" || key === "cs") return [...headers];
+      const preferred = ["Word","Word_frq_Zipf","FLemma","Baseword","Baseword_frq_Zipf","GPT_Root","Greek_Latin_Root_1"];
+      const found = preferred.filter(col => headers.includes(col));
+      return found.length ? found : headers.slice(0, 12);
+    }
 
-  function onLookupAction(key, idx, type){
-    const row = currentPageRows[key]?.[idx];
-    if (!row) return;
-    const word = getLookupWordFromRow(row);
-    if (!word) return;
+    function toRoundedInt(v){
+      const n = parseFloat(String(v ?? "").trim());
+      return Number.isFinite(n) ? Math.round(n) : null;
+    }
 
-    if (type === "google") return lookupGoogle(word);
-    if (type === "definition") return lookupDefinition(word);
-    if (type === "etymology") return lookupEtymology(word);
-    if (type === "wordnik") return lookupWordnik(word);
-  }
+    // Columns that should remain text input searches (everything else becomes a dropdown)
+    const TEXT_SEARCH_COLS = [
+      'Word', 'FLemma', 'Baseword', 'Component_1', 'Component_2', 
+      'Definition', 'Etymology', 'Word_frq_Zipf', 'Baseword_frq_Zipf', 
+      'Baseword_Family_Size', 'Family_Size_No_Compounds', 
+      'Family_Size_With_Compounds', 'Compound_Count'
+    ];
 
-  // =========================
-  // FILTER / SORT / PAGINATION
-  // =========================
-  function onColumnFilter(key, col, val, isExact, numericRounded = false) {
-    if (!columnFilters[key]) columnFilters[key] = {};
+    let activeTabId = 'word-families';
+    let activeKey = 'wf';
+    let columnFilters = {}; // format: { colName: { val: 'abc', exact: false } }
+    let filterTimeouts = {};
+    const dropdownCache = {};
 
-    if (!val) {
-      delete columnFilters[key][col];
-    } else {
-      columnFilters[key][col] = {
-        val: isExact ? String(val) : String(val).toLowerCase(),
-        exact: !!isExact,
-        numericRounded: !!numericRounded
+    window.addEventListener('DOMContentLoaded', () => {
+      initDataset('wf');
+      setupAddColsListener('wf'); setupAddColsListener('cm');
+      setupAddColsListener('cs'); 
+      loadWebLLMModelList();
+    });
+
+    function ensureLoaded(key){
+      if (!DATASETS[key].loaded) initDataset(key);
+      else renderTable(key);
+    }
+
+    function getDatasetKeyFromTab(tabId) {
+      if (tabId === 'word-families') return 'wf';
+      if (tabId === 'compounds') return document.querySelector('#compounds .subtab-pane.active')?.id === 'comp-main' ? 'cm' : 'cs';
+    
+      return null;
+    }
+
+    function openTab(tabName, btnEl){
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      byId(tabName)?.classList.add("active");
+      btnEl?.classList.add("active");
+
+      if (tabName === "word-families") {
+        activeKey = "wf";
+        ensureLoaded("wf");
+      }
+
+      if (tabName === "compounds") {
+        const activeSub = document.querySelector("#compounds .subtab-pane.active")?.id;
+        activeKey = activeSub === "comp-stats" ? "cs" : "cm";
+        ensureLoaded(activeKey);
+      }
+    }
+
+    function openCompoundSubTab(subPaneId, btn) {
+      const parent = document.getElementById('compounds');
+      parent.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+      parent.querySelectorAll('.subtab-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active'); document.getElementById(subPaneId).classList.add('active');
+      const key = (subPaneId === 'comp-main') ? 'cm' : 'cs';
+      activeKey = key;
+      if (!DATASETS[key].data.length) initDataset(key); else renderTable(key);
+    }
+
+    async function initDataset(key) {
+      const config = DATASETS[key];
+      const loadingEl = document.getElementById(`${key}Loading`);
+      try {
+        if (loadingEl) loadingEl.textContent = `Downloading dataset...`;
+        const res = await fetch(config.file);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        if (loadingEl) loadingEl.textContent = `Decompressing data...`;
+        const buffer = await res.arrayBuffer();
+        const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
+
+        if (loadingEl) loadingEl.textContent = `Parsing records...`;
+        const blob = new Blob([inflatedBytes], { type: 'text/csv;charset=utf-8' });
+
+        let firstPaint = false;
+        config.data = [];
+        config.filtered = [];
+        config.all = [];
+        config.visible = [];
+        config.loaded = false;
+
+        Papa.parse(blob, {
+          header: true,
+          skipEmptyLines: 'greedy',
+          chunkSize: 1024 * 1024 * 3, 
+          transformHeader: function(h, i) {
+            const clean = String(h || "")
+              .replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "")
+              .trim();
+            // give blank headers a temp name so they can be filtered out later
+            return clean || `${EMPTY_HEADER_PREFIX}${i}`;
+          },
+          chunk: function(results) {
+           if (!config.all.length) {
+              const fields = results.meta?.fields || [];
+              // remove fake blank headers
+              config.all = fields.filter(f => f && !String(f).startsWith(EMPTY_HEADER_PREFIX));
+              // IMPORTANT: initialize visible columns once
+              config.visible = chooseDefaultColumns(key, config.all);
+            }
+            
+            const validRows = results.data.filter(r => {
+              const w = r['Word'] || r['Baseword'];
+              return w && w.trim().length > 0;
+            });
+            config.data.push(...validRows);
+
+            if (!firstPaint && config.data.length >= config.rpp) {
+              firstPaint = true;
+              config.filtered = [...config.data];
+              if (loadingEl) loadingEl.textContent = `Loading remaining records in background...`;
+              document.getElementById(`${key}Table`).style.display = 'table';
+              document.getElementById(`${key}Pagination`).style.display = 'flex';
+              buildDropdowns(key);
+              renderTable(key);
+            } else if (firstPaint && loadingEl) {
+              loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`;
+            }
+          },
+          complete: function() {
+            config.loaded = true;
+
+            config.filtered = [...config.data];
+            if (!firstPaint) {
+              document.getElementById(`${key}Table`).style.display = 'table';
+              document.getElementById(`${key}Pagination`).style.display = 'flex';
+              buildDropdowns(key); renderTable(key);
+            } else {
+              filterTable(key); // Refresh after load to catch any applied filters
+            }
+            if (loadingEl) loadingEl.style.display = 'none';
+          }
+        });
+      } catch (e) {
+        if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
+      }
+    }
+
+    function buildDropdowns(key) {
+      const config = DATASETS[key];
+      const copySelect = document.getElementById(`${key}CopyColumnSelect`);
+      if (copySelect) copySelect.innerHTML = config.visible.map(c => `<option value="${c}">${c}</option>`).join('');
+      const addSelect = document.getElementById(`${key}AddCols`);
+      if (addSelect) addSelect.innerHTML = config.all.filter(c => !config.visible.includes(c)).map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function setupAddColsListener(key) {
+      const btn = document.getElementById(`${key}AddColsBtn`);
+      if (!btn) return;
+      btn.onclick = () => {
+        const select = document.getElementById(`${key}AddCols`);
+        const selected = Array.from(select.selectedOptions).map(o => o.value);
+        if (!selected.length) return;
+        DATASETS[key].visible = [...DATASETS[key].visible, ...selected];
+        buildDropdowns(key); 
+        renderTable(key);
       };
     }
 
-    delete structureCache[key];
-    clearTimeout(filterTimeouts[key]);
-    filterTimeouts[key] = setTimeout(() => filterTable(key), FILTER_DEBOUNCE_MS);
-  }
+    function renderTable(key) {
+      const config = DATASETS[key];
+      document.getElementById(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
 
-  function filterTable(key) {
-    const config = DATASETS[key];
-    const globalQuery = (byId(`${key}GlobalSearch`)?.value || "").trim().toLowerCase();
-    const colFilters = columnFilters[key] || {};
+      const headerRow = document.getElementById(`${key}HeaderRow`);
+      headerRow.innerHTML = config.visible.map(col => {
+        let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
+        return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
+      }).join('') + `<th>Actions</th>`;
 
-    config.filtered = config.data.filter(row => {
-      for (const col in colFilters) {
-        const filterDef = colFilters[col];
-        const cellVal = String(row[col] ?? "").trim();
-
-        if (filterDef.exact) {
-          if (filterDef.numericRounded) {
-            const rn = toRoundedInt(cellVal);
-            if (rn === null || String(rn) !== String(filterDef.val)) return false;
-          } else {
-            if (cellVal !== String(filterDef.val)) return false;
-          }
+      const filterRow = document.getElementById(`${key}FilterRow`);
+      filterRow.innerHTML = config.visible.map(col => {
+        const filterData = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : null;
+        const currentVal = filterData ? filterData.val : '';
+        
+        if (TEXT_SEARCH_COLS.includes(col)) {
+           return `<td><input type="text" placeholder="Filter..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
         } else {
-          if (!cellVal.toLowerCase().includes(String(filterDef.val))) return false;
+           const meta = getDropdownMeta(key, col);
+           let opts = `<option value="">All</option>`;
+           meta.options.forEach(u => {
+             const valStr = String(u);
+             const sel = (currentVal === valStr) ? 'selected' : '';
+             opts += `<option value="${valStr.replace(/"/g, '&quot;')}" ${sel}>${valStr}</option>`;
+           });
+           return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true, ${meta.numericLike ? 'true' : 'false'})">${opts}</select></td>`;
         }
+      }).join('') + `<td></td>`;
+
+      const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
+      if (config.page > totalPages) config.page = totalPages;
+      document.getElementById(`${key}CurrentPage`).textContent = config.page;
+      document.getElementById(`${key}TotalPages`).textContent = totalPages;
+
+      const pageData = config.filtered.slice((config.page - 1) * config.rpp, config.page * config.rpp);
+      const tbody = document.getElementById(`${key}TableBody`);
+      
+      if (!pageData.length) {
+        tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`;
+        return;
       }
 
-      if (globalQuery) {
-        for (const col of config.visible) {
-          if (String(row[col] ?? "").toLowerCase().includes(globalQuery)) return true;
+      let bodyHtml = '';
+      pageData.forEach(row => {
+        bodyHtml += `<tr>`;
+        config.visible.forEach(col => {
+          const val = row[col] || '';
+          bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
+        });
+        const lookupWord = getLookupWordFromRow(row) || '';
+        const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;');
+
+        bodyHtml += `<td>
+          <div class="row-actions">
+            <button class="source-btn" ${lookupWord ? `onclick="lookupGoogle('${escWord}')"` : "disabled"}>🔎 Google</button>
+            <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
+            <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
+            <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
+            <button class="explain-btn" onclick="showExplainModal('${key}', ${safeRowJSON})">✨ Explain</button>
+          </div>
+        </td></tr>`;
+
+      });
+      tbody.innerHTML = bodyHtml;
+    }
+
+    // Debounced Filtering logic with exact vs substring matching support
+    function onColumnFilter(key, col, val, isExact, numericRounded = false) {
+
+      if (!columnFilters[key]) columnFilters[key] = {};
+      
+      if (!val) {
+        delete columnFilters[key][col];
+      } else {
+       columnFilters[key][col] = { 
+          val: isExact ? String(val) : String(val).toLowerCase(),
+          exact: isExact,
+          numericRounded: !!numericRounded
+        };
+      }
+      
+      clearTimeout(filterTimeouts[key]);
+      filterTimeouts[key] = setTimeout(() => filterTable(key), 200);
+    }
+
+    function filterTable(key) {
+      const config = DATASETS[key];
+      const globalQuery = document.getElementById(`${key}GlobalSearch`)?.value.trim().toLowerCase() || '';
+      const colFilters = columnFilters[key] || {};
+      
+      config.filtered = config.data.filter(row => {
+        // Individual column filters
+        for (const col in colFilters) {
+          const filterDef = colFilters[col];
+          const cellVal = String(row[col] || '');
+          if (filterDef.exact) {
+            if (filterDef.numericRounded) {
+              const rn = toRoundedInt(cellVal);
+              if (rn === null || String(rn) !== String(filterDef.val)) return false;
+            } else {
+              if (cellVal !== filterDef.val) return false;
+            }
+          } else {
+            if (!cellVal.toLowerCase().includes(filterDef.val)) return false;
+          }
         }
-        return false;
-      }
-
-      return true;
-    });
-
-    config.page = 1;
-    renderTable(key);
-  }
-
-  function clearAllFilters(key) {
-    columnFilters[key] = {};
-    const globalInput = byId(`${key}GlobalSearch`);
-    if (globalInput) globalInput.value = "";
-
-    DATASETS[key].filtered = [...DATASETS[key].data];
-    DATASETS[key].page = 1;
-    delete structureCache[key];
-    renderTable(key);
-  }
-
-  function sortTable(key, col) {
-    const config = DATASETS[key];
-    if (config.sortBy === col) config.sortDesc = !config.sortDesc;
-    else { config.sortBy = col; config.sortDesc = false; }
-
-    config.filtered.sort((a, b) => {
-      const va = String(a[col] ?? "").trim();
-      const vb = String(b[col] ?? "").trim();
-
-      const na = parseFloat(va), nb = parseFloat(vb);
-      const bothNum = Number.isFinite(na) && Number.isFinite(nb);
-
-      if (bothNum) {
-        return config.sortDesc ? (nb - na) : (na - nb);
-      }
-
-      const sa = va.toLowerCase(), sb = vb.toLowerCase();
-      if (sa < sb) return config.sortDesc ? 1 : -1;
-      if (sa > sb) return config.sortDesc ? -1 : 1;
-      return 0;
-    });
-
-    delete structureCache[key];
-    renderTable(key);
-  }
-
-  function prevPage(key) {
-    if (DATASETS[key].page > 1) {
-      DATASETS[key].page--;
+        // Global search input
+        if (globalQuery) {
+          return config.visible.some(col => String(row[col] || '').toLowerCase().includes(globalQuery));
+        }
+        return true;
+      });
+      
+      config.page = 1; 
       renderTable(key);
     }
-  }
 
-  function nextPage(key) {
-    const max = Math.ceil(DATASETS[key].filtered.length / DATASETS[key].rpp) || 1;
-    if (DATASETS[key].page < max) {
-      DATASETS[key].page++;
+    function clearAllFilters(key) {
+      columnFilters[key] = {};
+      const globalInput = document.getElementById(`${key}GlobalSearch`);
+      if (globalInput) globalInput.value = '';
+      DATASETS[key].filtered = [...DATASETS[key].data];
+      DATASETS[key].page = 1; 
       renderTable(key);
     }
-  }
 
-  function changeRowsPerPage(key) {
-    DATASETS[key].rpp = parseInt(byId(`${key}RowsPerPage`).value, 10) || 100;
-    DATASETS[key].page = 1;
-    renderTable(key);
-  }
+    // Advanced sorting logic with numerical detection
+    function sortTable(key, col) {
+      const config = DATASETS[key];
+      if (config.sortBy === col) {
+        config.sortDesc = !config.sortDesc;
+      } else {
+        config.sortBy = col; 
+        config.sortDesc = false; 
+      }
+      
+      config.filtered.sort((a, b) => {
+        let v1 = a[col] || '';
+        let v2 = b[col] || '';
+        
+        // Detect if both values are purely numerical
+        let isNum1 = v1 !== '' && !isNaN(Number(v1));
+        let isNum2 = v2 !== '' && !isNaN(Number(v2));
+        
+        if (isNum1 && isNum2) {
+          return config.sortDesc ? Number(v2) - Number(v1) : Number(v1) - Number(v2);
+        }
+        
+        // String sorting fallback
+        v1 = String(v1).toLowerCase(); 
+        v2 = String(v2).toLowerCase();
+        
+        if (v1 < v2) return config.sortDesc ? 1 : -1;
+        if (v1 > v2) return config.sortDesc ? -1 : 1;
+        return 0;
+      });
+      renderTable(key);
+    }
 
-  // =========================
-  // COPY / EXPORT
-  // =========================
-  function copyColumnValues(key) {
-    const config = DATASETS[key];
-    const col = byId(`${key}CopyColumnSelect`)?.value;
-    const scope = byId(`${key}CopyScope`)?.value || "filtered";
-    if (!col) return;
+    function prevPage(key) { if (DATASETS[key].page > 1) { DATASETS[key].page--; renderTable(key); } }
+    function nextPage(key) { if (DATASETS[key].page < Math.ceil(DATASETS[key].filtered.length / DATASETS[key].rpp)) { DATASETS[key].page++; renderTable(key); } }
+    function changeRowsPerPage(key) { DATASETS[key].rpp = parseInt(document.getElementById(`${key}RowsPerPage`).value, 10); DATASETS[key].page = 1; renderTable(key); }
 
-    const rows = (scope === "page")
-      ? config.filtered.slice((config.page - 1) * config.rpp, config.page * config.rpp)
-      : config.filtered;
+    function copyColumnValues(key) {
+      const config = DATASETS[key];
+      const col = document.getElementById(`${key}CopyColumnSelect`).value;
+      const scope = document.getElementById(`${key}CopyScope`).value;
+      const targetRows = scope === 'page' ? config.filtered.slice((config.page - 1) * config.rpp, config.page * config.rpp) : config.filtered;
+      navigator.clipboard.writeText(targetRows.map(r => r[col] || '').filter(v => v).join('\n')).then(() => alert(`Copied column "${col}"!`));
+    }
 
-    const txt = rows.map(r => String(r[col] ?? "")).filter(v => v.trim()).join("\n");
-    navigator.clipboard.writeText(txt).then(() => alert(`Copied column "${col}"!`));
-  }
+    function exportCSV(key, defaultFilename) {
+      const config = DATASETS[key];
+      if (!config.filtered.length) return alert("No rows to export.");
+      const blob = new Blob([Papa.unparse({ fields: config.visible, data: config.filtered })], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = defaultFilename; link.click();
+    }
 
-  function exportCSV(key, defaultFilename) {
-    const config = DATASETS[key];
-    if (!config.filtered.length) return alert("No rows to export.");
+    function getLookupWordFromRow(row) {
+      return getFirstNonEmpty(row, [
+        "Word", "word", "FLemma", "Lemma", "Baseword", "Compound",
+        "GPT_Root", "Root", "Greek_Latin_Root_1"
+      ]);
+    }
 
-    const csv = Papa.unparse({
-      fields: config.visible,
-      data: config.filtered.map(r => config.visible.map(c => r[c] ?? ""))
-    });
+    function lookupGoogle(word) {
+      word = String(word || "").trim();
+      if (!word) return;
+      const query = `${word} etymology morphology`;
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener");
+    }
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = defaultFilename;
-    link.click();
-  }
+    function lookupDefinition(word) {
+      word = String(word || "").trim();
+      if (!word) return;
+      const wikiWord = encodeURIComponent(word.replace(/\s+/g, "_"));
+      window.open(`https://en.wiktionary.org/wiki/${wikiWord}`, "_blank", "noopener");
+    }
 
-  // =========================
-  // LOOKUPS
-  // =========================
-  function getLookupWordFromRow(row) {
-    return getFirstNonEmpty(row, [
-      "Word", "word", "FLemma", "Lemma", "Baseword", "Compound",
-      "GPT_Root", "Root", "Greek_Latin_Root_1"
-    ]);
-  }
+    function lookupEtymology(word) {
+      word = String(word || "").trim();
+      if (!word) return;
+      window.open(`https://www.etymonline.com/word/${encodeURIComponent(word)}`, "_blank", "noopener");
+    }
 
-  function lookupGoogle(word) {
-    word = String(word || "").trim();
-    if (!word) return;
-    const query = `${word} etymology morphology`;
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener");
-  }
+    function lookupWordnik(word) {
+      word = String(word || "").trim();
+      if (!word) return;
+      window.open(`https://www.wordnik.com/words/${encodeURIComponent(word)}`, "_blank", "noopener");
+    }
 
-  function lookupDefinition(word) {
-    word = String(word || "").trim();
-    if (!word) return;
-    const wikiWord = encodeURIComponent(word.replace(/\s+/g, "_"));
-    window.open(`https://en.wiktionary.org/wiki/${wikiWord}`, "_blank", "noopener");
-  }
 
-  function lookupEtymology(word) {
-    word = String(word || "").trim();
-    if (!word) return;
-    window.open(`https://www.etymonline.com/word/${encodeURIComponent(word)}`, "_blank", "noopener");
-  }
+    function makeActionButton(label, className, onClick, disabled = false) {
+      const btn = document.createElement("button");
+      btn.className = className;
+      btn.textContent = label;
+      btn.disabled = disabled;
 
-  function lookupWordnik(word) {
-    word = String(word || "").trim();
-    if (!word) return;
-    window.open(`https://www.wordnik.com/words/${encodeURIComponent(word)}`, "_blank", "noopener");
-  }
+      if (!disabled) {
+        btn.onclick = onClick;
+      } else {
+        btn.title = "No word found for this row.";
+        btn.style.opacity = "0.45";
+        btn.style.cursor = "not-allowed";
+      }
 
-  // =========================
-  // EXPLAIN MODAL
-  // =========================
-  let currentExplainRow = null;
+      return btn;
+    }
 
-  function buildExplainPrompt(row, task = "both"){
-    const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
-    const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
-    const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
-    const definition = getFirstNonEmpty(row, ["Definition","Greek_Latin_Meaning_1","Prefix_1_Meaning","Suffix_1_Meaning"]);
+    // =========================
+    // EXPLAIN MODAL LOGIC
+    // =========================
+    function byId(id){ return document.getElementById(id); }
+    function getFirstNonEmpty(row, candidates){
+      for (const c of candidates){
+        const v = String(row?.[c] ?? "").trim();
+        if (v) return v;
+      }
+      return "";
+    }
 
-    let instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
-    if (task === "explain") instruction = "Explain this morphology entry clearly for teachers and students.";
-    else if (task === "history") instruction = "Focus on etymology/history if available; if uncertain, say so clearly and avoid guessing.";
+    let currentExplainRow = null;
 
-    return `You are a literacy and morphology expert supporting teachers.
+    function buildExplainPrompt(row, task="both"){
+      const word = getFirstNonEmpty(row, ["Word","word","FLemma","Baseword","Compound"]);
+      const root = getFirstNonEmpty(row, ["GPT_Root","Root","Greek_Latin_Root_1"]);
+      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts","Word Parts","Morphological Breakdown"]);
+      const definition = getFirstNonEmpty(row, ["Definition","Greek_Latin_Meaning_1","Prefix_1_Meaning","Suffix_1_Meaning"]);
+
+      let instruction = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available; note uncertainty if needed.";
+      if (task === "explain") instruction = "Explain this morphology entry clearly for teachers and students.";
+      else if (task === "history") instruction = "Focus on etymology/history if available; if uncertain, say so clearly and avoid guessing.";
+
+      return `You are a literacy and morphology expert supporting teachers.
 
 ${instruction}
 
@@ -1234,207 +1060,127 @@ Please return:
 - Meaning connections to root(s) and morphemes
 - Teaching tip for classroom use
 - 2 quick discussion/check-for-understanding questions`;
-  }
-
-  function showExplainModal(prefix, row){
-    currentExplainRow = row;
-    byId("explainPreview").value = buildExplainPrompt(row, byId("explainTask").value);
-    byId("explainModalBackdrop").classList.add("show");
-    document.body.classList.add("modal-open");
-  }
-
-  function closeExplainModal(){
-    byId("explainModalBackdrop").classList.remove("show");
-    document.body.classList.remove("modal-open");
-  }
-
-  function copyExplainPrompt(){
-    const p = byId("explainPreview").value.trim();
-    if (!p) return alert("No prompt to copy.");
-    navigator.clipboard.writeText(p).then(() => alert("Prompt copied."));
-  }
-
-  function openExplainInAI(){
-    const prompt = byId("explainPreview").value.trim();
-    if (!prompt) return;
-    const provider = byId("explainProvider").value;
-    const encoded = encodeURIComponent(prompt);
-
-    let url = `https://chatgpt.com/?q=${encoded}`;
-    if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
-    if (provider === "claude") url = "https://claude.ai/new";
-
-    if (!window.open(url, "_blank")) alert("Popup blocked. Allow popups and try again.");
-    navigator.clipboard.writeText(prompt).catch(()=>{});
-    closeExplainModal();
-  }
-
-  document.addEventListener("change", (e) => {
-    if (e.target?.id === "explainTask" && currentExplainRow) {
-      byId("explainPreview").value = buildExplainPrompt(currentExplainRow, e.target.value);
-    }
-  });
-
-  window.addEventListener("click", (e) => {
-    if (e.target === byId("columnModal")) closeModal();
-    if (e.target === byId("explainModalBackdrop")) closeExplainModal();
-  });
-
-  function showColumnKey() {
-    byId("columnModal").classList.add("show");
-    document.body.classList.add("modal-open");
-  }
-
-  function closeModal() {
-    byId("columnModal").classList.remove("show");
-    document.body.classList.remove("modal-open");
-  }
-
-  // =========================
-  // WORD CLOUD
-  // =========================
-  function generateWordCloud() {
-    const input = byId("wordInput").value.trim();
-    const status = byId("cloudStatus");
-
-    if (!input) {
-      status.textContent = "Please fill in word frequencies first.";
-      return;
     }
 
-    const list = input.split("\n").map(line => {
-      const parts = line.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        return [parts.slice(0, -1).join(" "), parseInt(parts[parts.length - 1], 10)];
-      }
-      return parts[0] ? [parts[0], 10] : null;
-    }).filter(i => i && !isNaN(i[1]));
-
-    if (!list.length) {
-      status.textContent = "No valid word lists structured.";
-      return;
+    function showExplainModal(prefix, row){
+      currentExplainRow = row;
+      byId("explainPreview").value = buildExplainPrompt(row, byId("explainTask").value);
+      byId("explainModalBackdrop").classList.add("show");
+      document.body.classList.add("modal-open");
     }
 
-    status.textContent = `Rendering word cloud with ${list.length} rows...`;
-    WordCloud(byId("wordCanvas"), {
-      list,
-      gridSize: 8,
-      weightFactor: s => Math.min(Math.max(s * 1.5, 12), 110),
-      color: "random-dark",
-      backgroundColor: "#ffffff",
-      rotateRatio: 0.3
+    function closeExplainModal(){
+      byId("explainModalBackdrop").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
+    function copyExplainPrompt(){
+      const p = byId("explainPreview").value.trim();
+      if (!p) return alert("No prompt to copy.");
+      navigator.clipboard.writeText(p).then(() => alert("Prompt copied."));
+    }
+
+    function openExplainInAI(){
+      const prompt = byId("explainPreview").value.trim();
+      if (!prompt) return;
+      const provider = byId("explainProvider").value, encoded = encodeURIComponent(prompt);
+      let url = `https://chatgpt.com/?q=${encoded}`;
+      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
+      if (provider === "claude") url = "https://claude.ai/new";
+      if (!window.open(url, "_blank")) alert("Popup blocked. Allow popups and try again.");
+      navigator.clipboard.writeText(prompt).catch(()=>{});
+      closeExplainModal();
+    }
+
+    document.addEventListener("change", (e) => {
+      if (e.target?.id === "explainTask" && currentExplainRow) byId("explainPreview").value = buildExplainPrompt(currentExplainRow, e.target.value);
     });
-  }
 
-  // =========================
-  // LLM PROMPT BUILDER
-  // =========================
-  function addWordsFromFilteredRows() {
-    const config = DATASETS[activeKey];
-    if (!config || !config.filtered.length) {
-      return alert("No matching filtered data to pull from on this tab.");
+    window.addEventListener("click", (e) => {
+      if (e.target === byId("columnModal")) closeModal();
+      if (e.target === byId("explainModalBackdrop")) closeExplainModal();
+    });
+
+    function showColumnKey() { document.getElementById('columnModal').classList.add('show'); document.body.classList.add('modal-open'); }
+    function closeModal() { document.getElementById('columnModal').classList.remove('show'); document.body.classList.remove('modal-open'); }
+
+    // =========================
+    // OTHER TOOLS (Word Cloud, Prompts, WebLLM)
+    // =========================
+    function generateWordCloud() {
+      const input = document.getElementById("wordInput").value.trim(), status = document.getElementById("cloudStatus");
+      if (!input) return status.textContent = "Please fill in word frequencies first.";
+      const list = input.split('\n').map(l => {
+        const parts = l.trim().split(/\s+/);
+        if (parts.length >= 2) return [parts.slice(0, parts.length - 1).join(' '), parseInt(parts[parts.length - 1], 10)];
+        return parts[0] ? [parts[0], 10] : null;
+      }).filter(i => i && !isNaN(i[1]));
+      
+      if (!list.length) return status.textContent = "No valid word lists structured.";
+      status.textContent = `Rendering word cloud with ${list.length} rows...`;
+      WordCloud(document.getElementById('wordCanvas'), { list, gridSize: 8, weightFactor: s => Math.min(Math.max(s * 1.5, 12), 110), color: 'random-dark', backgroundColor: '#ffffff', rotateRatio: 0.3 });
     }
 
-    const take = parseInt(byId("llmDbTake").value, 10) || 10;
-    const mode = byId("llmDbMode").value;
-    const chosen = (mode === "random")
-      ? [...config.filtered].sort(() => 0.5 - Math.random()).slice(0, take)
-      : config.filtered.slice(0, take);
+    function addWordsFromFilteredRows() {
+      const config = DATASETS[activeKey];
+      if (!config || !config.filtered.length) return alert("No matching filtered data to pull from on this tab.");
+      const take = parseInt(document.getElementById("llmDbTake").value, 10) || 10;
+      const chosen = document.getElementById("llmDbMode").value === 'random' ? [...config.filtered].sort(() => 0.5 - Math.random()).slice(0, take) : config.filtered.slice(0, take);
+      const txtArea = document.getElementById("llmInput");
+      const lines = chosen.map(r => `${r.Word || r.Baseword || ''} ${r.Word_frq_Zipf || r.Baseword_frq_Zipf || '10'}`).join('\n');
+      txtArea.value = txtArea.value.trim() ? txtArea.value + '\n' + lines : lines;
+    }
 
-    const txtArea = byId("llmInput");
-    const lines = chosen.map(r => {
-      const w = r.Word || r.Baseword || "";
-      const f = r.Word_frq_Zipf || r.Baseword_frq_Zipf || "10";
-      return `${w} ${f}`;
-    }).join("\n");
+    function generateWithLLM() {
+      const words = document.getElementById("llmInput").value.trim();
+      if (!words) return alert("Please specify words first.");
+      const checkedOptions = Array.from(document.querySelectorAll('.act-option:checked')).map(el => `- ${el.value}`).join('\n');
+      document.getElementById("finalPrompt").value = `You are an expert reading specialist and curriculum designer. 
+Generate a high-quality explicit instruction framework for Grade ${document.getElementById("llmGrade").value}.
 
-    txtArea.value = txtArea.value.trim() ? (txtArea.value + "\n" + lines) : lines;
-  }
+Target Words:\n${words}
 
-  function generateWithLLM() {
-    const words = byId("llmInput").value.trim();
-    if (!words) return alert("Please specify words first.");
+Format type: ${document.getElementById("llmTextType").value}
+Requested length: ${document.getElementById("llmLength").value}
+Context Topic Area: ${document.getElementById("llmContentArea").value.trim()}
+Pedagogical Focus: ${document.getElementById("llmFocus").value.trim()}
 
-    const checkedOptions = Array.from(document.querySelectorAll(".act-option:checked"))
-      .map(el => `- ${el.value}`)
-      .join("\n");
-
-    byId("finalPrompt").value = `You are an expert reading specialist and curriculum designer.
-Generate a high-quality explicit instruction framework for Grade ${byId("llmGrade").value}.
-
-Target Words:
-${words}
-
-Format type: ${byId("llmTextType").value}
-Requested length: ${byId("llmLength").value}
-Context Topic Area: ${byId("llmContentArea").value.trim()}
-Pedagogical Focus: ${byId("llmFocus").value.trim()}
-
-Required components:
-${checkedOptions}
+Required components:\n${checkedOptions}
 
 Deliver clean, production-ready educational assets.`;
+      document.getElementById("llmStatus").textContent = "🚀 Prompt compiled successfully!";
+    }
 
-    byId("llmStatus").textContent = "🚀 Prompt compiled successfully!";
-  }
+    function copyLLMPrompt() { navigator.clipboard.writeText(document.getElementById("finalPrompt").value).then(() => alert("Copied compiled layout to clipboard.")); }
+    
+    function openInLLM() {
+      if (!document.getElementById("finalPrompt").value) return alert("Please compile a prompt first.");
+      const p = document.getElementById("llmProvider").value;
+      window.open(p === 'gemini' ? `https://gemini.google.com/app` : p === 'chatgpt' ? `https://chatgpt.com/` : `https://claude.ai/chats`, '_blank');
+    }
 
-  function copyLLMPrompt() {
-    navigator.clipboard.writeText(byId("finalPrompt").value)
-      .then(() => alert("Copied compiled layout to clipboard."));
-  }
-
-  function openInLLM() {
-    if (!byId("finalPrompt").value) return alert("Please compile a prompt first.");
-    const p = byId("llmProvider").value;
-    window.open(
-      p === "gemini" ? "https://gemini.google.com/app" :
-      p === "chatgpt" ? "https://chatgpt.com/" :
-      "https://claude.ai/chats",
-      "_blank"
-    );
-  }
-
-  // =========================
-  // WEBLLM (UI STUB)
-  // =========================
-  async function loadWebLLMModelList() {
-    try {
-      byId("webllmModel").innerHTML =
-        `<option value="Llama-3-8B-Instruct-q4f16_1-100k-webgpu">Llama 3 (8B Instruct WebGPU)</option>
-         <option value="Phi-3-mini-4k-instruct-q4f16_1-webgpu">Phi 3 Mini (Lightweight/Fast)</option>`;
-    } catch(e) {}
-  }
-
-  async function initWebLLM() {
-    byId("webllmStatus").textContent = `Downloading/Loading ${byId("webllmModel").value}...`;
-    setTimeout(() => byId("webllmStatus").textContent = "✅ Loaded successfully!", 1500);
-  }
-
-  function sendWebLLM() {
-    const input = byId("webllmInput");
-    if (!input.value.trim()) return;
-
-    const c = byId("webllmChat");
-    const b = document.createElement("div");
-    b.innerHTML = `<strong>You:</strong> <span>${escapeHtml(input.value)}</span>`;
-    c.appendChild(b);
-
-    input.value = "";
-    setTimeout(() => {
-      const rb = document.createElement("div");
-      rb.innerHTML = `<strong>AI:</strong> <span>Interface active. Ready to process text.</span>`;
-      c.appendChild(rb);
-      c.scrollTop = c.scrollHeight;
-    }, 800);
-  }
-
-  function resetWebLLMChat() {
-    byId("webllmChat").innerHTML = "";
-    byId("webllmStatus").textContent = "Chat reset complete.";
-  }
-</script>
-
-
-
-
-  
+    // WEBLLM
+    async function loadWebLLMModelList() {
+      try {
+        document.getElementById("webllmModel").innerHTML = `<option value="Llama-3-8B-Instruct-q4f16_1-100k-webgpu">Llama 3 (8B Instruct WebGPU)</option><option value="Phi-3-mini-4k-instruct-q4f16_1-webgpu">Phi 3 Mini (Lightweight/Fast)</option>`;
+      } catch(e) {}
+    }
+    async function initWebLLM() {
+      document.getElementById("webllmStatus").textContent = `Downloading/Loading ${document.getElementById("webllmModel").value}...`;
+      setTimeout(() => document.getElementById("webllmStatus").textContent = `✅ Loaded successfully!`, 1500);
+    }
+    function sendWebLLM() {
+      const input = document.getElementById("webllmInput");
+      if (!input.value.trim()) return;
+      const c = document.getElementById("webllmChat"), b = document.createElement("div");
+      b.innerHTML = `<strong>You:</strong> <span>${input.value}</span>`; c.appendChild(b);
+      input.value = "";
+      setTimeout(() => {
+        const rb = document.createElement("div"); rb.innerHTML = `<strong>AI:</strong> <span>Interface active. Ready to process text.</span>`;
+        c.appendChild(rb); c.scrollTop = c.scrollHeight;
+      }, 800);
+    }
+    function resetWebLLMChat() { document.getElementById("webllmChat").innerHTML = ""; document.getElementById("webllmStatus").textContent = "Chat reset complete."; }
+  </script>
+</body>
+</html>
