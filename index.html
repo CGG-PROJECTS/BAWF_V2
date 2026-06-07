@@ -344,10 +344,15 @@ body.excel-dragging {
       </div>
     </div>
 
-  <!-- TAB 2: Compounds -->
+ <!-- TAB 2: Compounds -->
 <div id="compounds" class="tab-content">
   <style>
-    /* Hide per-column filter rows in Compounds tables */
+    /* Keep controls in DOM for JS, but hide visually */
+    #compounds .db-controls {
+      display: none !important;
+    }
+
+    /* Hide per-column filter rows */
     #compounds #cmFilterRow,
     #compounds #csFilterRow {
       display: none !important;
@@ -371,6 +376,15 @@ body.excel-dragging {
       <div class="db-meta">Showing <strong id="cmRowCount">0</strong> rows</div>
       <div id="cmLoading" class="db-loading">Loading Compound Main dataset...</div>
 
+      <!-- REQUIRED by JS (kept, but hidden via CSS) -->
+      <div class="db-controls" id="cmControls">
+        <input id="cmGlobalSearch" type="text" placeholder="Search all columns..." />
+        <select id="cmCopyColumnSelect"></select>
+        <button id="cmAddCols" type="button">Apply Columns</button>
+        <button id="cmResetCols" type="button">Reset Columns</button>
+        <button id="cmClearFilters" type="button">Clear Filters</button>
+      </div>
+
       <div class="db-table-wrap">
         <table id="cmTable" class="db-table" style="display:none;">
           <thead>
@@ -382,9 +396,9 @@ body.excel-dragging {
       </div>
 
       <div id="cmPagination" class="pagination" style="display:none;">
-        <button onclick="prevPage('cm')">← Previous</button>
+        <button type="button" onclick="prevPage('cm')">← Previous</button>
         <span>Page <span id="cmCurrentPage">1</span> of <span id="cmTotalPages">1</span></span>
-        <button onclick="nextPage('cm')">Next →</button>
+        <button type="button" onclick="nextPage('cm')">Next →</button>
         <select id="cmRowsPerPage" onchange="changeRowsPerPage('cm')">
           <option value="50">50 rows</option>
           <option value="100" selected>100 rows</option>
@@ -406,6 +420,15 @@ body.excel-dragging {
       <div class="db-meta">Showing <strong id="csRowCount">0</strong> rows</div>
       <div id="csLoading" class="db-loading">Loading Compound Stats dataset...</div>
 
+      <!-- REQUIRED by JS (kept, but hidden via CSS) -->
+      <div class="db-controls" id="csControls">
+        <input id="csGlobalSearch" type="text" placeholder="Search all columns..." />
+        <select id="csCopyColumnSelect"></select>
+        <button id="csAddCols" type="button">Apply Columns</button>
+        <button id="csResetCols" type="button">Reset Columns</button>
+        <button id="csClearFilters" type="button">Clear Filters</button>
+      </div>
+
       <div class="db-table-wrap">
         <table id="csTable" class="db-table" style="display:none;">
           <thead>
@@ -417,9 +440,9 @@ body.excel-dragging {
       </div>
 
       <div id="csPagination" class="pagination" style="display:none;">
-        <button onclick="prevPage('cs')">← Previous</button>
+        <button type="button" onclick="prevPage('cs')">← Previous</button>
         <span>Page <span id="csCurrentPage">1</span> of <span id="csTotalPages">1</span></span>
-        <button onclick="nextPage('cs')">Next →</button>
+        <button type="button" onclick="nextPage('cs')">Next →</button>
         <select id="csRowsPerPage" onchange="changeRowsPerPage('cs')">
           <option value="50">50 rows</option>
           <option value="100" selected>100 rows</option>
@@ -429,6 +452,7 @@ body.excel-dragging {
     </div>
   </div>
 </div>
+
 
     <!-- TAB 4: Wordcloud -->
     <div id="wordcloud" class="tab-content">
