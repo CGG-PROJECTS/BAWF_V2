@@ -353,19 +353,7 @@ body.excel-dragging {
         <div class="download-section">
           <a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>↓ Download Compound Main (.csv.gz)</a>
         </div>
-        <div class="db-wrap" id="cmWrap">
-          <div class="db-controls">
-         <button class="db-btn" onclick="exportCSV('cm', 'BAWF_Compound_Main_Filtered.csv')">↓ Export CSV</button>
-
-            <select id="cmCopyColumnSelect" class="db-select" style="min-width:220px;"></select>
-            <select id="cmCopyScope" class="db-select">
-              <option value="filtered" selected>Copy all filtered rows</option>
-              <option value="page">Copy current page only</option>
-            </select>
-            <button class="db-btn secondary" onclick="copyColumnValues('cm')">📋 Copy Column Cells</button>
-
-            <select id="cmAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-          </div>
+        
           <div class="db-meta">Showing <strong id="cmRowCount">0</strong> rows</div>
           <div id="cmLoading" class="db-loading">Loading Compound Main dataset...</div>
           <div class="db-table-wrap">
