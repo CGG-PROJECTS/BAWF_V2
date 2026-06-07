@@ -974,7 +974,7 @@ function chooseDefaultColumns(key, headers){
   
   clearTimeout(filterTimeouts[key]);
   // INCREASED DEBOUNCE: Changed from 200ms to 400ms so it waits until you finish typing
-  filterTimeouts[key] = setTimeout(() => filterTable(key), 400); 
+  filterTimeouts[key] = setTimeout(() => filterTable(key), 600); 
 }
 
 function filterTable(key) {
