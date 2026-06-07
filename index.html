@@ -1275,396 +1275,441 @@ Deliver clean, production-ready educational assets.`;
     }
     function resetWebLLMChat() { document.getElementById("webllmChat").innerHTML = ""; document.getElementById("webllmStatus").textContent = "Chat reset complete."; }
  
-// Add this inside your <script> tags
-document.addEventListener("copy", function (e) {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return; // normal copy if no selection
+/* ===== DROP-IN: Unified Excel copy (sparse + rectangle + text-range fallback) ===== */
+(() => {
+  if (window.__BAWF_EXCEL_COPY_INIT__) return;
+  window.__BAWF_EXCEL_COPY_INIT__ = true;
 
-  const anchorEl =
-    sel.anchorNode?.nodeType === Node.ELEMENT_NODE
-      ? sel.anchorNode
-      : sel.anchorNode?.parentElement;
+  /* Inject required CSS so this is truly one block */
+  const css = `
+    .db-table td.excel-selected { background: #dbeafe !important; }
+    .db-table td.excel-anchor { outline: 2px solid #2563eb; outline-offset: -2px; }
+    .db-table td.excel-sparse { background: #fde68a !important; }
+    body.excel-dragging { user-select: none; -webkit-user-select: none; }
+  `;
+  const style = document.createElement("style");
+  style.textContent = css;
+  document.head.appendChild(style);
 
-  const focusEl =
-    sel.focusNode?.nodeType === Node.ELEMENT_NODE
-      ? sel.focusNode
-      : sel.focusNode?.parentElement;
+  const state = {
+    dragging: false,
+    table: null,
+    tbody: null,
+    startRow: -1,
+    startCol: -1,
+    endRow: -1,
+    endCol: -1,
+    lastTableId: null
+  };
 
-  const table =
-    anchorEl?.closest?.("table.db-table") ||
-    focusEl?.closest?.("table.db-table");
+  // sparse keys: `${tableId}|${row}:${col}`
+  const sparseSelection = new Set();
 
-  if (!table) return; // not copying from your rendered table
+  const CLEAN = (v) =>
+    String(v ?? "").replace(/\r?\n+/g, " ").replace(/\t/g, " ").trim();
 
-  // Don't hijack copying from filter inputs/selects
-  if (anchorEl?.closest?.(".filter-row") || focusEl?.closest?.(".filter-row")) return;
+  const isEditableEl = (el) =>
+    !!el?.closest?.('input, textarea, select, [contenteditable="true"]');
 
-  const range = sel.getRangeAt(0);
-  const lines = [];
+  function getTableId(tableEl) {
+    return tableEl?.id || "db-table";
+  }
 
-  // Copy only rendered body rows (what user sees)
-  table.querySelectorAll("tbody tr").forEach((tr) => {
-    const rowVals = [];
+  function getDataCells(tr) {
+    // Exclude Actions column
+    return Array.from(tr.cells).filter((td) => !td.querySelector(".row-actions"));
+  }
 
-    tr.querySelectorAll("td").forEach((td) => {
-      // Skip Actions column (buttons)
-      if (td.querySelector(".row-actions")) return;
+  function getCellPos(cell) {
+    const tr = cell.closest("tr");
+    const tbody = tr?.closest("tbody");
+    const table = tbody?.closest("table.db-table");
+    if (!tr || !tbody || !table) return null;
 
-      if (!range.intersectsNode(td)) return;
+    const row = Array.prototype.indexOf.call(tbody.rows, tr);
+    const col = getDataCells(tr).indexOf(cell);
+    if (row < 0 || col < 0) return null;
 
-      rowVals.push(
-        td.innerText
-          .replace(/\r?\n+/g, " ")
-          .replace(/\t/g, " ")
-          .trim()
-      );
+    return { table, tbody, row, col };
+  }
+
+  function clearRectangleSelection() {
+    if (state.table) {
+      state.table
+        .querySelectorAll("td.excel-selected, td.excel-anchor")
+        .forEach((td) => td.classList.remove("excel-selected", "excel-anchor"));
+    }
+    state.dragging = false;
+    state.table = null;
+    state.tbody = null;
+    state.startRow = state.startCol = state.endRow = state.endCol = -1;
+    document.body.classList.remove("excel-dragging");
+  }
+
+  function clearSparseSelection(tableEl = null) {
+    if (!tableEl) {
+      document
+        .querySelectorAll("table.db-table td.excel-sparse")
+        .forEach((td) => td.classList.remove("excel-sparse"));
+      sparseSelection.clear();
+      return;
+    }
+
+    const tableId = getTableId(tableEl);
+    for (const key of [...sparseSelection]) {
+      if (key.startsWith(tableId + "|")) sparseSelection.delete(key);
+    }
+    tableEl
+      .querySelectorAll("td.excel-sparse")
+      .forEach((td) => td.classList.remove("excel-sparse"));
+  }
+
+  function paintRectangleSelection() {
+    if (!state.table || !state.tbody) return;
+
+    state.table
+      .querySelectorAll("td.excel-selected, td.excel-anchor")
+      .forEach((td) => td.classList.remove("excel-selected", "excel-anchor"));
+
+    const r1 = Math.min(state.startRow, state.endRow);
+    const r2 = Math.max(state.startRow, state.endRow);
+    const c1 = Math.min(state.startCol, state.endCol);
+    const c2 = Math.max(state.startCol, state.endCol);
+
+    for (let r = r1; r <= r2; r++) {
+      const tr = state.tbody.rows[r];
+      if (!tr) continue;
+      const cells = getDataCells(tr);
+      for (let c = c1; c <= c2; c++) {
+        if (cells[c]) cells[c].classList.add("excel-selected");
+      }
+    }
+
+    const anchorTr = state.tbody.rows[state.startRow];
+    const anchorTd = anchorTr ? getDataCells(anchorTr)[state.startCol] : null;
+    if (anchorTd) anchorTd.classList.add("excel-anchor");
+  }
+
+  function hasRectangleSelection() {
+    return !!(
+      state.table &&
+      state.tbody &&
+      state.startRow >= 0 &&
+      state.startCol >= 0 &&
+      state.endRow >= 0 &&
+      state.endCol >= 0
+    );
+  }
+
+  function toTSVFromRectangle(includeHeader = false) {
+    if (!hasRectangleSelection()) return "";
+
+    const r1 = Math.min(state.startRow, state.endRow);
+    const r2 = Math.max(state.startRow, state.endRow);
+    const c1 = Math.min(state.startCol, state.endCol);
+    const c2 = Math.max(state.startCol, state.endCol);
+
+    const lines = [];
+
+    if (includeHeader) {
+      const headers = Array.from(
+        state.table.querySelectorAll("thead tr:first-child th")
+      ).filter((th) => !/^\s*actions\s*$/i.test(th.textContent));
+      const h = [];
+      for (let c = c1; c <= c2; c++) h.push(CLEAN(headers[c]?.textContent || ""));
+      lines.push(h.join("\t"));
+    }
+
+    for (let r = r1; r <= r2; r++) {
+      const tr = state.tbody.rows[r];
+      if (!tr) continue;
+      const cells = getDataCells(tr);
+      const out = [];
+      for (let c = c1; c <= c2; c++) out.push(CLEAN(cells[c]?.innerText || ""));
+      lines.push(out.join("\t"));
+    }
+
+    return lines.join("\n");
+  }
+
+  function toTSVFromSparse({ preserveGaps = true, includeHeader = false } = {}) {
+    if (!sparseSelection.size) return "";
+
+    // group sparse keys by table
+    const byTable = new Map();
+    for (const key of sparseSelection) {
+      const splitAt = key.indexOf("|");
+      if (splitAt < 0) continue;
+      const tableId = key.slice(0, splitAt);
+      const rc = key.slice(splitAt + 1);
+      if (!byTable.has(tableId)) byTable.set(tableId, []);
+      byTable.get(tableId).push(rc);
+    }
+    if (!byTable.size) return "";
+
+    let tableId = state.lastTableId;
+    if (!tableId || !byTable.has(tableId)) tableId = byTable.keys().next().value;
+
+    const table = document.getElementById(tableId);
+    const tbody = table?.querySelector("tbody");
+    const coords = byTable.get(tableId) || [];
+    if (!table || !tbody || !coords.length) return "";
+
+    const parsed = coords
+      .map((rc) => {
+        const [r, c] = rc.split(":").map(Number);
+        return { r, c };
+      })
+      .filter((x) => Number.isInteger(x.r) && Number.isInteger(x.c));
+
+    if (!parsed.length) return "";
+
+    const rows = [...new Set(parsed.map((x) => x.r))].sort((a, b) => a - b);
+    const cols = [...new Set(parsed.map((x) => x.c))].sort((a, b) => a - b);
+
+    const minC = cols[0];
+    const maxC = cols[cols.length - 1];
+    const lookup = new Set(coords.map((rc) => `${tableId}|${rc}`));
+    const lines = [];
+
+    if (includeHeader) {
+      const headers = Array.from(
+        table.querySelectorAll("thead tr:first-child th")
+      ).filter((th) => !/^\s*actions\s*$/i.test(th.textContent));
+
+      if (preserveGaps) {
+        const h = [];
+        for (let c = minC; c <= maxC; c++) h.push(CLEAN(headers[c]?.textContent || ""));
+        lines.push(h.join("\t"));
+      } else {
+        lines.push(cols.map((c) => CLEAN(headers[c]?.textContent || "")).join("\t"));
+      }
+    }
+
+    for (const r of rows) {
+      const tr = tbody.rows[r];
+      if (!tr) continue;
+      const cells = getDataCells(tr);
+
+      if (preserveGaps) {
+        const out = [];
+        for (let c = minC; c <= maxC; c++) {
+          out.push(lookup.has(`${tableId}|${r}:${c}`) ? CLEAN(cells[c]?.innerText || "") : "");
+        }
+        lines.push(out.join("\t"));
+      } else {
+        const out = cols
+          .filter((c) => lookup.has(`${tableId}|${r}:${c}`))
+          .map((c) => CLEAN(cells[c]?.innerText || ""));
+        lines.push(out.join("\t"));
+      }
+    }
+
+    return lines.join("\n");
+  }
+
+  function toTSVFromDOMRangeSelection(sel, table) {
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !table) return "";
+    const range = sel.getRangeAt(0);
+    const lines = [];
+
+    table.querySelectorAll("tbody tr").forEach((tr) => {
+      const rowVals = [];
+      tr.querySelectorAll("td").forEach((td) => {
+        if (td.querySelector(".row-actions")) return; // skip Actions
+        if (!range.intersectsNode(td)) return;
+        rowVals.push(CLEAN(td.innerText));
+      });
+      if (rowVals.length) lines.push(rowVals.join("\t"));
     });
 
-    if (rowVals.length) lines.push(rowVals.join("\t"));
-  });
-
-  if (!lines.length) return; // fallback to browser default copy
-
-  e.preventDefault();
-  e.clipboardData.setData("text/plain", lines.join("\n"));
-});
-
-    
-    function copyRenderedRowsAsExcel(key) {
-  const cfg = DATASETS[key];
-  if (!cfg) return;
-
-  const start = (cfg.page - 1) * cfg.rpp;
-  const rows = cfg.filtered.slice(start, start + cfg.rpp);
-  const cols = cfg.visible;
-
-  const lines = [];
-  lines.push(cols.join("\t")); // header row
-
-  rows.forEach((r) => {
-    lines.push(
-      cols
-        .map((c) =>
-          String(r[c] ?? "")
-            .replace(/\r?\n+/g, " ")
-            .replace(/\t/g, " ")
-            .trim()
-        )
-        .join("\t")
-    );
-  });
-
-  navigator.clipboard
-    .writeText(lines.join("\n"))
-    .then(() => alert("Copied rendered rows (Excel format)."));
-}
-/* ===== Merged Excel-like selection: rectangle + sparse non-adjacent ===== */
-
-const excelSelection = {
-  dragging: false,
-  table: null,
-  tbody: null,
-  startRow: -1,
-  startCol: -1,
-  endRow: -1,
-  endCol: -1
-};
-
-// sparse keys: `${tableId}|${row}:${col}`
-const sparseSelection = new Set();
-
-function getTableId(tableEl) {
-  return tableEl?.id || "db-table";
-}
-
-function getDataCells(tr) {
-  // Exclude Actions column
-  return Array.from(tr.cells).filter(td => !td.querySelector('.row-actions'));
-}
-
-function getCellPos(cell) {
-  const tr = cell.closest('tr');
-  const tbody = tr?.closest('tbody');
-  const table = tbody?.closest('table.db-table');
-  if (!tr || !tbody || !table) return null;
-
-  const row = Array.prototype.indexOf.call(tbody.rows, tr);
-  const col = getDataCells(tr).indexOf(cell);
-  if (row < 0 || col < 0) return null;
-
-  return { table, tbody, row, col };
-}
-
-function clearRectangleSelection() {
-  if (excelSelection.table) {
-    excelSelection.table
-      .querySelectorAll('td.excel-selected, td.excel-anchor')
-      .forEach(td => td.classList.remove('excel-selected', 'excel-anchor'));
-  }
-  excelSelection.dragging = false;
-  excelSelection.table = null;
-  excelSelection.tbody = null;
-  excelSelection.startRow = excelSelection.startCol = -1;
-  excelSelection.endRow = excelSelection.endCol = -1;
-  document.body.classList.remove('excel-dragging');
-}
-
-function clearSparseSelection(tableEl = null) {
-  if (!tableEl) {
-    // clear all tables sparse UI
-    document.querySelectorAll('table.db-table td.excel-sparse')
-      .forEach(td => td.classList.remove('excel-sparse'));
-    sparseSelection.clear();
-    return;
+    return lines.join("\n");
   }
 
-  const tableId = getTableId(tableEl);
-  for (const key of [...sparseSelection]) {
-    if (key.startsWith(tableId + "|")) sparseSelection.delete(key);
-  }
-  tableEl.querySelectorAll('td.excel-sparse').forEach(td => td.classList.remove('excel-sparse'));
-}
+  function toggleSparseCell(td) {
+    const pos = getCellPos(td);
+    if (!pos) return;
 
-function paintRectangleSelection() {
-  const s = excelSelection;
-  if (!s.table || !s.tbody) return;
+    const tableId = getTableId(pos.table);
+    state.lastTableId = tableId;
+    const key = `${tableId}|${pos.row}:${pos.col}`;
 
-  s.table.querySelectorAll('td.excel-selected, td.excel-anchor')
-    .forEach(td => td.classList.remove('excel-selected', 'excel-anchor'));
-
-  const r1 = Math.min(s.startRow, s.endRow);
-  const r2 = Math.max(s.startRow, s.endRow);
-  const c1 = Math.min(s.startCol, s.endCol);
-  const c2 = Math.max(s.startCol, s.endCol);
-
-  for (let r = r1; r <= r2; r++) {
-    const tr = s.tbody.rows[r];
-    if (!tr) continue;
-    const cells = getDataCells(tr);
-    for (let c = c1; c <= c2; c++) {
-      if (cells[c]) cells[c].classList.add('excel-selected');
-    }
-  }
-
-  const anchorTr = s.tbody.rows[s.startRow];
-  const anchorTd = anchorTr ? getDataCells(anchorTr)[s.startCol] : null;
-  if (anchorTd) anchorTd.classList.add('excel-anchor');
-}
-
-function hasRectangleSelection() {
-  const s = excelSelection;
-  return !!(s.table && s.tbody && s.startRow >= 0 && s.startCol >= 0 && s.endRow >= 0 && s.endCol >= 0);
-}
-
-function toTSVFromRectangle(includeHeader = false) {
-  if (!hasRectangleSelection()) return '';
-
-  const s = excelSelection;
-  const r1 = Math.min(s.startRow, s.endRow);
-  const r2 = Math.max(s.startRow, s.endRow);
-  const c1 = Math.min(s.startCol, s.endCol);
-  const c2 = Math.max(s.startCol, s.endCol);
-
-  const clean = v => String(v ?? '').replace(/\r?\n+/g, ' ').replace(/\t/g, ' ').trim();
-  const lines = [];
-
-  if (includeHeader) {
-    const headers = Array.from(s.table.querySelectorAll('thead tr:first-child th'))
-      .filter(th => !/^\s*actions\s*$/i.test(th.textContent));
-    const h = [];
-    for (let c = c1; c <= c2; c++) h.push(clean(headers[c]?.textContent || ''));
-    lines.push(h.join('\t'));
-  }
-
-  for (let r = r1; r <= r2; r++) {
-    const tr = s.tbody.rows[r];
-    if (!tr) continue;
-    const cells = getDataCells(tr);
-    const row = [];
-    for (let c = c1; c <= c2; c++) row.push(clean(cells[c]?.innerText || ''));
-    lines.push(row.join('\t'));
-  }
-
-  return lines.join('\n');
-}
-
-function toTSVFromSparse({ preserveGaps = true, includeHeader = false } = {}) {
-  if (!sparseSelection.size) return '';
-
-  // group by tableId
-  const byTable = new Map();
-  for (const k of sparseSelection) {
-    const [tableId, rc] = k.split('|');
-    if (!byTable.has(tableId)) byTable.set(tableId, []);
-    byTable.get(tableId).push(rc);
-  }
-
-  // If multiple tables selected, copy first table group only
-  const firstTableId = byTable.keys().next().value;
-  const coords = byTable.get(firstTableId) || [];
-  const table = document.getElementById(firstTableId);
-  const tbody = table?.querySelector('tbody');
-  if (!table || !tbody || !coords.length) return '';
-
-  const parsed = coords.map(rc => {
-    const [r, c] = rc.split(':').map(Number);
-    return { r, c };
-  }).filter(x => Number.isInteger(x.r) && Number.isInteger(x.c));
-
-  if (!parsed.length) return '';
-
-  const rows = [...new Set(parsed.map(x => x.r))].sort((a,b)=>a-b);
-  const cols = [...new Set(parsed.map(x => x.c))].sort((a,b)=>a-b);
-
-  const minC = cols[0], maxC = cols[cols.length - 1];
-  const lookup = new Set(coords.map(rc => `${firstTableId}|${rc}`));
-
-  const clean = v => String(v ?? '').replace(/\r?\n+/g, ' ').replace(/\t/g, ' ').trim();
-  const lines = [];
-
-  if (includeHeader) {
-    const headers = Array.from(table.querySelectorAll('thead tr:first-child th'))
-      .filter(th => !/^\s*actions\s*$/i.test(th.textContent));
-
-    if (preserveGaps) {
-      const h = [];
-      for (let c = minC; c <= maxC; c++) h.push(clean(headers[c]?.textContent || ''));
-      lines.push(h.join('\t'));
+    if (sparseSelection.has(key)) {
+      sparseSelection.delete(key);
+      td.classList.remove("excel-sparse");
     } else {
-      lines.push(cols.map(c => clean(headers[c]?.textContent || '')).join('\t'));
+      sparseSelection.add(key);
+      td.classList.add("excel-sparse");
     }
   }
 
-  for (const r of rows) {
-    const tr = tbody.rows[r];
-    if (!tr) continue;
-    const cells = getDataCells(tr);
+  // Keep your helper available
+  window.copyRenderedRowsAsExcel = function copyRenderedRowsAsExcel(
+    key,
+    includeHeader = true
+  ) {
+    const cfg = window.DATASETS?.[key];
+    if (!cfg) return;
 
-    if (preserveGaps) {
-      const out = [];
-      for (let c = minC; c <= maxC; c++) {
-        if (lookup.has(`${firstTableId}|${r}:${c}`)) out.push(clean(cells[c]?.innerText || ''));
-        else out.push('');
+    const start = (cfg.page - 1) * cfg.rpp;
+    const rows = cfg.filtered.slice(start, start + cfg.rpp);
+    const cols = cfg.visible || [];
+
+    const lines = [];
+    if (includeHeader) lines.push(cols.join("\t"));
+
+    rows.forEach((r) => {
+      lines.push(cols.map((c) => CLEAN(r[c])).join("\t"));
+    });
+
+    navigator.clipboard
+      .writeText(lines.join("\n"))
+      .then(() => alert("Copied rendered rows (Excel format)."))
+      .catch(() => alert("Clipboard blocked. Press Ctrl/Cmd+C after selecting."));
+  };
+
+  // Optional: clear selections after every table render (prevents stale row index issues)
+  if (typeof window.renderTable === "function" && !window.__BAWF_RENDER_WRAP__) {
+    const _oldRenderTable = window.renderTable;
+    window.renderTable = function (...args) {
+      clearRectangleSelection();
+      clearSparseSelection();
+      return _oldRenderTable.apply(this, args);
+    };
+    window.__BAWF_RENDER_WRAP__ = true;
+  }
+
+  // Mouse logic
+  document.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return; // left click only
+    if (isEditableEl(e.target)) return;
+
+    const td = e.target.closest("table.db-table tbody td");
+
+    // outside any table -> clear
+    if (!td) {
+      if (!e.target.closest("table.db-table")) {
+        clearRectangleSelection();
+        clearSparseSelection();
       }
-      lines.push(out.join('\t'));
-    } else {
-      const out = cols
-        .filter(c => lookup.has(`${firstTableId}|${r}:${c}`))
-        .map(c => clean(cells[c]?.innerText || ''));
-      lines.push(out.join('\t'));
+      return;
     }
-  }
 
-  return lines.join('\n');
-}
+    if (td.querySelector(".row-actions")) return; // skip Actions cell
 
-function toggleSparseCell(td) {
-  const pos = getCellPos(td);
-  if (!pos) return;
-  const tableId = getTableId(pos.table);
-  const key = `${tableId}|${pos.row}:${pos.col}`;
+    const pos = getCellPos(td);
+    if (!pos) return;
+    state.lastTableId = getTableId(pos.table);
 
-  if (sparseSelection.has(key)) {
-    sparseSelection.delete(key);
-    td.classList.remove('excel-sparse');
-  } else {
-    sparseSelection.add(key);
-    td.classList.add('excel-sparse');
-  }
-}
+    // Ctrl/Cmd+click => sparse toggle
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      clearRectangleSelection();
+      toggleSparseCell(td);
+      return;
+    }
 
-/* Mouse down:
-   - Ctrl/Cmd + click => toggle sparse cell
-   - normal click/drag => rectangle selection
-*/
-document.addEventListener('mousedown', (e) => {
-  const td = e.target.closest('table.db-table tbody td');
+    // normal click/drag => rectangle
+    e.preventDefault();
+    clearSparseSelection(pos.table); // switch modes in same table
+    state.dragging = true;
+    state.table = pos.table;
+    state.tbody = pos.tbody;
+    state.startRow = state.endRow = pos.row;
+    state.startCol = state.endCol = pos.col;
+    document.body.classList.add("excel-dragging");
+    paintRectangleSelection();
+  });
 
-  // click outside table => clear both
-  if (!td) {
-    if (!e.target.closest('table.db-table')) {
+  document.addEventListener("mousemove", (e) => {
+    if (!state.dragging) return;
+
+    const td = e.target.closest("table.db-table tbody td");
+    if (!td || td.querySelector(".row-actions")) return;
+
+    const pos = getCellPos(td);
+    if (!pos || pos.table !== state.table) return;
+
+    if (pos.row !== state.endRow || pos.col !== state.endCol) {
+      state.endRow = pos.row;
+      state.endCol = pos.col;
+      paintRectangleSelection();
+    }
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (!state.dragging) return;
+    state.dragging = false;
+    document.body.classList.remove("excel-dragging");
+  });
+
+  // Copy priority: sparse -> rectangle -> range-selection-in-table -> default browser
+  document.addEventListener("copy", (e) => {
+    if (isEditableEl(document.activeElement)) return;
+
+    // 1) sparse
+    const sparseTSV = toTSVFromSparse({ preserveGaps: true, includeHeader: false });
+    if (sparseTSV) {
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", sparseTSV);
+      return;
+    }
+
+    // 2) rectangle
+    const rectTSV = toTSVFromRectangle(false);
+    if (rectTSV) {
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", rectTSV);
+      return;
+    }
+
+    // 3) fallback: browser-selected text inside table
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+
+    const anchorEl =
+      sel.anchorNode?.nodeType === Node.ELEMENT_NODE
+        ? sel.anchorNode
+        : sel.anchorNode?.parentElement;
+
+    const focusEl =
+      sel.focusNode?.nodeType === Node.ELEMENT_NODE
+        ? sel.focusNode
+        : sel.focusNode?.parentElement;
+
+    // don't hijack filter-row interactions
+    if (anchorEl?.closest?.(".filter-row") || focusEl?.closest?.(".filter-row")) return;
+
+    const table =
+      anchorEl?.closest?.("table.db-table") || focusEl?.closest?.("table.db-table");
+    if (!table) return;
+
+    const tsv = toTSVFromDOMRangeSelection(sel, table);
+    if (!tsv) return;
+
+    e.preventDefault();
+    e.clipboardData.setData("text/plain", tsv);
+  });
+
+  // ESC clears all selections
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
       clearRectangleSelection();
       clearSparseSelection();
     }
-    return;
-  }
+  });
 
-  // skip actions cell
-  if (td.querySelector('.row-actions')) return;
-
-  // sparse toggle with Ctrl/Cmd
-  if (e.ctrlKey || e.metaKey) {
-    e.preventDefault();
-    clearRectangleSelection(); // keep modes separate for clean copy behavior
-    toggleSparseCell(td);
-    return;
-  }
-
-  // normal rectangle start
-  const pos = getCellPos(td);
-  if (!pos) return;
-
-  e.preventDefault();
-  clearSparseSelection(pos.table); // optional: clear sparse on normal drag in same table
-  excelSelection.dragging = true;
-  excelSelection.table = pos.table;
-  excelSelection.tbody = pos.tbody;
-  excelSelection.startRow = excelSelection.endRow = pos.row;
-  excelSelection.startCol = excelSelection.endCol = pos.col;
-  document.body.classList.add('excel-dragging');
-  paintRectangleSelection();
-});
-
-// Drag rectangle
-document.addEventListener('mousemove', (e) => {
-  if (!excelSelection.dragging) return;
-
-  const td = e.target.closest('table.db-table tbody td');
-  if (!td || td.querySelector('.row-actions')) return;
-
-  const pos = getCellPos(td);
-  if (!pos || pos.table !== excelSelection.table) return;
-
-  if (pos.row !== excelSelection.endRow || pos.col !== excelSelection.endCol) {
-    excelSelection.endRow = pos.row;
-    excelSelection.endCol = pos.col;
-    paintRectangleSelection();
-  }
-});
-
-// End drag
-document.addEventListener('mouseup', () => {
-  if (!excelSelection.dragging) return;
-  excelSelection.dragging = false;
-  document.body.classList.remove('excel-dragging');
-});
-
-// Copy: sparse first, else rectangle
-document.addEventListener('copy', (e) => {
-  // 1) sparse copy (preserve grid gaps between selected columns)
-  const sparseTSV = toTSVFromSparse({ preserveGaps: true, includeHeader: false });
-  if (sparseTSV) {
-    e.preventDefault();
-    e.clipboardData.setData('text/plain', sparseTSV);
-    return;
-  }
-
-  // 2) rectangle copy
-  const rectTSV = toTSVFromRectangle(false);
-  if (rectTSV) {
-    e.preventDefault();
-    e.clipboardData.setData('text/plain', rectTSV);
-  }
-  // 3) else normal browser copy
-});
-
-// ESC clears both modes
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
+  // optional public helper
+  window.clearExcelSelections = function () {
     clearRectangleSelection();
     clearSparseSelection();
-  }
-});
+  };
+})();
+
+
+
+
+    
 
 
   </script>
