@@ -650,12 +650,6 @@ body.excel-dragging {
         sortDesc: false
       }
     };
-function parseZipf(v) {
-  const s = String(v ?? '').trim().replace(/,/g, '');
-  if (!s) return null;
-  const n = Number(s);
-  return Number.isFinite(n) ? n : null;
-}
 
     function isLikelyNumeric(v){
       if (v === null || v === undefined) return false;
@@ -669,40 +663,25 @@ function parseZipf(v) {
       return Number.isFinite(n) ? Math.round(n) : null;
     }
 
-function getDropdownMeta(key, col) {
+  function getDropdownMeta(key, col) {
   const cacheKey = key + '_' + col;
   if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
 
   const config = DATASETS[key];
-
-  // TARGETED FIX: Word_frq_Zipf must use exact numeric values (no rounding)
-  if (col === "Word_frq_Zipf") {
-    const nums = config.data
-      .map(r => parseZipf(r[col]))
-      .filter(v => v !== null);
-
-    const options = [...new Set(nums)]
-      .sort((a, b) => a - b)
-      .map(n => String(n));
-
-    const meta = { numericLike: true, isZipf: true, options };
-    dropdownCache[cacheKey] = meta;
-    return meta;
-  }
-
-  // Existing behavior for all other columns
   const raw = config.data
     .map(r => String(r[col] ?? '').trim())
     .filter(Boolean);
 
   const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
-  const isZipf = /zipf/i.test(col);
+  const isZipf = /zipf/i.test(col); // detect Word_frq_Zipf etc.
 
   let options;
   if (numericLike) {
     if (isZipf) {
+      // FIX: keep full Zipf numeric values (no integer rounding)
       options = [...new Set(raw)].sort((a, b) => Number(a) - Number(b));
     } else {
+      // keep rounding for other numeric columns
       options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))]
         .sort((a, b) => a - b)
         .map(String);
@@ -714,7 +693,6 @@ function getDropdownMeta(key, col) {
   dropdownCache[cacheKey] = { numericLike, isZipf, options };
   return dropdownCache[cacheKey];
 }
-
 function clearDropdownCache(key) {
   Object.keys(dropdownCache).forEach(k => {
     if (k.startsWith(key + '_')) delete dropdownCache[k];
@@ -858,24 +836,18 @@ function chooseDefaultColumns(key, headers){
             }
           },
           complete: function() {
-  config.loaded = true;
-  config.filtered = [...config.data];
+            config.loaded = true;
 
-  // IMPORTANT: rebuild dropdowns from full dataset after streaming finishes
-  clearDropdownCache(key);
-  buildDropdowns(key);
-
-  if (!firstPaint) {
-    document.getElementById(`${key}Table`).style.display = 'table';
-    document.getElementById(`${key}Pagination`).style.display = 'flex';
-    renderTable(key);
-  } else {
-    filterTable(key); // rerender with full, refreshed dropdown options
-  }
-
-  if (loadingEl) loadingEl.style.display = 'none';
-}
-
+            config.filtered = [...config.data];
+            if (!firstPaint) {
+              document.getElementById(`${key}Table`).style.display = 'table';
+              document.getElementById(`${key}Pagination`).style.display = 'flex';
+              buildDropdowns(key); renderTable(key);
+            } else {
+              filterTable(key); 
+            }
+            if (loadingEl) loadingEl.style.display = 'none';
+          }
         });
       } catch (e) {
         if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
@@ -919,7 +891,7 @@ function chooseDefaultColumns(key, headers){
         const currentVal = filterData ? filterData.val : '';
         
         if (TEXT_SEARCH_COLS.includes(col)) {
-           return `<td><input type="text" placeholder="Search..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
+           return `<td><input type="text" placeholder="Filter..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
         } else {
            const meta = getDropdownMeta(key, col);
            let opts = `<option value="">All</option>`;
