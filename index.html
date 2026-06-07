@@ -347,8 +347,6 @@ body.excel-dragging {
     <!-- TAB 2: Compounds -->
     <div id="compounds" class="tab-content">
       <div class="subtabs">
-        <button class="subtab-btn active" onclick="openCompoundSubTab('comp-main', this)">Main Compound</button>
-        <button class="subtab-btn" onclick="openCompoundSubTab('comp-stats', this)">Word Family Size Stats</button>
       </div>
 
       <div id="comp-main" class="subtab-pane active">
@@ -367,7 +365,6 @@ body.excel-dragging {
             <button class="db-btn secondary" onclick="copyColumnValues('cm')">📋 Copy Column Cells</button>
 
             <select id="cmAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-            <button id="cmAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
           </div>
           <div class="db-meta">Showing <strong id="cmRowCount">0</strong> rows</div>
           <div id="cmLoading" class="db-loading">Loading Compound Main dataset...</div>
