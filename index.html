@@ -589,6 +589,32 @@ const DATASETS = {
     sortDesc: false
   }
 };
+function isLikelyNumeric(v){
+  if (v === null || v === undefined) return false;
+  const s = String(v).trim();
+  if (!s) return false;
+  return /^-?\d+(\.\d+)?$/.test(s);
+}
+
+function getDropdownMeta(key, col) {
+  const cacheKey = key + '_' + col;
+  if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
+
+  const config = DATASETS[key];
+  const raw = config.data.map(r => String(r[col] ?? '').trim()).filter(Boolean);
+
+  const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
+
+  let options;
+  if (numericLike) {
+    options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a,b)=>a-b);
+  } else {
+    options = [...new Set(raw)].sort((a,b)=>a.localeCompare(b));
+  }
+
+  dropdownCache[cacheKey] = { numericLike, options };
+  return dropdownCache[cacheKey];
+}
 
 const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
 
@@ -599,6 +625,10 @@ function chooseDefaultColumns(key, headers){
   return found.length ? found : headers.slice(0, 12);
 }
 
+function toRoundedInt(v){
+  const n = parseFloat(String(v ?? "").trim());
+  return Number.isFinite(n) ? Math.round(n) : null;
+}
  
 
     // Columns that should remain text input searches (everything else becomes a dropdown)
@@ -789,12 +819,17 @@ config.loaded = false;
         
         if (TEXT_SEARCH_COLS.includes(col)) {
            return `<td><input type="text" placeholder="Filter..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
-        } else {
-           // Categorical column -> Generate Dropdown Select
-           const cacheKey = key + '_' + col;
-           if (!dropdownCache[cacheKey]) {
-               dropdownCache[cacheKey] = [...new Set(config.data.map(r => r[col] || '').filter(v => v))].sort((a,b) => a.localeCompare(b));
-           }
+       } else {
+   const meta = getDropdownMeta(key, col);
+   let opts = `<option value="">All</option>`;
+   meta.options.forEach(u => {
+     const valStr = String(u);
+     const sel = (currentVal === valStr) ? 'selected' : '';
+     opts += `<option value="${valStr.replace(/"/g, '&quot;')}" ${sel}>${valStr}</option>`;
+   });
+   return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true, ${meta.numericLike ? 'true' : 'false'})">${opts}</select></td>`;
+}
+
            let opts = `<option value="">All</option>`;
            dropdownCache[cacheKey].forEach(u => {
                const sel = (currentVal === u) ? 'selected' : '';
@@ -843,16 +878,19 @@ bodyHtml += `<td>
     }
 
     // Debounced Filtering logic with exact vs substring matching support
-    function onColumnFilter(key, col, val, isExact) {
+   function onColumnFilter(key, col, val, isExact, numericRounded = false) {
+
       if (!columnFilters[key]) columnFilters[key] = {};
       
       if (!val) {
         delete columnFilters[key][col];
       } else {
-        columnFilters[key][col] = { 
-          val: isExact ? val : val.toLowerCase(), 
-          exact: isExact 
-        };
+       columnFilters[key][col] = { 
+  val: isExact ? String(val) : String(val).toLowerCase(),
+  exact: isExact,
+  numericRounded: !!numericRounded
+};
+
       }
       
       clearTimeout(filterTimeouts[key]);
@@ -870,8 +908,14 @@ bodyHtml += `<td>
           const filterDef = colFilters[col];
           const cellVal = String(row[col] || '');
           if (filterDef.exact) {
-            if (cellVal !== filterDef.val) return false;
-          } else {
+  if (filterDef.numericRounded) {
+    const rn = toRoundedInt(cellVal);
+    if (rn === null || String(rn) !== String(filterDef.val)) return false;
+  } else {
+    if (cellVal !== filterDef.val) return false;
+  }
+} else {
+
             if (!cellVal.toLowerCase().includes(filterDef.val)) return false;
           }
         }
