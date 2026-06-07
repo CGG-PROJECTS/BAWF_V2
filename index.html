@@ -891,7 +891,7 @@ function chooseDefaultColumns(key, headers){
         const currentVal = filterData ? filterData.val : '';
         
         if (TEXT_SEARCH_COLS.includes(col)) {
-           return `<td><input type="text" placeholder="Filter..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
+           return `<td><input type="text" placeholder="Search..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
         } else {
            const meta = getDropdownMeta(key, col);
            let opts = `<option value="">All</option>`;
