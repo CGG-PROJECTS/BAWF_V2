@@ -958,23 +958,82 @@ function chooseDefaultColumns(key, headers){
       tbody.innerHTML = bodyHtml;
     }
 
-    function onColumnFilter(key, col, val, isExact, numericRounded = false, doNotRound = false) {
-      if (!columnFilters[key]) columnFilters[key] = {};
+  function onColumnFilter(key, col, val, isExact, numericRounded = false, doNotRound = false) {
+  if (!columnFilters[key]) columnFilters[key] = {};
+  
+  if (!val) {
+    delete columnFilters[key][col];
+  } else {
+    columnFilters[key][col] = { 
+      val: isExact ? String(val) : String(val).toLowerCase(),
+      exact: isExact,
+      numericRounded: !!numericRounded,
+      doNotRound: !!doNotRound
+    };
+  }
+  
+  clearTimeout(filterTimeouts[key]);
+  // INCREASED DEBOUNCE: Changed from 200ms to 400ms so it waits until you finish typing
+  filterTimeouts[key] = setTimeout(() => filterTable(key), 400); 
+}
+
+function filterTable(key) {
+  const config = DATASETS[key];
+  const globalQuery = document.getElementById(`${key}GlobalSearch`)?.value.trim().toLowerCase() || '';
+  const colFilters = columnFilters[key] || {};
+  const filterKeys = Object.keys(colFilters);
+  const visibleCols = config.visible;
+
+  // FAST PATH: If search is cleared, reset instantly
+  if (!globalQuery && filterKeys.length === 0) {
+    config.filtered = config.data;
+    config.page = 1;
+    renderTable(key);
+    return;
+  }
+
+  // OPTIMIZED: Standard loops are much faster than .some() or for...in for large datasets
+  config.filtered = config.data.filter(row => {
+    // 1. Check specific column filters first (fail fast)
+    for (let i = 0; i < filterKeys.length; i++) {
+      const col = filterKeys[i];
+      const filterDef = colFilters[col];
+      const rawVal = row[col];
+      const cellVal = rawVal != null ? String(rawVal) : '';
       
-      if (!val) {
-        delete columnFilters[key][col];
+      if (filterDef.exact) {
+        if (filterDef.numericRounded && !filterDef.doNotRound) {
+          const rn = toRoundedInt(cellVal);
+          if (rn === null || String(rn) !== filterDef.val) return false;
+        } else if (filterDef.numericRounded && filterDef.doNotRound) {
+          if (cellVal === "" || isNaN(cellVal) || Number(cellVal) !== Number(filterDef.val)) return false;
+        } else {
+          if (cellVal !== filterDef.val) return false;
+        }
       } else {
-       columnFilters[key][col] = { 
-          val: isExact ? String(val) : String(val).toLowerCase(),
-          exact: isExact,
-          numericRounded: !!numericRounded,
-          doNotRound: !!doNotRound
-        };
+        if (!cellVal.toLowerCase().includes(filterDef.val)) return false;
       }
-      
-      clearTimeout(filterTimeouts[key]);
-      filterTimeouts[key] = setTimeout(() => filterTable(key), 200);
     }
+
+    // 2. Check global query ONLY if column filters passed
+    if (globalQuery) {
+      let globalMatch = false;
+      for (let i = 0; i < visibleCols.length; i++) {
+        const rawVal = row[visibleCols[i]];
+        if (rawVal != null && String(rawVal).toLowerCase().includes(globalQuery)) {
+          globalMatch = true;
+          break; // Stop searching remaining columns on first match
+        }
+      }
+      if (!globalMatch) return false;
+    }
+
+    return true;
+  });
+  
+  config.page = 1; 
+  renderTable(key);
+}
 
     function filterTable(key) {
       const config = DATASETS[key];
