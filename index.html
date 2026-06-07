@@ -545,7 +545,6 @@
 
 
   <script>
-    // DATASETS Setup (Language_of_Origin removed from visible)
     const DATASETS = {
       wf: {
         file: "BAWF_FINAL.csv.gz",
@@ -595,6 +594,11 @@
       return /^-?\d+(\.\d+)?$/.test(s);
     }
 
+    function toRoundedInt(v){
+      const n = parseFloat(String(v ?? "").trim());
+      return Number.isFinite(n) ? Math.round(n) : null;
+    }
+
     function getDropdownMeta(key, col) {
       const cacheKey = key + '_' + col;
       if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
@@ -603,15 +607,24 @@
       const raw = config.data.map(r => String(r[col] ?? '').trim()).filter(Boolean);
 
       const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
+      
+      // Determine if it is a Zipf/Frequency score based on column name
+      const isZipf = col.toLowerCase().includes('zipf') || col.toLowerCase().includes('frq');
 
       let options;
       if (numericLike) {
-        options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a,b)=>a-b);
+        if (isZipf) {
+           // Do not round frequencies/Zipf scores
+           options = [...new Set(raw.map(Number))].sort((a,b)=>a-b);
+        } else {
+           // Round to nearest integer for other numeric columns
+           options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a,b)=>a-b);
+        }
       } else {
         options = [...new Set(raw)].sort((a,b)=>a.localeCompare(b));
       }
 
-      dropdownCache[cacheKey] = { numericLike, options };
+      dropdownCache[cacheKey] = { numericLike, isZipf, options };
       return dropdownCache[cacheKey];
     }
 
@@ -624,22 +637,16 @@
       return found.length ? found : headers.slice(0, 12);
     }
 
-    function toRoundedInt(v){
-      const n = parseFloat(String(v ?? "").trim());
-      return Number.isFinite(n) ? Math.round(n) : null;
-    }
-
-    // Columns that should remain text input searches (everything else becomes a dropdown)
+    // Only actual Text Fields remain here. The Numeric columns have been removed
+    // so they automatically become dropdowns.
     const TEXT_SEARCH_COLS = [
       'Word', 'FLemma', 'Baseword', 'Component_1', 'Component_2', 
-      'Definition', 'Etymology', 'Word_frq_Zipf', 'Baseword_frq_Zipf', 
-      'Baseword_Family_Size', 'Family_Size_No_Compounds', 
-      'Family_Size_With_Compounds', 'Compound_Count'
+      'Definition', 'Etymology'
     ];
 
     let activeTabId = 'word-families';
     let activeKey = 'wf';
-    let columnFilters = {}; // format: { colName: { val: 'abc', exact: false } }
+    let columnFilters = {}; 
     let filterTimeouts = {};
     const dropdownCache = {};
 
@@ -658,7 +665,6 @@
     function getDatasetKeyFromTab(tabId) {
       if (tabId === 'word-families') return 'wf';
       if (tabId === 'compounds') return document.querySelector('#compounds .subtab-pane.active')?.id === 'comp-main' ? 'cm' : 'cs';
-    
       return null;
     }
 
@@ -720,15 +726,12 @@
             const clean = String(h || "")
               .replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "")
               .trim();
-            // give blank headers a temp name so they can be filtered out later
             return clean || `${EMPTY_HEADER_PREFIX}${i}`;
           },
           chunk: function(results) {
            if (!config.all.length) {
               const fields = results.meta?.fields || [];
-              // remove fake blank headers
               config.all = fields.filter(f => f && !String(f).startsWith(EMPTY_HEADER_PREFIX));
-              // IMPORTANT: initialize visible columns once
               config.visible = chooseDefaultColumns(key, config.all);
             }
             
@@ -759,7 +762,7 @@
               document.getElementById(`${key}Pagination`).style.display = 'flex';
               buildDropdowns(key); renderTable(key);
             } else {
-              filterTable(key); // Refresh after load to catch any applied filters
+              filterTable(key); 
             }
             if (loadingEl) loadingEl.style.display = 'none';
           }
@@ -815,7 +818,7 @@
              const sel = (currentVal === valStr) ? 'selected' : '';
              opts += `<option value="${valStr.replace(/"/g, '&quot;')}" ${sel}>${valStr}</option>`;
            });
-           return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true, ${meta.numericLike ? 'true' : 'false'})">${opts}</select></td>`;
+           return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true, ${meta.numericLike ? 'true' : 'false'}, ${meta.isZipf ? 'true' : 'false'})">${opts}</select></td>`;
         }
       }).join('') + `<td></td>`;
 
@@ -857,9 +860,7 @@
       tbody.innerHTML = bodyHtml;
     }
 
-    // Debounced Filtering logic with exact vs substring matching support
-    function onColumnFilter(key, col, val, isExact, numericRounded = false) {
-
+    function onColumnFilter(key, col, val, isExact, numericRounded = false, doNotRound = false) {
       if (!columnFilters[key]) columnFilters[key] = {};
       
       if (!val) {
@@ -868,7 +869,8 @@
        columnFilters[key][col] = { 
           val: isExact ? String(val) : String(val).toLowerCase(),
           exact: isExact,
-          numericRounded: !!numericRounded
+          numericRounded: !!numericRounded,
+          doNotRound: !!doNotRound
         };
       }
       
@@ -882,14 +884,16 @@
       const colFilters = columnFilters[key] || {};
       
       config.filtered = config.data.filter(row => {
-        // Individual column filters
         for (const col in colFilters) {
           const filterDef = colFilters[col];
           const cellVal = String(row[col] || '');
+          
           if (filterDef.exact) {
-            if (filterDef.numericRounded) {
+            if (filterDef.numericRounded && !filterDef.doNotRound) {
               const rn = toRoundedInt(cellVal);
               if (rn === null || String(rn) !== String(filterDef.val)) return false;
+            } else if (filterDef.numericRounded && filterDef.doNotRound) {
+              if (cellVal === "" || isNaN(cellVal) || Number(cellVal) !== Number(filterDef.val)) return false;
             } else {
               if (cellVal !== filterDef.val) return false;
             }
@@ -897,7 +901,7 @@
             if (!cellVal.toLowerCase().includes(filterDef.val)) return false;
           }
         }
-        // Global search input
+
         if (globalQuery) {
           return config.visible.some(col => String(row[col] || '').toLowerCase().includes(globalQuery));
         }
@@ -917,7 +921,6 @@
       renderTable(key);
     }
 
-    // Advanced sorting logic with numerical detection
     function sortTable(key, col) {
       const config = DATASETS[key];
       if (config.sortBy === col) {
@@ -931,7 +934,6 @@
         let v1 = a[col] || '';
         let v2 = b[col] || '';
         
-        // Detect if both values are purely numerical
         let isNum1 = v1 !== '' && !isNaN(Number(v1));
         let isNum2 = v2 !== '' && !isNaN(Number(v2));
         
@@ -939,7 +941,6 @@
           return config.sortDesc ? Number(v2) - Number(v1) : Number(v1) - Number(v2);
         }
         
-        // String sorting fallback
         v1 = String(v1).toLowerCase(); 
         v2 = String(v2).toLowerCase();
         
@@ -1020,9 +1021,6 @@
       return btn;
     }
 
-    // =========================
-    // EXPLAIN MODAL LOGIC
-    // =========================
     function byId(id){ return document.getElementById(id); }
     function getFirstNonEmpty(row, candidates){
       for (const c of candidates){
@@ -1104,9 +1102,6 @@ Please return:
     function showColumnKey() { document.getElementById('columnModal').classList.add('show'); document.body.classList.add('modal-open'); }
     function closeModal() { document.getElementById('columnModal').classList.remove('show'); document.body.classList.remove('modal-open'); }
 
-    // =========================
-    // OTHER TOOLS (Word Cloud, Prompts, WebLLM)
-    // =========================
     function generateWordCloud() {
       const input = document.getElementById("wordInput").value.trim(), status = document.getElementById("cloudStatus");
       if (!input) return status.textContent = "Please fill in word frequencies first.";
@@ -1159,7 +1154,6 @@ Deliver clean, production-ready educational assets.`;
       window.open(p === 'gemini' ? `https://gemini.google.com/app` : p === 'chatgpt' ? `https://chatgpt.com/` : `https://claude.ai/chats`, '_blank');
     }
 
-    // WEBLLM
     async function loadWebLLMModelList() {
       try {
         document.getElementById("webllmModel").innerHTML = `<option value="Llama-3-8B-Instruct-q4f16_1-100k-webgpu">Llama 3 (8B Instruct WebGPU)</option><option value="Phi-3-mini-4k-instruct-q4f16_1-webgpu">Phi 3 Mini (Lightweight/Fast)</option>`;
