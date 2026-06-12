@@ -818,8 +818,11 @@
       pageData.forEach(row => {
         bodyHtml += `<tr>`;
         config.visible.forEach(col => {
-          const val = row[col] || '';
-          bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
+          const rawVal = row[col] ?? '';
+const isNumericCol = getDropdownMeta(key, col).numericLike;
+const val = isNumericCol ? formatMax2Decimals(rawVal) : String(rawVal);
+bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
+
         });
         const lookupWord = getLookupWordFromRow(row) || '';
         const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
@@ -1035,6 +1038,13 @@
        document.getElementById('advCount').textContent = '0';
        document.getElementById('advResultsText').value = '';
     }
+function formatMax2Decimals(v){
+  const s = String(v ?? '').trim();
+  if (!s || !isLikelyNumeric(s)) return String(v ?? '');
+  const n = Number(s);
+  if (!Number.isFinite(n)) return String(v ?? '');
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
+}
 
     function copyAdvancedList() {
        const text = document.getElementById('advResultsText').value;
@@ -1170,6 +1180,9 @@
       document.getElementById("llmStatus").textContent = "🚀 Prompt compiled!";
     }
     function copyLLMPrompt() { navigator.clipboard.writeText(document.getElementById("finalPrompt").value).then(() => alert("Copied!")); }
+  
+    
+    
     function openInLLM() {
       const p = document.getElementById("llmProvider").value;
       window.open(p === 'gemini' ? `https://gemini.google.com/app` : p === 'chatgpt' ? `https://chatgpt.com/` : `https://claude.ai/chats`, '_blank');
