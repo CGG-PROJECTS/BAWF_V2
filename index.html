@@ -430,7 +430,14 @@
               <option value="Greek_Latin_Root_1">Unique Greek/Latin Roots</option>
             </select>
           </div>
-          
+          <div class="adv-box">
+  <label>Word Zipf Rank (1 = most frequent):</label>
+  <div class="adv-input-group">
+    <input type="number" id="advZipfRankMin" placeholder="Min rank (e.g. 1)">
+    <input type="number" id="advZipfRankMax" placeholder="Max rank (e.g. 1000)">
+  </div>
+</div>
+
           <div class="adv-box">
             <label>Word Zipf Freq. (e.g. 1-8):</label>
             <div class="adv-input-group">
@@ -706,6 +713,7 @@
 
         let firstPaint = false;
         config.data = []; config.filtered = []; config.all = []; config.visible = []; config.loaded = false;
+if (key === 'wf') wfWordZipfRankMap = null;
 
         Papa.parse(blob, {
           header: true, skipEmptyLines: 'greedy', chunkSize: 1024 * 1024 * 3, 
@@ -953,6 +961,36 @@ bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
     function findColumnByKey(dataCols, hint) {
        return dataCols.find(c => c.toLowerCase().includes(hint.toLowerCase()));
     }
+let wfWordZipfRankMap = null;
+
+function buildWordZipfRankMap() {
+  const config = DATASETS['wf'];
+  const bestZipfByWord = new Map();
+
+  for (const row of config.data) {
+    const w = String(row['Word'] || '').trim();
+    const z = parseFloat(row['Word_frq_Zipf']);
+    if (!w || isNaN(z)) continue;
+
+    // keep best (highest) zipf per word
+    if (!bestZipfByWord.has(w) || z > bestZipfByWord.get(w)) {
+      bestZipfByWord.set(w, z);
+    }
+  }
+
+  // sort by zipf descending (most frequent first), then alphabetic for stability
+  const sorted = Array.from(bestZipfByWord.entries())
+    .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]));
+
+  const rankMap = new Map();
+  sorted.forEach(([word], idx) => rankMap.set(word, idx + 1)); // rank starts at 1
+  return rankMap;
+}
+
+function getWordZipfRankMap() {
+  if (!wfWordZipfRankMap) wfWordZipfRankMap = buildWordZipfRankMap();
+  return wfWordZipfRankMap;
+}
 
     function runAdvancedQuery() {
        const config = DATASETS['wf'];
@@ -966,6 +1004,14 @@ bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
        const gradeMin = getVal('advGradeMin'), gradeMax = getVal('advGradeMax');
        const famMin = getVal('advFamMin'), famMax = getVal('advFamMax');
        const morphMin = getVal('advMorphMin'), morphMax = getVal('advMorphMax');
+const getIntVal = (id) => {
+  const v = parseInt(document.getElementById(id).value, 10);
+  return isNaN(v) ? null : v;
+};
+
+const zipfRankMin = getIntVal('advZipfRankMin');
+const zipfRankMax = getIntVal('advZipfRankMax');
+const rankMap = getWordZipfRankMap();
 
        // Safely identify column names 
        const gradeCol = findColumnByKey(config.all, 'Grade Level') || findColumnByKey(config.all, 'Grade') || 'Vocabulary eXpected Grade Level (Flor et al., 2024)';
@@ -985,6 +1031,15 @@ bodyHtml += `<td class="${val.length > 50 ? 'long-text' : ''}">${val}</td>`;
               if (isNaN(v) || (wZipfMin !== null && v < wZipfMin) || (wZipfMax !== null && v > wZipfMax)) pass = false;
           }
           if (!pass) continue;
+// Check Word Zipf Rank
+if (zipfRankMin !== null || zipfRankMax !== null) {
+  const w = String(row['Word'] || '').trim();
+  const rank = rankMap.get(w);
+  if (!rank || (zipfRankMin !== null && rank < zipfRankMin) || (zipfRankMax !== null && rank > zipfRankMax)) {
+    pass = false;
+  }
+}
+if (!pass) continue;
 
           // Check Baseword Zipf
           if (bZipfMin !== null || bZipfMax !== null) {
