@@ -1016,8 +1016,8 @@ function renderTable(key) {
         <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
         <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
         <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
-        <button class="explain-btn" onclick="showExplainFromIndex('${key}', ${rowIndex})">✨ Explain</button>
-      </div>
+   <button class="explain-btn" onclick="showExplainFromIndex('${key}', ${rowIndex})">✨ Explain</button>
+   </div>
     </td></tr>`;
   });
 
@@ -1053,6 +1053,10 @@ function showExplainFromIndex(key, rowIndex) {
 
   showExplainModal(key, config.filtered[i]);
 }
+
+// force global for inline onclick
+window.showExplainFromIndex = showExplainFromIndex;
+
 
 
     function filterTable(key) {
