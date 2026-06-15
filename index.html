@@ -1391,7 +1391,7 @@ function formatMax2Decimals(v){
 
   let engine = null;
   let messages = [
-    { role: "system", content: "You are a helpful literacy assistant for teachers." }
+    { role: "system", content: "You will develop the requested teaching resources, such as stories and worksheets." }
   ];
 
   const statusEl = () => document.getElementById("webllmStatus");
@@ -1534,7 +1534,7 @@ function formatMax2Decimals(v){
 
   function resetWebLLMChatInternal() {
     messages = [
-      { role: "system", content: "You are a helpful literacy assistant for teachers." }
+      { role: "system", content: "You will develop the requested teaching resources, such as stories and worksheets." }
     ];
     chatEl().innerHTML = "";
     setStatus("Chat reset.", "#374151");
