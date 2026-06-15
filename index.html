@@ -741,8 +741,6 @@
         "Word_frq_Zipf", 
         "Word_Zipf_Rank",           // ← NEW: Frequency Rank
         "Baseword", 
-        "FLemma",
-        "GPT_Coded_Word_Parts",
         "Greek_Latin_Root_1", 
         "Greek_Latin_Meaning_1", 
         "Prefix_1", 
@@ -888,17 +886,22 @@ if (key === 'wf') wfWordZipfRankMap = null;
               loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`;
             }
           },
-          complete: function() {
+                  complete: function() {
             config.loaded = true;
             config.filtered = [...config.data];
+
             if (key === 'wf') {
               addZipfRankColumn();        // ← ADD THIS LINE
             }
+
             if (!firstPaint) {
               document.getElementById(`${key}Table`).style.display = 'table';
               document.getElementById(`${key}Pagination`).style.display = 'flex';
-              buildDropdowns(key); renderTable(key);
-            } else { filterTable(key); }
+              buildDropdowns(key); 
+              renderTable(key);
+            } else { 
+              filterTable(key); 
+            }
             if (loadingEl) loadingEl.style.display = 'none';
           }
         });
