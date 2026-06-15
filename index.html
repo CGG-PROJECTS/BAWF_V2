@@ -582,7 +582,7 @@
       </div>
     </div>
   </div>
-
+</div> 
   <!-- Key Modal -->
   <div id="columnModal" class="modal">
     <div class="modal-content">
@@ -1016,8 +1016,8 @@ function renderTable(key) {
         <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
         <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
         <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
-   <button class="explain-btn" onclick="showExplainFromIndex('${key}', ${rowIndex})">✨ Explain</button>
-   </div>
+  <button class="explain-btn" data-explain-key="${key}" data-explain-index="${rowIndex}">✨ Explain</button>
+ </div>
     </td></tr>`;
   });
 
@@ -1513,6 +1513,26 @@ function showExplainModal(prefix, row){
       });
       document.addEventListener("keydown", (e) => { if (e.key === "Escape") clearSelections(); });
     })();
+function showExplainFromIndex(key, rowIndex) {
+  const config = DATASETS[key];
+  const i = Number(rowIndex);
+
+  if (!config || !Array.isArray(config.filtered) || !config.filtered[i]) {
+    console.error("Explain row not found", { key, rowIndex, config });
+    alert("Could not open Explain popup for this row.");
+    return;
+  }
+
+  showExplainModal(key, config.filtered[i]);
+}
+window.showExplainFromIndex = showExplainFromIndex;
+
+// delegated click handler (works even after table rerender)
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".explain-btn[data-explain-key][data-explain-index]");
+  if (!btn) return;
+  showExplainFromIndex(btn.dataset.explainKey, Number(btn.dataset.explainIndex));
+});
 
   </script>
       <script type="module">
