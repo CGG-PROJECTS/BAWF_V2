@@ -42,7 +42,7 @@
       box-shadow:0 4px 12px rgba(0,0,0,0.1);
       border:none;
     }
- 
+
     /* Excel-like selection */
     .db-table td, .db-table th { cursor: cell; }
     .db-table td { user-select: none; -webkit-user-select: none; }
@@ -699,42 +699,36 @@
       return Number.isFinite(n) ? Math.round(n) : null;
     }
 
-    const dropdownCache = {};
- const dropdownCache = {};
+       const dropdownCache = {};
+    function getDropdownMeta(key, col) {
+      const cacheKey = key + '_' + col;
+      if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
 
-function getDropdownMeta(key, col) {
-  const cacheKey = key + '_' + col;
-  if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
+      const config = DATASETS[key];
+      const raw = config.data.map(r => {
+        let val = r[col] ?? '';
+        if (typeof val === 'string') {
+          val = val.replace(/�+/g, '').trim();   // fix mojibake
+        } else {
+          val = String(val).trim();
+        }
+        return val;
+      }).filter(Boolean);
 
-  const config = DATASETS[key];
-  const raw = config.data.map(r => {
-    let val = r[col] ?? '';
-    // Force proper string conversion and clean common mojibake
-    if (typeof val === 'string') {
-      val = val.replace(/�+/g, '').trim();           // remove replacement chars
-    } else {
-      val = String(val).trim();
+      const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
+      const isZipf = /zipf/i.test(col); 
+
+      let options;
+      if (numericLike) {
+        if (isZipf) options = [...new Set(raw)].sort((a, b) => Number(a) - Number(b));
+        else options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a, b) => a - b).map(String);
+      } else {
+        options = [...new Set(raw)].sort((a, b) => a.localeCompare(b));
+      }
+
+      dropdownCache[cacheKey] = { numericLike, isZipf, options };
+      return dropdownCache[cacheKey];
     }
-    return val;
-  }).filter(Boolean);
-
-  const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
-  const isZipf = /zipf/i.test(col); 
-
-  let options;
-  if (numericLike) {
-    if (isZipf) {
-      options = [...new Set(raw)].sort((a, b) => Number(a) - Number(b));
-    } else {
-      options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a, b) => a - b).map(String);
-    }
-  } else {
-    options = [...new Set(raw)].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-  }
-
-  dropdownCache[cacheKey] = { numericLike, isZipf, options };
-  return dropdownCache[cacheKey];
-}
 
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
     function chooseDefaultColumns(key, headers){
@@ -808,39 +802,41 @@ function getDropdownMeta(key, col) {
         config.data = []; config.filtered = []; config.all = []; config.visible = []; config.loaded = false;
 if (key === 'wf') wfWordZipfRankMap = null;
 
-Papa.parse(blob, {
-  header: true,
-  skipEmptyLines: 'greedy',
-  chunkSize: 1024 * 1024 * 4,
-  quoteChar: '"',
-  escapeChar: '"',
-  delimiter: ",",
-  encoding: "UTF-8",                    // ← Add this
-  dynamicTyping: false,
-  transformHeader: function(h, i) {
-    let clean = String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim();
-    // Extra cleanup for corrupted headers
-    clean = clean.replace(/�+/g, '');
-    return clean || `${EMPTY_HEADER_PREFIX}${i}`;
-  },
-  chunk: function(results) {
-    // ... your existing chunk code ...
-    
-    const validRows = results.data.filter(r => {
-      const w = r['Word'] || r['Baseword'] || r['FLemma'];
-      return w && String(w).trim().length > 0;
-    });
-    
-    // Clean rows on the fly
-    validRows.forEach(row => {
-      Object.keys(row).forEach(col => {
-        if (typeof row[col] === 'string') {
-          row[col] = row[col].replace(/�+/g, '').trim();
-        }
-      });
-    });
+              Papa.parse(blob, {
+          header: true, 
+          skipEmptyLines: 'greedy', 
+          chunkSize: 1024 * 1024 * 4,
+          quoteChar: '"',
+          escapeChar: '"',
+          delimiter: ",",
+          encoding: "UTF-8",
+          dynamicTyping: false,
+          transformHeader: function(h, i) {
+            const clean = String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim();
+            return clean || `${EMPTY_HEADER_PREFIX}${i}`;
+          },
+          chunk: function(results) {
+           if (!config.all.length) {
+              const fields = results.meta?.fields || [];
+              config.all = fields.filter(f => f && !String(f).startsWith(EMPTY_HEADER_PREFIX));
+              config.visible = chooseDefaultColumns(key, config.all);
+            }
+            
+            const validRows = results.data.filter(r => {
+              const w = r['Word'] || r['Baseword'];
+              return w && String(w).trim().length > 0;
+            });
 
-    config.data.push(...validRows);
+            // Clean mojibake in rows
+            validRows.forEach(row => {
+              Object.keys(row).forEach(col => {
+                if (typeof row[col] === 'string') {
+                  row[col] = row[col].replace(/�+/g, '').trim();
+                }
+              });
+            });
+
+            config.data.push(...validRows);
 
             if (!firstPaint && config.data.length >= config.rpp) {
               firstPaint = true;
@@ -889,92 +885,85 @@ Papa.parse(blob, {
       };
     }
 
- function renderTable(key) {
-  const config = DATASETS[key];
-  document.getElementById(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
+     function renderTable(key) {
+      const config = DATASETS[key];
+      document.getElementById(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
 
-  const headerRow = document.getElementById(`${key}HeaderRow`);
-  headerRow.innerHTML = config.visible.map(col => {
-    let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
-    return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
-  }).join('') + `<th>Actions</th>`;
+      const headerRow = document.getElementById(`${key}HeaderRow`);
+      headerRow.innerHTML = config.visible.map(col => {
+        let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
+        return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
+      }).join('') + `<th>Actions</th>`;
 
-  const filterRow = document.getElementById(`${key}FilterRow`);
-  filterRow.innerHTML = config.visible.map(col => {
-    const filterData = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : null;
-    const currentVal = filterData ? filterData.val : '';
+      const filterRow = document.getElementById(`${key}FilterRow`);
+      filterRow.innerHTML = config.visible.map(col => {
+        const filterData = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : null;
+        const currentVal = filterData ? filterData.val : '';
+        
+        if (TEXT_SEARCH_COLS.includes(col)) {
+           return `<td><input type="text" placeholder="Search..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
+        } else {
+           const meta = getDropdownMeta(key, col);
+           let opts = `<option value="">All</option>`;
+           meta.options.forEach(u => {
+             const valStr = String(u);
+             const sel = (currentVal === valStr) ? 'selected' : '';
+             opts += `<option value="${valStr.replace(/"/g, '&quot;')}" ${sel}>${valStr}</option>`;
+           });
+           return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true, ${meta.numericLike ? 'true' : 'false'}, ${meta.isZipf ? 'true' : 'false'})">${opts}</select></td>`;
+        }
+      }).join('') + `<td></td>`;
 
-    if (TEXT_SEARCH_COLS.includes(col)) {
-      return `<td><input type="text" placeholder="Search..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
-    } else {
-      const meta = getDropdownMeta(key, col);
-      let opts = `<option value="">All</option>`;
-      meta.options.forEach(u => {
-        const valStr = String(u);
-        const sel = (currentVal === valStr) ? 'selected' : '';
-        opts += `<option value="${valStr.replace(/"/g, '&quot;')}" ${sel}>${valStr}</option>`;
+      const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
+      if (config.page > totalPages) config.page = totalPages;
+      document.getElementById(`${key}CurrentPage`).textContent = config.page;
+      document.getElementById(`${key}TotalPages`).textContent = totalPages;
+
+      const pageData = config.filtered.slice((config.page - 1) * config.rpp, config.page * config.rpp);
+      const tbody = document.getElementById(`${key}TableBody`);
+      
+      if (!pageData.length) {
+        tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`;
+        return;
+      }
+
+      let bodyHtml = '';
+      pageData.forEach(row => {
+        bodyHtml += `<tr>`;
+        config.visible.forEach(col => {
+          let rawVal = row[col] ?? '';
+
+          // Clean mojibake
+          if (typeof rawVal === 'string') {
+            rawVal = rawVal.replace(/�+/g, '').trim();
+          }
+
+          // Special handling for GPT_Coded_Word_Parts
+          if (col === 'GPT_Coded_Word_Parts' && typeof rawVal === 'string') {
+            rawVal = rawVal.replace(/^\[|\]$/g, '').trim();
+          }
+
+          const isNumericCol = getDropdownMeta(key, col).numericLike;
+          const val = isNumericCol ? formatMax2Decimals(rawVal) : String(rawVal);
+
+          bodyHtml += `<td class="${val.length > 60 ? 'long-text' : ''}">${val}</td>`;
+        });
+        const lookupWord = getLookupWordFromRow(row) || '';
+        const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;');
+
+        bodyHtml += `<td>
+          <div class="row-actions">
+            <button class="source-btn" ${lookupWord ? `onclick="lookupGoogle('${escWord}')"` : "disabled"}>🔎 Google</button>
+            <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
+            <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
+            <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
+            <button class="explain-btn" onclick="showExplainModal('${key}', ${safeRowJSON})">✨ Explain</button>
+          </div>
+        </td></tr>`;
       });
-      return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true, ${meta.numericLike ? 'true' : 'false'}, ${meta.isZipf ? 'true' : 'false'})">${opts}</select></td>`;
+      tbody.innerHTML = bodyHtml;
     }
-  }).join('') + `<td></td>`;
-
-  const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
-  if (config.page > totalPages) config.page = totalPages;
-  document.getElementById(`${key}CurrentPage`).textContent = config.page;
-  document.getElementById(`${key}TotalPages`).textContent = totalPages;
-
-  const pageData = config.filtered.slice((config.page - 1) * config.rpp, config.page * config.rpp);
-  const tbody = document.getElementById(`${key}TableBody`);
-
-  if (!pageData.length) {
-    tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`;
-    return;
-  }
-
-  let bodyHtml = '';
-  pageData.forEach(row => {
-    bodyHtml += `<tr>`;
-
-    config.visible.forEach(col => {
-      let rawVal = row[col] ?? '';
-
-      // Clean mojibake / corrupted Unicode
-      if (typeof rawVal === 'string') {
-        rawVal = rawVal.replace(/�+/g, '').trim();
-      }
-
-      // Special handling for GPT_Coded_Word_Parts
-      if (col === 'GPT_Coded_Word_Parts' && typeof rawVal === 'string') {
-        rawVal = rawVal.replace(/^\[|\]$/g, '').trim();
-      }
-
-      const isNumericCol = getDropdownMeta(key, col).numericLike;
-      const displayVal = isNumericCol 
-        ? formatMax2Decimals(rawVal) 
-        : String(rawVal);
-
-      const cellClass = displayVal.length > 60 ? 'long-text' : '';
-      bodyHtml += `<td class="${cellClass}">${displayVal || ''}</td>`;
-    });
-
-    // Actions column
-    const lookupWord = getLookupWordFromRow(row) || '';
-    const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-    const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;');
-
-    bodyHtml += `<td>
-      <div class="row-actions">
-        <button class="source-btn" ${lookupWord ? `onclick="lookupGoogle('${escWord}')"` : "disabled"}>🔎 Google</button>
-        <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
-        <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
-        <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
-        <button class="explain-btn" onclick="showExplainModal('${key}', ${safeRowJSON})">✨ Explain</button>
-      </div>
-    </td></tr>`;
-  });
-
-  tbody.innerHTML = bodyHtml;
-}
 
     // --- OPTIMIZED FILTER LOGIC ---
     function onColumnFilter(key, col, val, isExact, numericRounded = false, doNotRound = false) {
