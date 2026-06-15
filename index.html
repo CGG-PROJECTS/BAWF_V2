@@ -733,15 +733,16 @@
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
    
 
-    function chooseDefaultColumns(key, headers){
+     function chooseDefaultColumns(key, headers){
       if (key === "cm" || key === "cs") return [...headers];
 
       const preferred = [
         "Word", 
         "Word_frq_Zipf", 
+        "Word_Zipf_Rank",           // ← NEW: Frequency Rank
         "Baseword", 
-        "FLemma",                    // fixed capitalization
-     
+        "FLemma",
+        "GPT_Coded_Word_Parts",
         "Greek_Latin_Root_1", 
         "Greek_Latin_Meaning_1", 
         "Prefix_1", 
@@ -752,7 +753,7 @@
       ];
 
       const found = preferred.filter(col => headers.includes(col));
-      return found.length ? found : headers.slice(0, 12);
+      return found.length ? found : headers.slice(0, 14);
     }
     
     const TEXT_SEARCH_COLS = [
@@ -776,7 +777,22 @@
       initDataset('wf');
       setupAddColsListener('wf'); setupAddColsListener('cm'); setupAddColsListener('cs'); 
     });
+    function addZipfRankColumn() {
+      const config = DATASETS['wf'];
+      if (!config.data.length) return;
 
+      const rankMap = getWordZipfRankMap();   // reuse existing function
+
+      config.data.forEach(row => {
+        const word = String(row['Word'] || '').trim();
+        row['Word_Zipf_Rank'] = rankMap.get(word) || null;
+      });
+
+      // Also add it to all columns list
+      if (!config.all.includes('Word_Zipf_Rank')) {
+        config.all.unshift('Word_Zipf_Rank');
+      }
+    }
     function ensureLoaded(key){
       if (!DATASETS[key].loaded) initDataset(key);
       else renderTable(key);
@@ -875,6 +891,9 @@ if (key === 'wf') wfWordZipfRankMap = null;
           complete: function() {
             config.loaded = true;
             config.filtered = [...config.data];
+            if (key === 'wf') {
+              addZipfRankColumn();        // ← ADD THIS LINE
+            }
             if (!firstPaint) {
               document.getElementById(`${key}Table`).style.display = 'table';
               document.getElementById(`${key}Pagination`).style.display = 'flex';
@@ -953,26 +972,37 @@ if (key === 'wf') wfWordZipfRankMap = null;
       let bodyHtml = '';
       pageData.forEach(row => {
         bodyHtml += `<tr>`;
-        config.visible.forEach(col => {
+         config.visible.forEach(col => {
           let rawVal = row[col] ?? '';
 
-          // === STRONG CLEANING FOR PROBLEMATIC FIELDS ===
+          // Clean mojibake
           if (typeof rawVal === 'string') {
             rawVal = rawVal.replace(/�+/g, '').trim();
-            
-            // Fix GPT_Coded_Word_Parts specifically
-            if (col === 'GPT_Coded_Word_Parts' || col.includes('Parts')) {
-              rawVal = rawVal
-                .replace(/^\[|\]$/g, '')           // remove outer brackets
-                .replace(/^\s*<\s*|\s*>\s*$/g, '') // remove stray < >
-                .trim();
+          }
+
+          // Special handling for GPT_Coded_Word_Parts
+          if (col === 'GPT_Coded_Word_Parts' && typeof rawVal === 'string') {
+            rawVal = rawVal.replace(/^\[|\]$/g, '').trim();
+          }
+
+          let displayVal = String(rawVal);
+
+          // Round these columns to integer
+          if (col.includes("Grade Level") || col.includes("Familiarity")) {
+            const num = parseFloat(rawVal);
+            if (!isNaN(num)) {
+              displayVal = Math.round(num).toString();
             }
+          } 
+          else if (col === 'Word_frq_Zipf') {
+            const num = parseFloat(rawVal);
+            if (!isNaN(num)) displayVal = num.toFixed(2);
           }
 
           const isNumericCol = getDropdownMeta(key, col).numericLike;
-          const displayVal = isNumericCol 
-            ? formatMax2Decimals(rawVal) 
-            : String(rawVal || '');
+          if (isNumericCol && !col.includes("Grade Level") && !col.includes("Familiarity")) {
+            displayVal = formatMax2Decimals(rawVal);
+          }
 
           const cellClass = displayVal.length > 60 ? 'long-text' : '';
           bodyHtml += `<td class="${cellClass}">${displayVal}</td>`;
