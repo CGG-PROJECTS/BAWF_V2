@@ -1390,10 +1390,10 @@ function showExplainModal(prefix, row){
       const root = getFirstNonEmpty(row, ["GPT_Root","Greek_Latin_Root_1"]);
       const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts"]);
       const definition = getFirstNonEmpty(row, ["Definition","Greek_Latin_Meaning_1","Prefix_1_Meaning"]);
-      let inst = "1) Explain this morphology entry clearly. 2) Provide etymology/history when available.";
-      if (task === "explain") inst = "Explain this morphology entry clearly for teachers and students.";
+      let inst = "1) Explain this vocabulary entry and its morphology entry clearly in student friendly language. 2) Provide etymology/history when available.";
+      if (task === "explain") inst = "Explain this vocabulary entry and its morphology entry clearly in student friendly language.";
       else if (task === "history") inst = "Focus on etymology/history if available.";
-      return `You are a literacy and morphology expert.\n${inst}\nRow details:\n- Word: ${word}\n- Root: ${root}\n- Parts: ${parts}\n- Meaning: ${definition}\nProvide explanation, check accuracy, and give teaching tips.`;
+      return `You are a literacy and morphology expert.\n${inst}\nRow details:\n- Word: ${word}\n- Root: ${root}\n- Parts: ${parts}\n- Meaning: ${definition}\nProvide an explanation for the word, check accuracy of the morphological parts. \n Give two quick suggested teaching tips.`;
     }
 
     window.addEventListener("click", (e) => {
