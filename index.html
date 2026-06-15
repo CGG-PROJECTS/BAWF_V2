@@ -42,13 +42,7 @@
       box-shadow:0 4px 12px rgba(0,0,0,0.1);
       border:none;
     }
-.long-text {
-  white-space: normal !important;
-  min-width: 180px;
-  max-width: 320px;
-  overflow-wrap: anywhere;
-  font-size: 1.15rem;
-}
+ 
     /* Excel-like selection */
     .db-table td, .db-table th { cursor: cell; }
     .db-table td { user-select: none; -webkit-user-select: none; }
@@ -706,26 +700,41 @@
     }
 
     const dropdownCache = {};
-    function getDropdownMeta(key, col) {
-      const cacheKey = key + '_' + col;
-      if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
+ const dropdownCache = {};
 
-      const config = DATASETS[key];
-      const raw = config.data.map(r => String(r[col] ?? '').trim()).filter(Boolean);
-      const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
-      const isZipf = /zipf/i.test(col); 
+function getDropdownMeta(key, col) {
+  const cacheKey = key + '_' + col;
+  if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
 
-      let options;
-      if (numericLike) {
-        if (isZipf) options = [...new Set(raw)].sort((a, b) => Number(a) - Number(b));
-        else options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a, b) => a - b).map(String);
-      } else {
-        options = [...new Set(raw)].sort((a, b) => a.localeCompare(b));
-      }
-
-      dropdownCache[cacheKey] = { numericLike, isZipf, options };
-      return dropdownCache[cacheKey];
+  const config = DATASETS[key];
+  const raw = config.data.map(r => {
+    let val = r[col] ?? '';
+    // Force proper string conversion and clean common mojibake
+    if (typeof val === 'string') {
+      val = val.replace(/�+/g, '').trim();           // remove replacement chars
+    } else {
+      val = String(val).trim();
     }
+    return val;
+  }).filter(Boolean);
+
+  const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
+  const isZipf = /zipf/i.test(col); 
+
+  let options;
+  if (numericLike) {
+    if (isZipf) {
+      options = [...new Set(raw)].sort((a, b) => Number(a) - Number(b));
+    } else {
+      options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a, b) => a - b).map(String);
+    }
+  } else {
+    options = [...new Set(raw)].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }
+
+  dropdownCache[cacheKey] = { numericLike, isZipf, options };
+  return dropdownCache[cacheKey];
+}
 
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
     function chooseDefaultColumns(key, headers){
@@ -799,28 +808,36 @@
         config.data = []; config.filtered = []; config.all = []; config.visible = []; config.loaded = false;
 if (key === 'wf') wfWordZipfRankMap = null;
 
-   Papa.parse(blob, {
+Papa.parse(blob, {
   header: true,
   skipEmptyLines: 'greedy',
   chunkSize: 1024 * 1024 * 4,
   quoteChar: '"',
   escapeChar: '"',
   delimiter: ",",
-  dynamicTyping: false,           // prevent auto-number conversion on complex fields
+  encoding: "UTF-8",                    // ← Add this
+  dynamicTyping: false,
   transformHeader: function(h, i) {
-    const clean = String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim();
+    let clean = String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim();
+    // Extra cleanup for corrupted headers
+    clean = clean.replace(/�+/g, '');
     return clean || `${EMPTY_HEADER_PREFIX}${i}`;
   },
   chunk: function(results) {
-    if (!config.all.length) {
-      const fields = results.meta?.fields || [];
-      config.all = fields.filter(f => f && !String(f).startsWith(EMPTY_HEADER_PREFIX));
-      config.visible = chooseDefaultColumns(key, config.all);
-    }
-
+    // ... your existing chunk code ...
+    
     const validRows = results.data.filter(r => {
       const w = r['Word'] || r['Baseword'] || r['FLemma'];
       return w && String(w).trim().length > 0;
+    });
+    
+    // Clean rows on the fly
+    validRows.forEach(row => {
+      Object.keys(row).forEach(col => {
+        if (typeof row[col] === 'string') {
+          row[col] = row[col].replace(/�+/g, '').trim();
+        }
+      });
     });
 
     config.data.push(...validRows);
