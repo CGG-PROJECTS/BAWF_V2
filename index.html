@@ -1007,8 +1007,9 @@ if (key === 'wf') wfWordZipfRankMap = null;
 
         const lookupWord = getLookupWordFromRow(row) || '';
         const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        const encodedRow = encodeURIComponent(JSON.stringify(row)).replace(/'/g, '%27');
-
+        const startIndex = (config.page - 1) * config.rpp;
+pageData.forEach((row, idx) => {
+  const rowIndex = startIndex + idx; // index in config.filtered
 
         bodyHtml += `<td>
           <div class="row-actions">
@@ -1016,8 +1017,8 @@ if (key === 'wf') wfWordZipfRankMap = null;
             <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
             <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
             <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
-            <button class="explain-btn" onclick="showExplainModalFromEncoded('${key}', '${encodedRow}')">✨ Explain</button>
-          </div>
+             <button class="explain-btn" onclick="showExplainFromIndex('${key}', ${rowIndex})">✨ Explain</button>
+    </div>
         </td></tr>`;
       });
       tbody.innerHTML = bodyHtml;
@@ -1039,16 +1040,14 @@ if (key === 'wf') wfWordZipfRankMap = null;
       clearTimeout(filterTimeouts[key]);
       filterTimeouts[key] = setTimeout(() => filterTable(key), 700); // 400ms debounce prevents freezing
     }
-function showExplainModalFromEncoded(prefix, encodedRow){
-  let row = {};
-  try {
-    row = JSON.parse(decodeURIComponent(encodedRow));
-  } catch (err) {
-    console.error("Failed to decode row for Explain modal:", err);
+ 
+function showExplainFromIndex(key, rowIndex) {
+  const config = DATASETS[key];
+  if (!config || !config.filtered || !config.filtered[rowIndex]) {
     alert("Could not open Explain popup for this row.");
     return;
   }
-  showExplainModal(prefix, row);
+  showExplainModal(key, config.filtered[rowIndex]);
 }
 
     function filterTable(key) {
