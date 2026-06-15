@@ -1007,7 +1007,8 @@ if (key === 'wf') wfWordZipfRankMap = null;
 
         const lookupWord = getLookupWordFromRow(row) || '';
         const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        const encodedRow = encodeURIComponent(JSON.stringify(row));
+        const encodedRow = encodeURIComponent(JSON.stringify(row)).replace(/'/g, '%27');
+
 
         bodyHtml += `<td>
           <div class="row-actions">
@@ -1353,6 +1354,12 @@ function showExplainModal(prefix, row){
     return;
   }
   preview.value = buildExplainPrompt(row, task.value || "both");
+
+    // FIX: Make the prompt auto-update if the user changes the dropdown option
+  task.onchange = () => {
+    preview.value = buildExplainPrompt(row, task.value || "both");
+  };
+  
   modal.classList.add("show");
   document.body.classList.add("modal-open");
 }
