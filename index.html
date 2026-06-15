@@ -733,7 +733,8 @@
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
     function chooseDefaultColumns(key, headers){
       if (key === "cm" || key === "cs") return [...headers];
-      const preferred = ["Word", "Word_frq_Zipf", "Baseword", "GPT_Coded_Word_Parts", "Greek_Latin_Root_1", "Greek_Latin_Meaning_1", "Prefix_1", "Suffix_1", "N_Morphemes"];
+      const preferred = ["Word", "Word_frq_Zipf", "Baseword", "Flemma", "Greek_Latin_Root_1", "Greek_Latin_Meaning_1", "Prefix_1", "Suffix_1", "N_Morphemes", "Vocabulary eXpected Grade Level (Flor et al., 2024)
+", "GPT_Familiarity (Brysbaert et al., 2024)"];
       const found = preferred.filter(col => headers.includes(col));
       return found.length ? found : headers.slice(0, 12);
     }
