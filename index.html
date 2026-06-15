@@ -42,7 +42,13 @@
       box-shadow:0 4px 12px rgba(0,0,0,0.1);
       border:none;
     }
-
+.long-text {
+  white-space: normal !important;
+  min-width: 180px;
+  max-width: 320px;
+  overflow-wrap: anywhere;
+  font-size: 1.15rem;
+}
     /* Excel-like selection */
     .db-table td, .db-table th { cursor: cell; }
     .db-table td { user-select: none; -webkit-user-select: none; }
@@ -869,7 +875,17 @@ if (key === 'wf') wfWordZipfRankMap = null;
     function renderTable(key) {
       const config = DATASETS[key];
       document.getElementById(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
-
+config.visible.forEach(col => {
+  let val = row[col] ?? '';
+  
+  // Special handling for GPT_Coded_Word_Parts
+  if (col === 'GPT_Coded_Word_Parts' && typeof val === 'string') {
+    val = val.replace(/^\[|\]$/g, '').trim();   // clean stray brackets if needed
+  }
+  
+  const displayVal = isNumericCol ? formatMax2Decimals(val) : String(val);
+  bodyHtml += `<td class="${displayVal.length > 60 ? 'long-text' : ''}">${displayVal || ''}</td>`;
+});
       const headerRow = document.getElementById(`${key}HeaderRow`);
       headerRow.innerHTML = config.visible.map(col => {
         let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
