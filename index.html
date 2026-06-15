@@ -793,23 +793,31 @@
         config.data = []; config.filtered = []; config.all = []; config.visible = []; config.loaded = false;
 if (key === 'wf') wfWordZipfRankMap = null;
 
-        Papa.parse(blob, {
-          header: true, skipEmptyLines: 'greedy', chunkSize: 1024 * 1024 * 3, 
-          transformHeader: function(h, i) {
-            const clean = String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim();
-            return clean || `${EMPTY_HEADER_PREFIX}${i}`;
-          },
-          chunk: function(results) {
-           if (!config.all.length) {
-              const fields = results.meta?.fields || [];
-              config.all = fields.filter(f => f && !String(f).startsWith(EMPTY_HEADER_PREFIX));
-              config.visible = chooseDefaultColumns(key, config.all);
-            }
-            const validRows = results.data.filter(r => {
-              const w = r['Word'] || r['Baseword'];
-              return w && w.trim().length > 0;
-            });
-            config.data.push(...validRows);
+   Papa.parse(blob, {
+  header: true,
+  skipEmptyLines: 'greedy',
+  chunkSize: 1024 * 1024 * 4,
+  quoteChar: '"',
+  escapeChar: '"',
+  delimiter: ",",
+  dynamicTyping: false,           // prevent auto-number conversion on complex fields
+  transformHeader: function(h, i) {
+    const clean = String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim();
+    return clean || `${EMPTY_HEADER_PREFIX}${i}`;
+  },
+  chunk: function(results) {
+    if (!config.all.length) {
+      const fields = results.meta?.fields || [];
+      config.all = fields.filter(f => f && !String(f).startsWith(EMPTY_HEADER_PREFIX));
+      config.visible = chooseDefaultColumns(key, config.all);
+    }
+
+    const validRows = results.data.filter(r => {
+      const w = r['Word'] || r['Baseword'] || r['FLemma'];
+      return w && String(w).trim().length > 0;
+    });
+
+    config.data.push(...validRows);
 
             if (!firstPaint && config.data.length >= config.rpp) {
               firstPaint = true;
