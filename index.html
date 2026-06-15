@@ -544,6 +544,41 @@
         </div>
         <p id="llmStatus" style="text-align:center; font-weight:600; min-height:24px;"></p>
         <textarea id="finalPrompt" rows="12" style="width:100%; padding:14px; font-family:monospace; border:2px solid #d1d5db; border-radius:10px; background:#f9fafb;"></textarea>
+         <!-- === EMBEDDED AI SECTION === -->
+        <hr style="margin:30px 0 20px 0;">
+        <h3 style="text-align:center; color:#1d4ed8;">🧠 Embedded Local LLM (WebLLM)</h3>
+
+        <div style="border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#f8fafc;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+            <label><strong>Model:</strong></label>
+            <select id="webllmModel" style="padding:8px; border-radius:8px; min-width:320px;"></select>
+            <button id="loadWebLLMBtn" onclick="initWebLLM()"
+              style="padding:10px 14px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px; cursor:pointer;">
+              Load Model
+            </button>
+            <button id="resetWebLLMBtn" onclick="resetWebLLMChat()"
+              style="padding:10px 14px; font-weight:600; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer;">
+              Reset Chat
+            </button>
+          </div>
+
+          <p id="webllmStatus" style="margin:6px 0 12px 0; font-weight:600; color:#374151;">
+            WebLLM not loaded yet.
+          </p>
+
+          <div id="webllmChat"
+               style="height:300px; overflow:auto; background:white; border:1px solid #d1d5db; border-radius:10px; padding:10px; margin-bottom:10px;"></div>
+
+          <div style="display:flex; gap:8px;">
+            <textarea id="webllmInput" rows="3"
+              placeholder="Type a prompt..."
+              style="flex:1; padding:10px; border-radius:8px; border:1px solid #d1d5db; resize:vertical;"></textarea>
+            <button onclick="sendWebLLM()"
+              style="padding:10px 14px; font-weight:600; background:#0f766e; color:white; border:none; border-radius:8px; cursor:pointer;">
+              Send
+            </button>
+      
+      
       </div>
     </div>
   </div>
