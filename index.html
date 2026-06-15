@@ -924,105 +924,106 @@ if (key === 'wf') wfWordZipfRankMap = null;
       };
     }
 
-        function renderTable(key) {
-      const config = DATASETS[key];
-      document.getElementById(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
+function renderTable(key) {
+  const config = DATASETS[key];
+  document.getElementById(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
 
-      const headerRow = document.getElementById(`${key}HeaderRow`);
-      headerRow.innerHTML = config.visible.map(col => {
-        let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
-        return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
-      }).join('') + `<th>Actions</th>`;
+  const headerRow = document.getElementById(`${key}HeaderRow`);
+  headerRow.innerHTML = config.visible.map(col => {
+    let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
+    return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
+  }).join('') + `<th>Actions</th>`;
 
-      const filterRow = document.getElementById(`${key}FilterRow`);
-      filterRow.innerHTML = config.visible.map(col => {
-        const filterData = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : null;
-        const currentVal = filterData ? filterData.val : '';
-        
-        if (TEXT_SEARCH_COLS.includes(col)) {
-           return `<td><input type="text" placeholder="Search..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
-        } else {
-           const meta = getDropdownMeta(key, col);
-           let opts = `<option value="">All</option>`;
-           meta.options.forEach(u => {
-             const valStr = String(u);
-             const sel = (currentVal === valStr) ? 'selected' : '';
-             opts += `<option value="${valStr.replace(/"/g, '&quot;')}" ${sel}>${valStr}</option>`;
-           });
-           return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true, ${meta.numericLike ? 'true' : 'false'}, ${meta.isZipf ? 'true' : 'false'})">${opts}</select></td>`;
-        }
-      }).join('') + `<td></td>`;
+  const filterRow = document.getElementById(`${key}FilterRow`);
+  filterRow.innerHTML = config.visible.map(col => {
+    const filterData = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : null;
+    const currentVal = filterData ? filterData.val : '';
 
-      const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
-      if (config.page > totalPages) config.page = totalPages;
-      document.getElementById(`${key}CurrentPage`).textContent = config.page;
-      document.getElementById(`${key}TotalPages`).textContent = totalPages;
+    if (TEXT_SEARCH_COLS.includes(col)) {
+      return `<td><input type="text" placeholder="Search..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
+    } else {
+      const meta = getDropdownMeta(key, col);
+      let opts = `<option value="">All</option>`;
+      meta.options.forEach(u => {
+        const valStr = String(u);
+        const sel = (currentVal === valStr) ? 'selected' : '';
+        opts += `<option value="${valStr.replace(/"/g, '&quot;')}" ${sel}>${valStr}</option>`;
+      });
+      return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true, ${meta.numericLike ? 'true' : 'false'}, ${meta.isZipf ? 'true' : 'false'})">${opts}</select></td>`;
+    }
+  }).join('') + `<td></td>`;
 
-      const pageData = config.filtered.slice((config.page - 1) * config.rpp, config.page * config.rpp);
-      const tbody = document.getElementById(`${key}TableBody`);
-      
-      if (!pageData.length) {
-        tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`;
-        return;
+  const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
+  if (config.page > totalPages) config.page = totalPages;
+  document.getElementById(`${key}CurrentPage`).textContent = config.page;
+  document.getElementById(`${key}TotalPages`).textContent = totalPages;
+
+  const pageStart = (config.page - 1) * config.rpp;
+  const pageData = config.filtered.slice(pageStart, config.page * config.rpp);
+  const tbody = document.getElementById(`${key}TableBody`);
+
+  if (!pageData.length) {
+    tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`;
+    return;
+  }
+
+  let bodyHtml = '';
+  pageData.forEach((row, idx) => {
+    const rowIndex = pageStart + idx; // index in config.filtered
+    bodyHtml += `<tr>`;
+
+    config.visible.forEach(col => {
+      let rawVal = row[col] ?? '';
+
+      // Clean mojibake
+      if (typeof rawVal === 'string') {
+        rawVal = rawVal.replace(/�+/g, '').trim();
       }
 
-      let bodyHtml = '';
-      pageData.forEach(row => {
-        bodyHtml += `<tr>`;
-         config.visible.forEach(col => {
-          let rawVal = row[col] ?? '';
+      // Special handling for GPT_Coded_Word_Parts
+      if (col === 'GPT_Coded_Word_Parts' && typeof rawVal === 'string') {
+        rawVal = rawVal.replace(/^\[|\]$/g, '').trim();
+      }
 
-          // Clean mojibake
-          if (typeof rawVal === 'string') {
-            rawVal = rawVal.replace(/�+/g, '').trim();
-          }
+      let displayVal = String(rawVal);
 
-          // Special handling for GPT_Coded_Word_Parts
-          if (col === 'GPT_Coded_Word_Parts' && typeof rawVal === 'string') {
-            rawVal = rawVal.replace(/^\[|\]$/g, '').trim();
-          }
+      // Round these columns to integer
+      if (col.includes("Grade Level") || col.includes("Familiarity")) {
+        const num = parseFloat(rawVal);
+        if (!isNaN(num)) {
+          displayVal = Math.round(num).toString();
+        }
+      } else if (col === 'Word_frq_Zipf') {
+        const num = parseFloat(rawVal);
+        if (!isNaN(num)) displayVal = num.toFixed(2);
+      }
 
-          let displayVal = String(rawVal);
+      const isNumericCol = getDropdownMeta(key, col).numericLike;
+      if (isNumericCol && !col.includes("Grade Level") && !col.includes("Familiarity")) {
+        displayVal = formatMax2Decimals(rawVal);
+      }
 
-          // Round these columns to integer
-          if (col.includes("Grade Level") || col.includes("Familiarity")) {
-            const num = parseFloat(rawVal);
-            if (!isNaN(num)) {
-              displayVal = Math.round(num).toString();
-            }
-          } 
-          else if (col === 'Word_frq_Zipf') {
-            const num = parseFloat(rawVal);
-            if (!isNaN(num)) displayVal = num.toFixed(2);
-          }
+      const cellClass = displayVal.length > 60 ? 'long-text' : '';
+      bodyHtml += `<td class="${cellClass}">${displayVal}</td>`;
+    });
 
-          const isNumericCol = getDropdownMeta(key, col).numericLike;
-          if (isNumericCol && !col.includes("Grade Level") && !col.includes("Familiarity")) {
-            displayVal = formatMax2Decimals(rawVal);
-          }
+    const lookupWord = getLookupWordFromRow(row) || '';
+    const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
-          const cellClass = displayVal.length > 60 ? 'long-text' : '';
-          bodyHtml += `<td class="${cellClass}">${displayVal}</td>`;
-        });
+    bodyHtml += `<td>
+      <div class="row-actions">
+        <button class="source-btn" ${lookupWord ? `onclick="lookupGoogle('${escWord}')"` : "disabled"}>🔎 Google</button>
+        <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
+        <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
+        <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
+        <button class="explain-btn" onclick="showExplainFromIndex('${key}', ${rowIndex})">✨ Explain</button>
+      </div>
+    </td></tr>`;
+  });
 
-        const lookupWord = getLookupWordFromRow(row) || '';
-        const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        const startIndex = (config.page - 1) * config.rpp;
-pageData.forEach((row, idx) => {
-  const rowIndex = startIndex + idx; // index in config.filtered
+  tbody.innerHTML = bodyHtml;
+}
 
-        bodyHtml += `<td>
-          <div class="row-actions">
-            <button class="source-btn" ${lookupWord ? `onclick="lookupGoogle('${escWord}')"` : "disabled"}>🔎 Google</button>
-            <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
-            <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
-            <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
-             <button class="explain-btn" onclick="showExplainFromIndex('${key}', ${rowIndex})">✨ Explain</button>
-    </div>
-        </td></tr>`;
-      });
-      tbody.innerHTML = bodyHtml;
-    }
 
     // --- OPTIMIZED FILTER LOGIC ---
     function onColumnFilter(key, col, val, isExact, numericRounded = false, doNotRound = false) {
@@ -1043,12 +1044,16 @@ pageData.forEach((row, idx) => {
  
 function showExplainFromIndex(key, rowIndex) {
   const config = DATASETS[key];
-  if (!config || !config.filtered || !config.filtered[rowIndex]) {
+  const i = Number(rowIndex);
+
+  if (!config || !Array.isArray(config.filtered) || !config.filtered[i]) {
     alert("Could not open Explain popup for this row.");
     return;
   }
-  showExplainModal(key, config.filtered[rowIndex]);
+
+  showExplainModal(key, config.filtered[i]);
 }
+
 
     function filterTable(key) {
       const config = DATASETS[key];
