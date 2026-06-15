@@ -885,7 +885,7 @@ if (key === 'wf') wfWordZipfRankMap = null;
       };
     }
 
-     function renderTable(key) {
+        function renderTable(key) {
       const config = DATASETS[key];
       document.getElementById(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
 
@@ -933,21 +933,28 @@ if (key === 'wf') wfWordZipfRankMap = null;
         config.visible.forEach(col => {
           let rawVal = row[col] ?? '';
 
-          // Clean mojibake
+          // === STRONG CLEANING FOR PROBLEMATIC FIELDS ===
           if (typeof rawVal === 'string') {
             rawVal = rawVal.replace(/�+/g, '').trim();
-          }
-
-          // Special handling for GPT_Coded_Word_Parts
-          if (col === 'GPT_Coded_Word_Parts' && typeof rawVal === 'string') {
-            rawVal = rawVal.replace(/^\[|\]$/g, '').trim();
+            
+            // Fix GPT_Coded_Word_Parts specifically
+            if (col === 'GPT_Coded_Word_Parts' || col.includes('Parts')) {
+              rawVal = rawVal
+                .replace(/^\[|\]$/g, '')           // remove outer brackets
+                .replace(/^\s*<\s*|\s*>\s*$/g, '') // remove stray < >
+                .trim();
+            }
           }
 
           const isNumericCol = getDropdownMeta(key, col).numericLike;
-          const val = isNumericCol ? formatMax2Decimals(rawVal) : String(rawVal);
+          const displayVal = isNumericCol 
+            ? formatMax2Decimals(rawVal) 
+            : String(rawVal || '');
 
-          bodyHtml += `<td class="${val.length > 60 ? 'long-text' : ''}">${val}</td>`;
+          const cellClass = displayVal.length > 60 ? 'long-text' : '';
+          bodyHtml += `<td class="${cellClass}">${displayVal}</td>`;
         });
+
         const lookupWord = getLookupWordFromRow(row) || '';
         const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
         const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;');
