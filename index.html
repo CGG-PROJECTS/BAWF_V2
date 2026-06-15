@@ -937,7 +937,7 @@ if (key === 'wf') wfWordZipfRankMap = null;
       };
     }
 
-        function renderTable(key) {
+         function renderTable(key) {
       const config = DATASETS[key];
       document.getElementById(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
 
@@ -980,38 +980,28 @@ if (key === 'wf') wfWordZipfRankMap = null;
       }
 
       let bodyHtml = '';
-      pageData.forEach(row => {
+      pageData.forEach((row, index) => {
         bodyHtml += `<tr>`;
-         config.visible.forEach(col => {
+        
+        config.visible.forEach(col => {
           let rawVal = row[col] ?? '';
 
-          // Clean mojibake
           if (typeof rawVal === 'string') {
             rawVal = rawVal.replace(/�+/g, '').trim();
           }
 
-          // Special handling for GPT_Coded_Word_Parts
           if (col === 'GPT_Coded_Word_Parts' && typeof rawVal === 'string') {
             rawVal = rawVal.replace(/^\[|\]$/g, '').trim();
           }
 
           let displayVal = String(rawVal);
 
-          // Round these columns to integer
           if (col.includes("Grade Level") || col.includes("Familiarity")) {
             const num = parseFloat(rawVal);
-            if (!isNaN(num)) {
-              displayVal = Math.round(num).toString();
-            }
-          } 
-          else if (col === 'Word_frq_Zipf') {
+            if (!isNaN(num)) displayVal = Math.round(num).toString();
+          } else if (col === 'Word_frq_Zipf') {
             const num = parseFloat(rawVal);
             if (!isNaN(num)) displayVal = num.toFixed(2);
-          }
-
-          const isNumericCol = getDropdownMeta(key, col).numericLike;
-          if (isNumericCol && !col.includes("Grade Level") && !col.includes("Familiarity")) {
-            displayVal = formatMax2Decimals(rawVal);
           }
 
           const cellClass = displayVal.length > 60 ? 'long-text' : '';
@@ -1020,7 +1010,9 @@ if (key === 'wf') wfWordZipfRankMap = null;
 
         const lookupWord = getLookupWordFromRow(row) || '';
         const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;');
+
+        // Better way to pass row to explain
+        const rowDataStr = JSON.stringify(row).replace(/'/g, "\\'");
 
         bodyHtml += `<td>
           <div class="row-actions">
@@ -1028,7 +1020,7 @@ if (key === 'wf') wfWordZipfRankMap = null;
             <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
             <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
             <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
-            <button class="explain-btn" onclick="showExplainModal('${key}', ${safeRowJSON})">✨ Explain</button>
+            <button class="explain-btn" onclick="showExplainModal('${key}', '${rowDataStr}')">✨ Explain</button>
           </div>
         </td></tr>`;
       });
@@ -1346,7 +1338,13 @@ function formatMax2Decimals(v){
     function showColumnKey() { document.getElementById('columnModal').classList.add('show'); document.body.classList.add('modal-open'); }
     function closeModal() { document.getElementById('columnModal').classList.remove('show'); document.body.classList.remove('modal-open'); }
 
-    function showExplainModal(prefix, row){
+      function showExplainModal(key, rowJsonStr){
+      let row;
+      try {
+        row = JSON.parse(rowJsonStr);
+      } catch(e) {
+        row = {};
+      }
       byId("explainPreview").value = buildExplainPrompt(row, byId("explainTask").value);
       byId("explainModalBackdrop").classList.add("show");
       document.body.classList.add("modal-open");
