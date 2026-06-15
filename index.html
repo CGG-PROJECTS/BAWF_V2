@@ -708,7 +708,7 @@
       const raw = config.data.map(r => {
         let val = r[col] ?? '';
         if (typeof val === 'string') {
-          val = val.replace(/+/g, '').trim();   // fix mojibake
+          val = val.replace(/�+/g, '').trim();   // fix mojibake
         } else {
           val = String(val).trim();
         }
@@ -867,7 +867,7 @@ if (key === 'wf') wfWordZipfRankMap = null;
             validRows.forEach(row => {
               Object.keys(row).forEach(col => {
                 if (typeof row[col] === 'string') {
-                  row[col] = row[col].replace(/+/g, '').trim();
+                  row[col] = row[col].replace(/�+/g, '').trim();
                 }
               });
             });
@@ -974,7 +974,7 @@ if (key === 'wf') wfWordZipfRankMap = null;
 
           // Clean mojibake
           if (typeof rawVal === 'string') {
-            rawVal = rawVal.replace(/+/g, '').trim();
+            rawVal = rawVal.replace(/�+/g, '').trim();
           }
 
           // Special handling for GPT_Coded_Word_Parts
@@ -1007,9 +1007,8 @@ if (key === 'wf') wfWordZipfRankMap = null;
 
         const lookupWord = getLookupWordFromRow(row) || '';
         const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        
-        // FIX: Ensure single quotes are safely URL-encoded so it doesn't break HTML attributes
-        const encodedRow = encodeURIComponent(JSON.stringify(row)).replace(/'/g, "%27");
+        const encodedRow = encodeURIComponent(JSON.stringify(row)).replace(/'/g, '%27');
+
 
         bodyHtml += `<td>
           <div class="row-actions">
@@ -1355,12 +1354,12 @@ function showExplainModal(prefix, row){
     return;
   }
   preview.value = buildExplainPrompt(row, task.value || "both");
-  
-  // FIX: Make the prompt auto-update if the user changes the dropdown option
+
+    // FIX: Make the prompt auto-update if the user changes the dropdown option
   task.onchange = () => {
     preview.value = buildExplainPrompt(row, task.value || "both");
   };
-
+  
   modal.classList.add("show");
   document.body.classList.add("modal-open");
 }
