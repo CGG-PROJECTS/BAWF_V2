@@ -1007,7 +1007,7 @@ if (key === 'wf') wfWordZipfRankMap = null;
 
         const lookupWord = getLookupWordFromRow(row) || '';
         const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        const safeRowJSON = JSON.stringify(row).replace(/"/g, '&quot;');
+        const encodedRow = encodeURIComponent(JSON.stringify(row));
 
         bodyHtml += `<td>
           <div class="row-actions">
@@ -1015,7 +1015,7 @@ if (key === 'wf') wfWordZipfRankMap = null;
             <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
             <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
             <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
-            <button class="explain-btn" onclick="showExplainModal('${key}', ${safeRowJSON})">✨ Explain</button>
+            <button class="explain-btn" onclick="showExplainModalFromEncoded('${key}', '${encodedRow}')">✨ Explain</button>
           </div>
         </td></tr>`;
       });
@@ -1038,6 +1038,17 @@ if (key === 'wf') wfWordZipfRankMap = null;
       clearTimeout(filterTimeouts[key]);
       filterTimeouts[key] = setTimeout(() => filterTable(key), 700); // 400ms debounce prevents freezing
     }
+function showExplainModalFromEncoded(prefix, encodedRow){
+  let row = {};
+  try {
+    row = JSON.parse(decodeURIComponent(encodedRow));
+  } catch (err) {
+    console.error("Failed to decode row for Explain modal:", err);
+    alert("Could not open Explain popup for this row.");
+    return;
+  }
+  showExplainModal(prefix, row);
+}
 
     function filterTable(key) {
       const config = DATASETS[key];
@@ -1333,11 +1344,19 @@ function formatMax2Decimals(v){
     function showColumnKey() { document.getElementById('columnModal').classList.add('show'); document.body.classList.add('modal-open'); }
     function closeModal() { document.getElementById('columnModal').classList.remove('show'); document.body.classList.remove('modal-open'); }
 
-    function showExplainModal(prefix, row){
-      byId("explainPreview").value = buildExplainPrompt(row, byId("explainTask").value);
-      byId("explainModalBackdrop").classList.add("show");
-      document.body.classList.add("modal-open");
-    }
+function showExplainModal(prefix, row){
+  const preview = byId("explainPreview");
+  const task = byId("explainTask");
+  const modal = byId("explainModalBackdrop");
+  if (!preview || !task || !modal) {
+    console.error("Explain modal elements missing in DOM.");
+    return;
+  }
+  preview.value = buildExplainPrompt(row, task.value || "both");
+  modal.classList.add("show");
+  document.body.classList.add("modal-open");
+}
+
     function closeExplainModal(){ byId("explainModalBackdrop").classList.remove("show"); document.body.classList.remove("modal-open"); }
     function copyExplainPrompt(){ navigator.clipboard.writeText(byId("explainPreview").value.trim()).then(() => alert("Prompt copied.")); }
 
