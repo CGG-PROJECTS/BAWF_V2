@@ -739,7 +739,6 @@
       const preferred = [
         "Word", 
         "Word_frq_Zipf", 
-        "Word_Zipf_Rank",           // ← NEW: Frequency Rank
         "Baseword", 
         "Greek_Latin_Root_1", 
         "Greek_Latin_Meaning_1", 
@@ -775,16 +774,7 @@
       initDataset('wf');
       setupAddColsListener('wf'); setupAddColsListener('cm'); setupAddColsListener('cs'); 
     });
-      function addZipfRankColumn() {
-      const config = DATASETS['wf'];
-      if (!config.data.length || config.data[0]['Word_Zipf_Rank'] !== undefined) return;
-
-      const rankMap = getWordZipfRankMap();
-
-      config.data.forEach(row => {
-        const word = String(row['Word'] || '').trim();
-        row['Word_Zipf_Rank'] = rankMap.get(word) || '';
-      });
+     
 
       // Add to all columns if missing
       if (!config.all.includes('Word_Zipf_Rank')) {
@@ -892,13 +882,7 @@ if (key === 'wf') wfWordZipfRankMap = null;
             config.loaded = true;
             config.filtered = [...config.data];
 
-            if (key === 'wf') {
-              addZipfRankColumn();           // Ensure rank is added
               
-              // Force Word_Zipf_Rank into visible columns if not already there
-              if (!config.visible.includes('Word_Zipf_Rank')) {
-                config.visible.unshift('Word_Zipf_Rank');
-              }
             }
 
             if (!firstPaint) {
