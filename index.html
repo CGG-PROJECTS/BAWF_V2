@@ -775,22 +775,24 @@
       initDataset('wf');
       setupAddColsListener('wf'); setupAddColsListener('cm'); setupAddColsListener('cs'); 
     });
-    function addZipfRankColumn() {
+      function addZipfRankColumn() {
       const config = DATASETS['wf'];
-      if (!config.data.length) return;
+      if (!config.data.length || config.data[0]['Word_Zipf_Rank'] !== undefined) return;
 
-      const rankMap = getWordZipfRankMap();   // reuse existing function
+      const rankMap = getWordZipfRankMap();
 
       config.data.forEach(row => {
         const word = String(row['Word'] || '').trim();
-        row['Word_Zipf_Rank'] = rankMap.get(word) || null;
+        row['Word_Zipf_Rank'] = rankMap.get(word) || '';
       });
 
-      // Also add it to all columns list
+      // Add to all columns if missing
       if (!config.all.includes('Word_Zipf_Rank')) {
         config.all.unshift('Word_Zipf_Rank');
       }
     }
+
+    
     function ensureLoaded(key){
       if (!DATASETS[key].loaded) initDataset(key);
       else renderTable(key);
@@ -886,12 +888,17 @@ if (key === 'wf') wfWordZipfRankMap = null;
               loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`;
             }
           },
-                  complete: function() {
+          complete: function() {
             config.loaded = true;
             config.filtered = [...config.data];
 
             if (key === 'wf') {
-              addZipfRankColumn();        // ← ADD THIS LINE
+              addZipfRankColumn();           // Ensure rank is added
+              
+              // Force Word_Zipf_Rank into visible columns if not already there
+              if (!config.visible.includes('Word_Zipf_Rank')) {
+                config.visible.unshift('Word_Zipf_Rank');
+              }
             }
 
             if (!firstPaint) {
