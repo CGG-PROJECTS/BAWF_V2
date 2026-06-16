@@ -753,17 +753,19 @@
       return found.length ? found : headers.slice(0, 14);
     }
     
-    const TEXT_SEARCH_COLS = [
-      'Word', 
-      'FLemma', 
-      'Baseword', 
-      'Component_1', 
-      'Component_2',
-      'Definition', 
-      'Etymology', 
-      'GPT_Root',
-      'Greek_Latin_Root_1'
-    ];
+const TEXT_SEARCH_COLS = [
+  'Word', 
+  'FLemma', 
+  'Baseword', 
+  'Component_1', 
+  'Component_2',
+  'Definition', 
+  'Etymology', 
+  'GPT_Root',
+  'Greek_Latin_Root_1',
+  'GPT_Coded_Word_Parts'
+];
+
 
     let activeTabId = 'word-families';
     let activeKey = 'wf';
