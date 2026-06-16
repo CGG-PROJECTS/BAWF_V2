@@ -295,8 +295,14 @@
         <div class="db-controls">
           <button class="db-btn" onclick="exportCSV('wf', 'BAWF_Word_Families_Filtered.csv')">↓ Export CSV</button>
           <button class="db-btn secondary" onclick="copyColumnValues('wf')">📋 Copy Column Cells</button>
-          <select id="wfAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-          <button id="wfAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
+       <select id="wfAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+<button id="wfAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
+
+<select id="wfRemoveCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
+<button id="wfRemoveColsBtn" class="db-btn secondary">➖ Remove Selected Columns</button>
+
+<button class="db-btn secondary" onclick="resetColumns('wf')">↩ Reset Default Columns</button>
+
         </div>
 
         <div class="db-meta">Showing <strong id="wfRowCount">0</strong> rows</div>
@@ -762,7 +768,6 @@ const TEXT_SEARCH_COLS = [
   'Definition', 
   'Etymology', 
   'GPT_Root',
-  'Greek_Latin_Root_1',
   'GPT_Coded_Word_Parts'
 ];
 
@@ -906,25 +911,102 @@ if (key === 'wf') wfWordZipfRankMap = null;
       }
     }
 
-    function buildDropdowns(key) {
-      const config = DATASETS[key];
-      const copySelect = document.getElementById(`${key}CopyColumnSelect`);
-      if (copySelect) copySelect.innerHTML = config.visible.map(c => `<option value="${c}">${c}</option>`).join('');
-      const addSelect = document.getElementById(`${key}AddCols`);
-      if (addSelect) addSelect.innerHTML = config.all.filter(c => !config.visible.includes(c)).map(c => `<option value="${c}">${c}</option>`).join('');
-    }
+function buildDropdowns(key) {
+  const config = DATASETS[key];
 
-    function setupAddColsListener(key) {
-      const btn = document.getElementById(`${key}AddColsBtn`);
-      if (!btn) return;
-      btn.onclick = () => {
-        const select = document.getElementById(`${key}AddCols`);
-        const selected = Array.from(select.selectedOptions).map(o => o.value);
-        if (!selected.length) return;
-        DATASETS[key].visible = [...DATASETS[key].visible, ...selected];
-        buildDropdowns(key); renderTable(key);
-      };
+  const copySelect = document.getElementById(`${key}CopyColumnSelect`);
+  if (copySelect) {
+    copySelect.innerHTML = config.visible
+      .map(c => `<option value="${c}">${c}</option>`)
+      .join('');
+  }
+
+  const addSelect = document.getElementById(`${key}AddCols`);
+  if (addSelect) {
+    addSelect.innerHTML = config.all
+      .filter(c => !config.visible.includes(c))
+      .map(c => `<option value="${c}">${c}</option>`)
+      .join('');
+  }
+
+  const removeSelect = document.getElementById(`${key}RemoveCols`);
+  if (removeSelect) {
+    removeSelect.innerHTML = config.visible
+      .map(c => `<option value="${c}">${c}</option>`)
+      .join('');
+  }
+}
+
+function setupAddColsListener(key) {
+  const addBtn = document.getElementById(`${key}AddColsBtn`);
+  if (addBtn) {
+    addBtn.onclick = () => {
+      const select = document.getElementById(`${key}AddCols`);
+      if (!select) return;
+
+      const selected = Array.from(select.selectedOptions).map(o => o.value);
+      if (!selected.length) return;
+
+      DATASETS[key].visible = [
+        ...DATASETS[key].visible,
+        ...selected.filter(c => !DATASETS[key].visible.includes(c))
+      ];
+
+      pruneFiltersToVisible(key);
+      buildDropdowns(key);
+      renderTable(key);
+    };
+  }
+
+  const removeBtn = document.getElementById(`${key}RemoveColsBtn`);
+  if (removeBtn) {
+    removeBtn.onclick = () => {
+      const select = document.getElementById(`${key}RemoveCols`);
+      if (!select) return;
+
+      const selected = Array.from(select.selectedOptions).map(o => o.value);
+      if (!selected.length) return;
+
+      const nextVisible = DATASETS[key].visible.filter(c => !selected.includes(c));
+
+      if (!nextVisible.length) {
+        alert("You need to keep at least one visible column.");
+        return;
+      }
+
+      DATASETS[key].visible = nextVisible;
+
+      pruneFiltersToVisible(key);
+      buildDropdowns(key);
+      renderTable(key);
+    };
+  }
+}
+function pruneFiltersToVisible(key) {
+  if (!columnFilters[key]) return;
+
+  const visibleSet = new Set(DATASETS[key].visible);
+
+  Object.keys(columnFilters[key]).forEach(col => {
+    if (!visibleSet.has(col)) {
+      delete columnFilters[key][col];
     }
+  });
+}
+
+function resetColumns(key) {
+  const config = DATASETS[key];
+
+  config.visible = chooseDefaultColumns(key, config.all);
+  config.page = 1;
+
+  if (columnFilters[key]) {
+    columnFilters[key] = {};
+  }
+
+  buildDropdowns(key);
+  filterTable(key);
+}
 
 function renderTable(key) {
   const config = DATASETS[key];
