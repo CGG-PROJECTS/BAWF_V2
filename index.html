@@ -851,7 +851,8 @@ if (key === 'wf') wfWordZipfRankMap = null;
           chunkSize: 1024 * 1024 * 4,
           quoteChar: '"',
           escapeChar: '"',
-          delimiter: ",",
+          delimiter: "",   // auto-detect
+          newline: "",     // auto-detect
           encoding: "UTF-8",
           dynamicTyping: false,
           transformHeader: function(h, i) {
@@ -1088,7 +1089,8 @@ function renderTable(key) {
       }
 
       const cellClass = displayVal.length > 60 ? 'long-text' : '';
-      bodyHtml += `<td class="${cellClass}">${displayVal}</td>`;
+      bodyHtml += `<td class="${cellClass}">${escapeHTML(displayVal)}</td>`;
+
     });
 
     const lookupWord = getLookupWordFromRow(row) || '';
@@ -1125,6 +1127,14 @@ function renderTable(key) {
       clearTimeout(filterTimeouts[key]);
       filterTimeouts[key] = setTimeout(() => filterTable(key), 700); // 400ms debounce prevents freezing
     }
+function escapeHTML(str = "") {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
  
 function showExplainFromIndex(key, rowIndex) {
   const config = DATASETS[key];
