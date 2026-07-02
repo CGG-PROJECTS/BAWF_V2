@@ -188,6 +188,9 @@
     .lookup-btn.wordnik:hover { background:#15803d; }
     .explain-btn { background:#8b5cf6; }
     .explain-btn:hover { background:#7c3aed; }
+    .report-btn { background:#ef4444; border:none; border-radius:6px; padding:6px 10px; color:#fff; cursor:pointer; font-size:0.84rem; white-space:nowrap; }
+    .report-btn:hover { background:#dc2626; }
+    .report-btn:disabled { opacity:0.45; cursor:not-allowed; }
 
     .source-btn:disabled,
     .explain-btn:disabled,
@@ -686,7 +689,36 @@
       </div>
     </div>
   </div>
+<div id="reportModalBackdrop" class="modal">
+    <div class="modal-content" style="max-width:600px;">
+      <div class="modal-header">
+        <h3>Report Database Error</h3>
+        <button class="close" onclick="closeReportModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-top:0; color:#4b5563;">Help us improve! What looks wrong with this entry?</p>
+        
+        <div style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:14px;">
+          <strong>Word:</strong> <span id="reportWord" style="color:#1d4ed8;"></span><br>
+          <strong>Current Parts:</strong> <span id="reportParts"></span>
+        </div>
 
+        <div style="margin-bottom:10px;">
+          <label for="reportNotes" style="font-weight:600; display:block; margin-bottom:6px;">Your Correction / Notes:</label>
+          <textarea id="reportNotes" placeholder="e.g., The root should be 'spect', not the whole word..." style="width:100%; min-height:100px; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-family:inherit;"></textarea>
+        </div>
+        
+        <input type="hidden" id="reportDatasetKey">
+        <input type="hidden" id="reportRowIndex">
+
+        <div class="modal-actions">
+          <button class="db-btn secondary" onclick="closeReportModal()">Cancel</button>
+          <button class="db-btn" onclick="submitErrorReport()" id="submitReportBtn">Submit Report</button>
+        </div>
+        <p id="reportStatus" style="text-align:right; font-weight:600; margin-top:8px; font-size:0.9rem;"></p>
+      </div>
+    </div>
+  </div>
   <script>
     const DATASETS = {
       wf: { file: "BAWF_FINAL.csv.gz", name: "Word Families", loaded: false, data: [], filtered: [], all: [], visible: [], page: 1, rpp: 100, sortBy: "", sortDesc: false },
@@ -1096,14 +1128,15 @@ function renderTable(key) {
     const lookupWord = getLookupWordFromRow(row) || '';
     const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
-    bodyHtml += `<td>
+bodyHtml += `<td>
       <div class="row-actions">
         <button class="source-btn" ${lookupWord ? `onclick="lookupGoogle('${escWord}')"` : "disabled"}>🔎 Google</button>
         <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
         <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
         <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
-  <button class="explain-btn" data-explain-key="${key}" data-explain-index="${rowIndex}">✨ Explain</button>
- </div>
+        <button class="explain-btn" data-explain-key="${key}" data-explain-index="${rowIndex}">✨ Explain</button>
+        <button class="report-btn" data-report-key="${key}" data-report-index="${rowIndex}">⚠️ Report</button>
+      </div>
     </td></tr>`;
   });
 
@@ -1135,7 +1168,94 @@ function escapeHTML(str = "") {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
- 
+// --- REPORT ERROR LOGIC ---
+function showReportFromIndex(key, rowIndex) {
+  const config = DATASETS[key];
+  const i = Number(rowIndex);
+
+  if (!config || !Array.isArray(config.filtered) || !config.filtered[i]) {
+    alert("Could not open Report popup for this row.");
+    return;
+  }
+
+  const row = config.filtered[i];
+  const word = getFirstNonEmpty(row, ["Word", "FLemma", "Baseword"]);
+  const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts", "GPT_Root"]);
+
+  // Populate Modal
+  document.getElementById("reportWord").textContent = word;
+  document.getElementById("reportParts").textContent = parts || "N/A";
+  document.getElementById("reportNotes").value = "";
+  document.getElementById("reportStatus").textContent = "";
+  
+  // Store reference data
+  document.getElementById("reportDatasetKey").value = key;
+  document.getElementById("reportRowIndex").value = rowIndex;
+
+  // Show Modal
+  document.getElementById("reportModalBackdrop").classList.add("show");
+  document.body.classList.add("modal-open");
+}
+
+function closeReportModal() {
+  document.getElementById("reportModalBackdrop").classList.remove("show");
+  document.body.classList.remove("modal-open");
+}
+
+async function submitErrorReport() {
+  const word = document.getElementById("reportWord").textContent;
+  const parts = document.getElementById("reportParts").textContent;
+  const notes = document.getElementById("reportNotes").value.trim();
+  const btn = document.getElementById("submitReportBtn");
+  const status = document.getElementById("reportStatus");
+
+  if (!notes) {
+    status.textContent = "Please enter some notes before submitting.";
+    status.style.color = "#dc2626";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+  status.textContent = "";
+
+  const payload = {
+    word: word,
+    current_parse: parts,
+    user_correction: notes,
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    const response = await fetch("https://script.google.com/macros/s/AKfycbydBfAee3LRNRjT8O-K2rutdLR67KS-2Lp_0TjBuER38EAhRRd7LyITADcbzDALCYgw/exec", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (result.status === "success") {
+      status.textContent = "✅ Error reported successfully! Thank you.";
+      status.style.color = "#15803d";
+      
+      setTimeout(() => {
+        closeReportModal();
+        btn.disabled = false;
+        btn.textContent = "Submit Report";
+      }, 1500);
+    } else {
+      throw new Error(result.message || "Google Script rejected the row entry.");
+    }
+
+  } catch (error) {
+    console.error("Submission failed:", error);
+    status.textContent = "❌ Failed to send report. Please try again.";
+    status.style.color = "#dc2626";
+    btn.disabled = false;
+    btn.textContent = "Submit Report";
+  }
+} 
 function showExplainFromIndex(key, rowIndex) {
   const config = DATASETS[key];
   const i = Number(rowIndex);
@@ -1621,11 +1741,16 @@ function showExplainFromIndex(key, rowIndex) {
 }
 window.showExplainFromIndex = showExplainFromIndex;
 
-// delegated click handler (works even after table rerender)
 document.addEventListener("click", (e) => {
-  const btn = e.target.closest(".explain-btn[data-explain-key][data-explain-index]");
-  if (!btn) return;
-  showExplainFromIndex(btn.dataset.explainKey, Number(btn.dataset.explainIndex));
+  const explainBtn = e.target.closest(".explain-btn[data-explain-key][data-explain-index]");
+  if (explainBtn) showExplainFromIndex(explainBtn.dataset.explainKey, Number(explainBtn.dataset.explainIndex));
+
+  const reportBtn = e.target.closest(".report-btn[data-report-key][data-report-index]");
+  if (reportBtn) showReportFromIndex(reportBtn.dataset.reportKey, Number(reportBtn.dataset.reportIndex));
+  
+  if (e.target === document.getElementById("columnModal")) closeModal();
+  if (e.target === document.getElementById("explainModalBackdrop")) closeExplainModal();
+  if (e.target === document.getElementById("reportModalBackdrop")) closeReportModal();
 });
 
   </script>
