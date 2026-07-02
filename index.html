@@ -369,36 +369,7 @@
               <tbody id="cmTableBody"></tbody>
             </table>
           </div>
-          <div id="reportModalBackdrop" class="modal">
-    <div class="modal-content" style="max-width:600px;">
-      <div class="modal-header">
-        <h3>Report Database Error</h3>
-        <button class="close" onclick="closeReportModal()">×</button>
-      </div>
-      <div class="modal-body">
-        <p style="margin-top:0; color:#4b5563;">Help us improve! What looks wrong with this entry?</p>
-        
-        <div style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:14px;">
-          <strong>Word:</strong> <span id="reportWord" style="color:#1d4ed8;"></span><br>
-          <strong>Current Parts:</strong> <span id="reportParts"></span>
-        </div>
-
-        <div style="margin-bottom:10px;">
-          <label for="reportNotes" style="font-weight:600; display:block; margin-bottom:6px;">Your Correction / Notes:</label>
-          <textarea id="reportNotes" placeholder="e.g., The root should be 'spect', not the whole word..." style="width:100%; min-height:100px; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-family:inherit;"></textarea>
-        </div>
-        
-        <input type="hidden" id="reportDatasetKey">
-        <input type="hidden" id="reportRowIndex">
-
-        <div class="modal-actions">
-          <button class="db-btn secondary" onclick="closeReportModal()">Cancel</button>
-          <button class="db-btn" onclick="submitErrorReport()" id="submitReportBtn">Submit Report</button>
-        </div>
-        <p id="reportStatus" style="text-align:right; font-weight:600; margin-top:8px; font-size:0.9rem;"></p>
-      </div>
-    </div>
-  </div>
+   
           <div id="cmPagination" class="pagination" style="display:none;">
             <button type="button" onclick="prevPage('cm')">← Previous</button>
             <span>Page <span id="cmCurrentPage">1</span> of <span id="cmTotalPages">1</span></span>
@@ -683,7 +654,42 @@
       </div>
     </div>
   </div>
+<div id="explainModalBackdrop" class="modal">
+    </div>
 
+  <div id="reportModalBackdrop" class="modal">
+    <div class="modal-content" style="max-width:600px;">
+      <div class="modal-header">
+        <h3>Report Database Error</h3>
+        <button class="close" onclick="closeReportModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-top:0; color:#4b5563;">Help us improve! What looks wrong with this entry?</p>
+        
+        <div style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:14px;">
+          <strong>Word:</strong> <span id="reportWord" style="color:#1d4ed8;"></span><br>
+          <strong>Current Parts:</strong> <span id="reportParts"></span>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label for="reportNotes" style="font-weight:600; display:block; margin-bottom:6px;">Your Correction / Notes:</label>
+          <textarea id="reportNotes" placeholder="e.g., The root should be 'spect', not the whole word..." style="width:100%; min-height:100px; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-family:inherit;"></textarea>
+        </div>
+        
+        <input type="hidden" id="reportDatasetKey">
+        <input type="hidden" id="reportRowIndex">
+
+        <div class="modal-actions">
+          <button class="db-btn secondary" onclick="closeReportModal()">Cancel</button>
+          <button class="db-btn" onclick="submitErrorReport()" id="submitReportBtn">Submit Report</button>
+        </div>
+        <p id="reportStatus" style="text-align:right; font-weight:600; margin-top:8px; font-size:0.9rem;"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Your javascript starts here...
   <!-- Explain Row Modal -->
   <div id="explainModalBackdrop" class="modal">
     <div class="modal-content" style="max-width:780px;">
