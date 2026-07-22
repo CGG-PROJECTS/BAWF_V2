@@ -481,17 +481,11 @@
           </div>
           
           <div class="adv-box">
-            <label>Morpheme Count:</label>
-
-            <select id="advMorphColumn" class="db-select" style="width:100%; margin-bottom:8px;">
-              <option value="without" selected>Derivational only, without inflections</option>
-              <option value="plus">Derivational + inflections</option>
-            </select>
-
-            <div class="adv-input-group">
-              <input type="number" id="advMorphMin" placeholder="Min">
-              <input type="number" id="advMorphMax" placeholder="Max">
-            </div>
+             <label>Morpheme Count:</label>
+             <div class="adv-input-group">
+               <input type="number" id="advMorphMin" placeholder="Min">
+               <input type="number" id="advMorphMax" placeholder="Max">
+             </div>
           </div>
         </div>
 
@@ -652,8 +646,7 @@
 
         <h3>Other Morphological & Psycholinguistic & Educational Measures</h3>
         <ul>
-          <li><strong>N_Morphemes_from_GPT_parse_without_inflections:</strong> GPT-estimated number of derivational morphemes in the word, excluding inflectional endings such as plural <em>-s</em>, past-tense <em>-ed</em>, comparative/superlative endings, or progressive <em>-ing</em> when treated as inflectional.</li>
-          <li><strong>N_Morphemes_from_GPT_parse_plus_inflections:</strong> GPT-estimated total morpheme count including both derivational morphemes and inflectional morphemes.</li>
+          <li><strong>N_Morphemes:</strong> Total number of morphemes in the word.</li>
           <li><strong>Reading AoA (Green et al., 2025):</strong> Age of Acquisition for Reading this word- when people typcalliy learn to read the word.</li>
           <li><strong>Vocabulary eXpected Grade Level (Flor et al., 2024):</strong> Expected U.S. grade level at which a word is known- from 0 (kindergarten) to 16 (fourth year of college) (.</li>
           <li><strong>GPT_Familiarity (Brysbaert et al., 2024):</strong> GPT-estimated familiarity rating - values above  3 are typcially well-known and so more useful for teaching.</li>
@@ -777,48 +770,21 @@
     }
 
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
-
-const MORPHEME_COL_WITHOUT_INFLECTIONS = "N_Morphemes_from_GPT_parse_without_inflections";
-const MORPHEME_COL_PLUS_INFLECTIONS = "N_Morphemes_from_GPT_parse_plus_inflections";
-
-const DISPLAY_LABELS = {
-  [MORPHEME_COL_PLUS_INFLECTIONS]: "N_morphemes incl. Inflections"
-};
-
-function displayColumnName(col) {
-  return DISPLAY_LABELS[col] || col;
-}
    
 
      function chooseDefaultColumns(key, headers){
-      // Compound tables show everything by default
       if (key === "cm" || key === "cs") return [...headers];
 
-      // Word Families initial display:
-      // show only the morpheme count including inflections.
-      if (key === "wf") {
-        if (headers.includes(MORPHEME_COL_PLUS_INFLECTIONS)) {
-          return [MORPHEME_COL_PLUS_INFLECTIONS];
-        }
-
-        // Fallback if the expected plus-inflections column is missing
-        if (headers.includes(MORPHEME_COL_WITHOUT_INFLECTIONS)) {
-          return [MORPHEME_COL_WITHOUT_INFLECTIONS];
-        }
-
-        return headers.slice(0, 14);
-      }
-
       const preferred = [
-        "Word",
-        "Word_frq_Zipf",
+        "Word", 
+        "Word_frq_Zipf", 
         "Baseword",
-        "Greek_Latin_Root_1",
-        "Greek_Latin_Meaning_1",
-        "Prefix_1",
-        "Suffix_1",
-        MORPHEME_COL_PLUS_INFLECTIONS,
-        "Vocabulary eXpected Grade Level (Flor et al., 2024)",
+        "Greek_Latin_Root_1", 
+        "Greek_Latin_Meaning_1", 
+        "Prefix_1", 
+        "Suffix_1", 
+        "N_Morphemes", 
+        "Vocabulary eXpected Grade Level (Flor et al., 2024)", 
         "GPT_Familiarity (Brysbaert et al., 2024)"
       ];
 
@@ -986,7 +952,7 @@ function buildDropdowns(key) {
   const copySelect = document.getElementById(`${key}CopyColumnSelect`);
   if (copySelect) {
     copySelect.innerHTML = config.visible
-      .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
+      .map(c => `<option value="${c}">${c}</option>`)
       .join('');
   }
 
@@ -994,14 +960,14 @@ function buildDropdowns(key) {
   if (addSelect) {
     addSelect.innerHTML = config.all
       .filter(c => !config.visible.includes(c))
-      .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
+      .map(c => `<option value="${c}">${c}</option>`)
       .join('');
   }
 
   const removeSelect = document.getElementById(`${key}RemoveCols`);
   if (removeSelect) {
     removeSelect.innerHTML = config.visible
-      .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
+      .map(c => `<option value="${c}">${c}</option>`)
       .join('');
   }
 }
@@ -1084,7 +1050,7 @@ function renderTable(key) {
   const headerRow = document.getElementById(`${key}HeaderRow`);
   headerRow.innerHTML = config.visible.map(col => {
     let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
-    return `<th onclick="sortTable('${key}', '${col}')">${escapeHTML(displayColumnName(col))}${sym}</th>`;
+    return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
   }).join('') + `<th>Actions</th>`;
 
   const filterRow = document.getElementById(`${key}FilterRow`);
@@ -1223,8 +1189,7 @@ function showReportFromIndex(key, rowIndex) {
   const greekLatinRoot1 = getFirstNonEmpty(row, ["Greek_Latin_Root_1"]);
   const prefix1 = getFirstNonEmpty(row, ["Prefix_1"]);
   const suffix1 = getFirstNonEmpty(row, ["Suffix_1"]);
-  const nMorphemesWithoutInflections = getFirstNonEmpty(row, [MORPHEME_COL_WITHOUT_INFLECTIONS]);
-  const nMorphemesPlusInflections = getFirstNonEmpty(row, [MORPHEME_COL_PLUS_INFLECTIONS]);
+  const nMorphemes = getFirstNonEmpty(row, ["N_Morphemes"]);
 
   reportContext = {
     word,
@@ -1233,11 +1198,7 @@ function showReportFromIndex(key, rowIndex) {
     greek_latin_root_1: greekLatinRoot1,
     prefix_1: prefix1,
     suffix_1: suffix1,
-    n_morphemes_without_inflections: nMorphemesWithoutInflections,
-    n_morphemes_plus_inflections: nMorphemesPlusInflections,
-
-    // Backward compatibility with older reporting sheet/scripts
-    n_morphemes: nMorphemesWithoutInflections
+    n_morphemes: nMorphemes
   };
 
   document.getElementById("reportWord").textContent = word;
@@ -1282,12 +1243,7 @@ const payload = {
   greek_latin_root_1: reportContext?.greek_latin_root_1 || "",
   prefix_1: reportContext?.prefix_1 || "",
   suffix_1: reportContext?.suffix_1 || "",
-  n_morphemes_without_inflections: reportContext?.n_morphemes_without_inflections || "",
-  n_morphemes_plus_inflections: reportContext?.n_morphemes_plus_inflections || "",
-
-  // Backward compatibility with older Google Sheet script
-  n_morphemes: reportContext?.n_morphemes_without_inflections || "",
-
+  n_morphemes: reportContext?.n_morphemes || "",
   user_correction: notes
 };
 
@@ -1336,6 +1292,7 @@ function showExplainFromIndex(key, rowIndex) {
 
 // force global for inline onclick
 window.showExplainFromIndex = showExplainFromIndex;
+
 
 
     function filterTable(key) {
@@ -1488,25 +1445,7 @@ const rankMap = getWordZipfRankMap();
        // Safely identify column names 
        const gradeCol = findColumnByKey(config.all, 'Grade Level') || findColumnByKey(config.all, 'Grade') || 'Vocabulary eXpected Grade Level (Flor et al., 2024)';
        const famCol = findColumnByKey(config.all, 'Familiarity') || 'GPT_Familiarity (Brysbaert et al., 2024)';
-
-       const morphChoice = document.getElementById('advMorphColumn')?.value || 'without';
-
-       const preferredMorphCol =
-         morphChoice === 'plus'
-           ? MORPHEME_COL_PLUS_INFLECTIONS
-           : MORPHEME_COL_WITHOUT_INFLECTIONS;
-
-       const fallbackMorphCol =
-         morphChoice === 'plus'
-           ? MORPHEME_COL_WITHOUT_INFLECTIONS
-           : MORPHEME_COL_PLUS_INFLECTIONS;
-
-       const morphCol =
-         config.all.includes(preferredMorphCol)
-           ? preferredMorphCol
-           : config.all.includes(fallbackMorphCol)
-             ? fallbackMorphCol
-             : findColumnByKey(config.all, 'Morphemes') || preferredMorphCol;
+       const morphCol = findColumnByKey(config.all, 'N_Morphemes') || 'N_Morphemes';
 
        let results = new Set();
        const data = config.data;
@@ -1580,10 +1519,6 @@ if (!pass) continue;
 
     function clearAdvancedQuery() {
        document.querySelectorAll('#adv-queries input[type="number"]').forEach(el => el.value = '');
-
-       const morphSelect = document.getElementById('advMorphColumn');
-       if (morphSelect) morphSelect.value = 'without';
-
        document.getElementById('advCount').textContent = '0';
        document.getElementById('advResultsText').value = '';
     }
