@@ -770,26 +770,43 @@
     }
 
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
+
+const MORPHEME_COL_WITHOUT_INFLECTIONS = "N_Morphemes_from_GPT_parse_without_inflections";
+const MORPHEME_COL_PLUS_INFLECTIONS = "N_Morphemes_from_GPT_parse_plus_inflections";
+const DISPLAY_LABELS = {
+  [MORPHEME_COL_PLUS_INFLECTIONS]: "N_morphemes incl. Inflections"
+};
+
+function displayColumnName(col) {
+  return DISPLAY_LABELS[col] || col;
+}
    
 
      function chooseDefaultColumns(key, headers){
+      // Compound tables show everything by default
       if (key === "cm" || key === "cs") return [...headers];
 
-      const preferred = [
-        "Word", 
-        "Word_frq_Zipf", 
-        "Baseword",
-        "Greek_Latin_Root_1", 
-        "Greek_Latin_Meaning_1", 
-        "Prefix_1", 
-        "Suffix_1", 
-        "N_Morphemes", 
-        "Vocabulary eXpected Grade Level (Flor et al., 2024)", 
-        "GPT_Familiarity (Brysbaert et al., 2024)"
-      ];
+      // Word Families default columns:
+      // keep useful default columns, but include only the morpheme count WITH inflections
+      if (key === "wf") {
+        const preferred = [
+          "Word",
+          "Word_frq_Zipf",
+          "Baseword",
+          "Greek_Latin_Root_1",
+          "Greek_Latin_Meaning_1",
+          "Prefix_1",
+          "Suffix_1",
+          MORPHEME_COL_PLUS_INFLECTIONS,
+          "Vocabulary eXpected Grade Level (Flor et al., 2024)",
+          "GPT_Familiarity (Brysbaert et al., 2024)"
+        ];
 
-      const found = preferred.filter(col => headers.includes(col));
-      return found.length ? found : headers.slice(0, 14);
+        const found = preferred.filter(col => headers.includes(col));
+        return found.length ? found : headers.slice(0, 14);
+      }
+
+      return headers.slice(0, 14);
     }
     
 const TEXT_SEARCH_COLS = [
@@ -952,7 +969,7 @@ function buildDropdowns(key) {
   const copySelect = document.getElementById(`${key}CopyColumnSelect`);
   if (copySelect) {
     copySelect.innerHTML = config.visible
-      .map(c => `<option value="${c}">${c}</option>`)
+      .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
       .join('');
   }
 
@@ -960,14 +977,14 @@ function buildDropdowns(key) {
   if (addSelect) {
     addSelect.innerHTML = config.all
       .filter(c => !config.visible.includes(c))
-      .map(c => `<option value="${c}">${c}</option>`)
+      .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
       .join('');
   }
 
   const removeSelect = document.getElementById(`${key}RemoveCols`);
   if (removeSelect) {
     removeSelect.innerHTML = config.visible
-      .map(c => `<option value="${c}">${c}</option>`)
+      .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
       .join('');
   }
 }
@@ -1050,7 +1067,7 @@ function renderTable(key) {
   const headerRow = document.getElementById(`${key}HeaderRow`);
   headerRow.innerHTML = config.visible.map(col => {
     let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
-    return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
+    return `<th onclick="sortTable('${key}', '${col}')">${escapeHTML(displayColumnName(col))}${sym}</th>`;
   }).join('') + `<th>Actions</th>`;
 
   const filterRow = document.getElementById(`${key}FilterRow`);
@@ -1575,10 +1592,18 @@ function formatMax2Decimals(v){
 
     // --- EXTERNAL LOOKUPS ---
     function getLookupWordFromRow(row) { return getFirstNonEmpty(row, ["Word", "FLemma", "Baseword", "Compound", "GPT_Root", "Greek_Latin_Root_1"]); }
-    function lookupGoogle(word) { if (word) window.open(`https://www.google.com/search?q=${encodeURIComponent(word + " etymology morphology")}`, "_blank", "noopener"); }
-    function lookupDefinition(word) { if (word) window.open(`https://en.wiktionary.org/wiki/${encodeURIComponent(word.replace(/\s+/g, "_"))}`, "_blank", "noopener"); }
-    function lookupEtymology(word) { if (word) window.open(`https://www.etymonline.com/word/${encodeURIComponent(word)}`, "_blank", "noopener"); }
-    function lookupWordnik(word) { if (word) window.open(`https://www.wordnik.com/words/${encodeURIComponent(word)}`, "_blank", "noopener"); }
+    function lookupGoogle(word) {
+  if (word) window.open(`https://www.google.com/search?q=${encodeURIComponent(word + " etymology morphology")}`, "_blank", "noopener");
+}
+function lookupDefinition(word) {
+  if (word) window.open(`https://en.wiktionary.org/wiki/${encodeURIComponent(word.replace(/\s+/g, "_"))}`, "_blank", "noopener");
+}
+function lookupEtymology(word) {
+  if (word) window.open(`https://www.etymonline.com/word/${encodeURIComponent(word)}`, "_blank", "noopener");
+}
+function lookupWordnik(word) {
+  if (word) window.open(`https://www.wordnik.com/words/${encodeURIComponent(word)}`, "_blank", "noopener");
+}
 
     function byId(id){ return document.getElementById(id); }
     function getFirstNonEmpty(row, candidates){
