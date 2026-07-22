@@ -780,28 +780,49 @@
 
 const MORPHEME_COL_WITHOUT_INFLECTIONS = "N_Morphemes_from_GPT_parse_without_inflections";
 const MORPHEME_COL_PLUS_INFLECTIONS = "N_Morphemes_from_GPT_parse_plus_inflections";
+const DISPLAY_LABELS = {
+  [MORPHEME_COL_PLUS_INFLECTIONS]: "N_morphemes incl. Inflections"
+};
+
+function displayColumnName(col) {
+  return DISPLAY_LABELS[col] || col;
+}
    
 
-     function chooseDefaultColumns(key, headers){
-      if (key === "cm" || key === "cs") return [...headers];
+ function chooseDefaultColumns(key, headers){
+  // Compounds tables show everything by default
+  if (key === "cm" || key === "cs") return [...headers];
 
-      const preferred = [
-        "Word", 
-        "Word_frq_Zipf", 
-        "Baseword",
-        "Greek_Latin_Root_1", 
-        "Greek_Latin_Meaning_1", 
-        "Prefix_1", 
-        "Suffix_1", 
-        MORPHEME_COL_WITHOUT_INFLECTIONS,
-        MORPHEME_COL_PLUS_INFLECTIONS, 
-        "Vocabulary eXpected Grade Level (Flor et al., 2024)", 
-        "GPT_Familiarity (Brysbaert et al., 2024)"
-      ];
-
-      const found = preferred.filter(col => headers.includes(col));
-      return found.length ? found : headers.slice(0, 14);
+  // Word Families: initial display shows only morpheme count including inflections
+  if (key === "wf") {
+    if (headers.includes(MORPHEME_COL_PLUS_INFLECTIONS)) {
+      return [MORPHEME_COL_PLUS_INFLECTIONS];
     }
+
+    // Fallback if the expected column is missing
+    if (headers.includes(MORPHEME_COL_WITHOUT_INFLECTIONS)) {
+      return [MORPHEME_COL_WITHOUT_INFLECTIONS];
+    }
+
+    return headers.slice(0, 14);
+  }
+
+  const preferred = [
+    "Word",
+    "Word_frq_Zipf",
+    "Baseword",
+    "Greek_Latin_Root_1",
+    "Greek_Latin_Meaning_1",
+    "Prefix_1",
+    "Suffix_1",
+    MORPHEME_COL_PLUS_INFLECTIONS,
+    "Vocabulary eXpected Grade Level (Flor et al., 2024)",
+    "GPT_Familiarity (Brysbaert et al., 2024)"
+  ];
+
+  const found = preferred.filter(col => headers.includes(col));
+  return found.length ? found : headers.slice(0, 14);
+}
     
 const TEXT_SEARCH_COLS = [
   'Word', 
@@ -1060,10 +1081,9 @@ function renderTable(key) {
 
   const headerRow = document.getElementById(`${key}HeaderRow`);
   headerRow.innerHTML = config.visible.map(col => {
-    let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
-    return `<th onclick="sortTable('${key}', '${col}')">${col}${sym}</th>`;
-  }).join('') + `<th>Actions</th>`;
-
+  let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
+  return `<th onclick="sortTable('${key}', '${col}')">${escapeHTML(displayColumnName(col))}${sym}</th>`;
+}).join('') + `<th>Actions</th>`;
   const filterRow = document.getElementById(`${key}FilterRow`);
   filterRow.innerHTML = config.visible.map(col => {
     const filterData = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : null;
