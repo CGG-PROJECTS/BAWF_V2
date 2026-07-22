@@ -481,11 +481,17 @@
           </div>
           
           <div class="adv-box">
-             <label>Morpheme Count:</label>
-             <div class="adv-input-group">
-               <input type="number" id="advMorphMin" placeholder="Min">
-               <input type="number" id="advMorphMax" placeholder="Max">
-             </div>
+            <label>Morpheme Count:</label>
+
+            <select id="advMorphColumn" class="db-select" style="width:100%; margin-bottom:8px;">
+              <option value="without" selected>Derivational only, without inflections</option>
+              <option value="plus">Derivational + inflections</option>
+            </select>
+
+            <div class="adv-input-group">
+              <input type="number" id="advMorphMin" placeholder="Min">
+              <input type="number" id="advMorphMax" placeholder="Max">
+            </div>
           </div>
         </div>
 
@@ -646,7 +652,8 @@
 
         <h3>Other Morphological & Psycholinguistic & Educational Measures</h3>
         <ul>
-          <li><strong>N_Morphemes:</strong> Total number of morphemes in the word.</li>
+          <li><strong>N_Morphemes_from_GPT_parse_without_inflections:</strong> GPT-estimated number of derivational morphemes in the word, excluding inflectional endings such as plural <em>-s</em>, past-tense <em>-ed</em>, comparative/superlative endings, or progressive <em>-ing</em> when treated as inflectional.</li>
+          <li><strong>N_Morphemes_from_GPT_parse_plus_inflections:</strong> GPT-estimated total morpheme count including both derivational morphemes and inflectional morphemes.</li>
           <li><strong>Reading AoA (Green et al., 2025):</strong> Age of Acquisition for Reading this word- when people typcalliy learn to read the word.</li>
           <li><strong>Vocabulary eXpected Grade Level (Flor et al., 2024):</strong> Expected U.S. grade level at which a word is known- from 0 (kindergarten) to 16 (fourth year of college) (.</li>
           <li><strong>GPT_Familiarity (Brysbaert et al., 2024):</strong> GPT-estimated familiarity rating - values above  3 are typcially well-known and so more useful for teaching.</li>
@@ -770,6 +777,9 @@
     }
 
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
+
+const MORPHEME_COL_WITHOUT_INFLECTIONS = "N_Morphemes_from_GPT_parse_without_inflections";
+const MORPHEME_COL_PLUS_INFLECTIONS = "N_Morphemes_from_GPT_parse_plus_inflections";
    
 
      function chooseDefaultColumns(key, headers){
@@ -783,7 +793,8 @@
         "Greek_Latin_Meaning_1", 
         "Prefix_1", 
         "Suffix_1", 
-        "N_Morphemes", 
+        MORPHEME_COL_WITHOUT_INFLECTIONS,
+        MORPHEME_COL_PLUS_INFLECTIONS, 
         "Vocabulary eXpected Grade Level (Flor et al., 2024)", 
         "GPT_Familiarity (Brysbaert et al., 2024)"
       ];
@@ -1189,7 +1200,8 @@ function showReportFromIndex(key, rowIndex) {
   const greekLatinRoot1 = getFirstNonEmpty(row, ["Greek_Latin_Root_1"]);
   const prefix1 = getFirstNonEmpty(row, ["Prefix_1"]);
   const suffix1 = getFirstNonEmpty(row, ["Suffix_1"]);
-  const nMorphemes = getFirstNonEmpty(row, ["N_Morphemes"]);
+  const nMorphemesWithoutInflections = getFirstNonEmpty(row, [MORPHEME_COL_WITHOUT_INFLECTIONS]);
+  const nMorphemesPlusInflections = getFirstNonEmpty(row, [MORPHEME_COL_PLUS_INFLECTIONS]);
 
   reportContext = {
     word,
@@ -1198,7 +1210,11 @@ function showReportFromIndex(key, rowIndex) {
     greek_latin_root_1: greekLatinRoot1,
     prefix_1: prefix1,
     suffix_1: suffix1,
-    n_morphemes: nMorphemes
+    n_morphemes_without_inflections: nMorphemesWithoutInflections,
+    n_morphemes_plus_inflections: nMorphemesPlusInflections,
+
+    // Backward compatibility with older reporting sheet/scripts
+    n_morphemes: nMorphemesWithoutInflections
   };
 
   document.getElementById("reportWord").textContent = word;
@@ -1243,7 +1259,12 @@ const payload = {
   greek_latin_root_1: reportContext?.greek_latin_root_1 || "",
   prefix_1: reportContext?.prefix_1 || "",
   suffix_1: reportContext?.suffix_1 || "",
-  n_morphemes: reportContext?.n_morphemes || "",
+  n_morphemes_without_inflections: reportContext?.n_morphemes_without_inflections || "",
+  n_morphemes_plus_inflections: reportContext?.n_morphemes_plus_inflections || "",
+
+  // Backward compatibility with older Google Sheet script
+  n_morphemes: reportContext?.n_morphemes_without_inflections || "",
+
   user_correction: notes
 };
 
@@ -1445,7 +1466,25 @@ const rankMap = getWordZipfRankMap();
        // Safely identify column names 
        const gradeCol = findColumnByKey(config.all, 'Grade Level') || findColumnByKey(config.all, 'Grade') || 'Vocabulary eXpected Grade Level (Flor et al., 2024)';
        const famCol = findColumnByKey(config.all, 'Familiarity') || 'GPT_Familiarity (Brysbaert et al., 2024)';
-       const morphCol = findColumnByKey(config.all, 'N_Morphemes') || 'N_Morphemes';
+
+       const morphChoice = document.getElementById('advMorphColumn')?.value || 'without';
+
+       const preferredMorphCol =
+         morphChoice === 'plus'
+           ? MORPHEME_COL_PLUS_INFLECTIONS
+           : MORPHEME_COL_WITHOUT_INFLECTIONS;
+
+       const fallbackMorphCol =
+         morphChoice === 'plus'
+           ? MORPHEME_COL_WITHOUT_INFLECTIONS
+           : MORPHEME_COL_PLUS_INFLECTIONS;
+
+       const morphCol =
+         config.all.includes(preferredMorphCol)
+           ? preferredMorphCol
+           : config.all.includes(fallbackMorphCol)
+             ? fallbackMorphCol
+             : findColumnByKey(config.all, 'Morphemes') || preferredMorphCol;
 
        let results = new Set();
        const data = config.data;
@@ -1519,6 +1558,10 @@ if (!pass) continue;
 
     function clearAdvancedQuery() {
        document.querySelectorAll('#adv-queries input[type="number"]').forEach(el => el.value = '');
+
+       const morphSelect = document.getElementById('advMorphColumn');
+       if (morphSelect) morphSelect.value = 'without';
+
        document.getElementById('advCount').textContent = '0';
        document.getElementById('advResultsText').value = '';
     }
