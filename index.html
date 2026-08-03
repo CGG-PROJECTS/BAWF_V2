@@ -1614,53 +1614,241 @@ function lookupWordnik(word) {
     function showColumnKey() { document.getElementById('columnModal').classList.add('show'); document.body.classList.add('modal-open'); }
     function closeModal() { document.getElementById('columnModal').classList.remove('show'); document.body.classList.remove('modal-open'); }
 
-function showExplainModal(prefix, row){
+function showExplainModal(key, row){
   const preview = byId("explainPreview");
   const task = byId("explainTask");
   const modal = byId("explainModalBackdrop");
+
   if (!preview || !task || !modal) {
     console.error("Explain modal elements missing in DOM.");
     return;
   }
-  preview.value = buildExplainPrompt(row, task.value || "both");
 
-    // FIX: Make the prompt auto-update if the user changes the dropdown option
+  preview.value = buildExplainPrompt(row, task.value || "both", key);
+
+  // Make the prompt auto-update if the user changes the dropdown option
   task.onchange = () => {
-    preview.value = buildExplainPrompt(row, task.value || "both");
+    preview.value = buildExplainPrompt(row, task.value || "both", key);
   };
-  
+
   modal.classList.add("show");
   document.body.classList.add("modal-open");
 }
 
-    function closeExplainModal(){ byId("explainModalBackdrop").classList.remove("show"); document.body.classList.remove("modal-open"); }
-    function copyExplainPrompt(){ navigator.clipboard.writeText(byId("explainPreview").value.trim()).then(() => alert("Prompt copied.")); }
+function closeExplainModal(){
+  byId("explainModalBackdrop").classList.remove("show");
+  document.body.classList.remove("modal-open");
+}
 
-    function openExplainInAI(){
-      const prompt = byId("explainPreview").value.trim(), provider = byId("explainProvider").value, encoded = encodeURIComponent(prompt);
-      let url = `https://chatgpt.com/?q=${encoded}`;
-      if (provider === "gemini") url = `https://gemini.google.com/app?prompt=${encoded}`;
-      if (provider === "claude") url = "https://claude.ai/new";
-      if (!window.open(url, "_blank")) alert("Popup blocked. Allow popups.");
-      navigator.clipboard.writeText(prompt).catch(()=>{});
-      closeExplainModal();
-    }
+function copyExplainPrompt(){
+  navigator.clipboard.writeText(byId("explainPreview").value.trim())
+    .then(() => alert("Prompt copied."));
+}
 
-    function buildExplainPrompt(row, task="both"){
-      const word = getFirstNonEmpty(row, ["Word","FLemma","Baseword","Compound"]);
-      const root = getFirstNonEmpty(row, ["GPT_Root","Greek_Latin_Root_1"]);
-      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts"]);
-      const definition = getFirstNonEmpty(row, ["Definition","Greek_Latin_Meaning_1","Prefix_1_Meaning"]);
-      let inst = "1) Explain this vocabulary entry and its morphology entry clearly in student friendly language. 2) Provide etymology/history when available.";
-      if (task === "explain") inst = "Explain this vocabulary entry and its morphology entry clearly in student friendly language.";
-      else if (task === "history") inst = "Focus on etymology/history if available.";
-      return `You are a literacy and morphology expert.\n${inst}\nRow details:\n- Word: ${word}\n- Root: ${root}\n- Parts: ${parts}\n- Meaning: ${definition}\nProvide an explanation for the word, check accuracy of the morphological parts. \n Give two quick suggested teaching tips.`;
-    }
+function openExplainInAI(){
+  const prompt = byId("explainPreview").value.trim();
+  const provider = byId("explainProvider").value;
+  const encoded = encodeURIComponent(prompt);
 
-    window.addEventListener("click", (e) => {
-      if (e.target === byId("columnModal")) closeModal();
-      if (e.target === byId("explainModalBackdrop")) closeExplainModal();
-    });
+  let url = `https://chatgpt.com/?q=${encoded}`;
+
+  if (provider === "gemini") {
+    url = `https://gemini.google.com/app?prompt=${encoded}`;
+  }
+
+  if (provider === "claude") {
+    url = "https://claude.ai/new";
+  }
+
+  if (!window.open(url, "_blank")) {
+    alert("Popup blocked. Allow popups.");
+  }
+
+  navigator.clipboard.writeText(prompt).catch(() => {});
+  closeExplainModal();
+}
+
+function buildExplainPrompt(row, task = "both", key = "wf") {
+  // Compound Main or Compound Stats
+  if (key === "cm" || key === "cs") {
+    return buildCompoundExplainPrompt(row, task, key);
+  }
+
+  // Word Families
+  return buildWordFamilyExplainPrompt(row, task);
+}
+
+function buildWordFamilyExplainPrompt(row, task = "both") {
+  const word = getFirstNonEmpty(row, ["Word", "FLemma", "Baseword", "Compound"]);
+  const root = getFirstNonEmpty(row, ["GPT_Root", "Greek_Latin_Root_1"]);
+  const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts"]);
+  const definition = getFirstNonEmpty(row, ["Definition", "Greek_Latin_Meaning_1", "Prefix_1_Meaning"]);
+
+  let inst = "1) Explain this vocabulary entry and its morphology clearly in student-friendly language. 2) Provide etymology/history when available.";
+
+  if (task === "explain") {
+    inst = "Explain this vocabulary entry and its morphology clearly in student-friendly language.";
+  } else if (task === "history") {
+    inst = "Focus on etymology/history if available.";
+  }
+
+  return `You are a literacy and morphology expert.
+
+${inst}
+
+This row is from the Word Families sheet.
+
+Row details:
+- Word: ${word}
+- Root: ${root}
+- Parts: ${parts}
+- Meaning: ${definition}
+
+Please:
+1. Explain the word's meaning.
+2. Explain the morphological parts.
+3. Check whether the morphological parse seems accurate.
+4. Give two quick teaching tips.`;
+}
+
+function buildCompoundExplainPrompt(row, task = "both", key = "cm") {
+  const compoundWord = getFirstNonEmpty(row, [
+    "Compound",
+    "Compound_Word",
+    "Compound Word",
+    "Word",
+    "FLemma",
+    "Baseword"
+  ]);
+
+  let inst = "1) Explain this compound word clearly in student-friendly language. 2) Explain its morphology and etymology/history when available.";
+
+  if (task === "explain") {
+    inst = "Explain this compound word and its morphology clearly in student-friendly language.";
+  } else if (task === "history") {
+    inst = "Focus on the compound word's etymology/history if available.";
+  }
+
+  const gptCodeBlock = getCompoundGPTCodeBlock(row);
+  const componentBlock = getCompoundComponentBlock(row);
+  const meaningBlock = getCompoundMeaningBlock(row);
+
+  return `You are a literacy and morphology expert.
+
+${inst}
+
+This row is from the Compound Words sheet.
+
+IMPORTANT:
+For this compound sheet, use the GPT Codes / GPT parse columns as the main morphology evidence.
+
+Compound word:
+- ${compoundWord}
+
+GPT Codes / GPT parse columns:
+${gptCodeBlock || "- No GPT code/parse columns found for this row."}
+
+Compound components / related fields:
+${componentBlock || "- No component fields found."}
+
+Definition / meaning / etymology fields:
+${meaningBlock || "- No definition, meaning, or etymology fields found."}
+
+Please:
+1. Explain what the compound means.
+2. Identify the parts/components of the compound.
+3. Explain how the components combine to create the meaning.
+4. Use the GPT Codes / GPT parse columns to explain the morphology.
+5. Check whether the compound analysis seems accurate.
+6. Give two quick teaching tips for using this word in vocabulary or morphology instruction.`;
+}
+
+function getCompoundGPTCodeBlock(row) {
+  const cols = Object.keys(row || {}).filter(col => {
+    const c = col.toLowerCase();
+
+    return (
+      c.includes("gpt") &&
+      (
+        c.includes("code") ||
+        c.includes("coded") ||
+        c.includes("parse") ||
+        c.includes("parsed") ||
+        c.includes("part") ||
+        c.includes("component") ||
+        c.includes("morph") ||
+        c.includes("analysis") ||
+        c.includes("root")
+      )
+    );
+  });
+
+  return formatRowColumns(row, cols);
+}
+
+function getCompoundComponentBlock(row) {
+  const cols = Object.keys(row || {}).filter(col => {
+    const c = col.toLowerCase();
+
+    return (
+      c.includes("component") ||
+      c.includes("compound") ||
+      c.includes("constituent") ||
+      c.includes("element") ||
+      c.includes("modifier") ||
+      c.includes("head")
+    );
+  });
+
+  return formatRowColumns(row, cols);
+}
+
+function getCompoundMeaningBlock(row) {
+  const cols = Object.keys(row || {}).filter(col => {
+    const c = col.toLowerCase();
+
+    return (
+      c.includes("definition") ||
+      c.includes("meaning") ||
+      c.includes("etymology") ||
+      c.includes("origin")
+    );
+  });
+
+  return formatRowColumns(row, cols);
+}
+
+function formatRowColumns(row, cols) {
+  const seen = new Set();
+
+  return cols
+    .filter(col => {
+      if (seen.has(col)) return false;
+      seen.add(col);
+      return true;
+    })
+    .map(col => {
+      let val = row[col];
+
+      if (val === null || val === undefined) return "";
+
+      val = String(val)
+        .replace(/�+/g, "")
+        .replace(/^\[|\]$/g, "")
+        .trim();
+
+      if (!val) return "";
+
+      return `- ${col}: ${val}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+window.addEventListener("click", (e) => {
+  if (e.target === byId("columnModal")) closeModal();
+  if (e.target === byId("explainModalBackdrop")) closeExplainModal();
+});
 
     // --- WORD CLOUD ---
     function generateWordCloud() {
