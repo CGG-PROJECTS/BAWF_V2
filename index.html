@@ -11,48 +11,53 @@
 
   <style>
     body {
-      margin:0; padding:0;
+      margin: 0;
+      padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: linear-gradient(to bottom, #fdfdfd, #f8f8f8);
-      color:#111827;
+      color: #111827;
     }
+
     .container {
-      max-width:2800px;
-      margin:30px auto;
-      padding:32px 34px;
-      background:white;
-      border-radius:16px;
-      box-shadow:0 10px 30px rgba(0,0,0,0.06);
+      max-width: 2800px;
+      margin: 30px auto;
+      padding: 32px 34px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
     }
 
-    header { text-align:center; margin-bottom:16px; }
-    h1 { margin:0 0 8px 0; font-size:2.8rem; color:#1d4ed8; font-weight:700; }
-    .tagline { font-size:2.0rem; color:#4b5563; max-width:1500px; margin:0 auto 24px auto; }
-
-    .key-btn {
-      display:inline-block;
-      padding:12px 24px;
-      background:#1d4ed8;
-      color:white;
-      font-weight:600;
-      border-radius:8px;
-      cursor:pointer;
-      margin:20px 0;
-      text-align:center;
-      box-shadow:0 4px 12px rgba(0,0,0,0.1);
-      border:none;
+    header {
+      text-align: center;
+      margin-bottom: 16px;
     }
 
-    /* Excel-like selection */
-    .db-table td, .db-table th { cursor: cell; }
-    .db-table td { user-select: none; -webkit-user-select: none; }
-    .db-table td.excel-selected { background: #dbeafe !important; }
-    .db-table td.excel-anchor { outline: 2px solid #2563eb; outline-offset: -2px; }
-    body.excel-dragging { user-select: none; -webkit-user-select: none; }
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 2.8rem;
+      color: #1d4ed8;
+      font-weight: 700;
+    }
 
-    .key-btn:hover { background:#1e40af; }
+    h2 {
+      color: #1d4ed8;
+    }
 
-    .visual-banner { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; margin:25px 0 30px 0; }
+    .tagline {
+      font-size: 2rem;
+      color: #4b5563;
+      max-width: 1500px;
+      margin: 0 auto 24px auto;
+    }
+
+    .visual-banner {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+      margin: 25px 0 30px 0;
+    }
+
     .visual-aid {
       width: 250px;
       height: 110px;
@@ -61,59 +66,182 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       transition: transform 0.2s ease;
     }
-    .visual-aid:hover { transform: scale(1.03); }
+
+    .visual-aid:hover {
+      transform: scale(1.03);
+    }
 
     .info-card {
       background: #f0f4f8;
       border-radius: 12px;
-      padding: 35px 50px;
+      padding: 28px 40px;
       margin: 20px auto;
       max-width: 1850px;
       width: 96%;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
+
     .info-card h3 {
-      color:#1d4ed8;
-      margin-top:0;
-      font-size: 1.75rem;
+      color: #1d4ed8;
+      margin-top: 0;
+      font-size: 1.6rem;
       font-weight: 700;
     }
+
+    .info-card p,
+    .info-card li {
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+
     .info-card ul {
-      font-size: 1.08rem;
-      font-weight: 600;
-      line-height: 1.45;
       padding-left: 22px;
       margin: 0;
       column-count: 2;
       column-gap: 40px;
     }
-    .info-card li { margin-bottom: 6px; break-inside: avoid; }
-    @media (max-width: 900px) { .info-card ul { column-count: 1; } }
 
-    .tabs { display:flex; justify-content:center; gap:12px; margin:28px 0 20px 0; flex-wrap:wrap; }
-    .tab-btn {
-      padding:12px 28px;
-      font-size:1.1rem;
-      font-weight:600;
-      background:#e5e7eb;
-      color:#374151;
-      border:none;
-      border-radius:8px 8px 0 0;
-      cursor:pointer;
+    .info-card li {
+      margin-bottom: 6px;
+      break-inside: avoid;
     }
-    .tab-btn.active { background:#1d4ed8; color:white; }
 
-    .tab-content { display:none; padding:24px; }
-    .tab-content.active { display:block; }
+    @media (max-width: 900px) {
+      .info-card ul {
+        column-count: 1;
+      }
+    }
 
     .loading-note {
-      text-align:center;
-      font-size:1.05rem;
-      color:#6b7280;
-      background:#f0f4f8;
-      padding:14px;
-      border-radius:8px;
-      margin:15px 0;
+      text-align: center;
+      font-size: 1.05rem;
+      color: #6b7280;
+      background: #f0f4f8;
+      padding: 14px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+
+    .key-btn,
+    .db-btn {
+      display: inline-block;
+      padding: 10px 18px;
+      background: #1d4ed8;
+      color: white;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      text-decoration: none;
+      font-size: 0.96rem;
+    }
+
+    .key-btn {
+      padding: 12px 24px;
+      margin: 20px 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .key-btn:hover,
+    .db-btn:hover {
+      background: #1e40af;
+    }
+
+    .db-btn.secondary {
+      background: #e5e7eb;
+      color: #111827;
+      border: 1px solid #d1d5db;
+    }
+
+    .db-btn.secondary:hover {
+      background: #d1d5db;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 28px 0 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 12px 24px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      background: #e5e7eb;
+      color: #374151;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: #1d4ed8;
+      color: white;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 24px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .subtabs {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 4px 0 18px;
+    }
+
+    .subtab-btn {
+      border: none;
+      background: #e5e7eb;
+      color: #1f2937;
+      padding: 9px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .subtab-btn.active {
+      background: #1d4ed8;
+      color: #fff;
+    }
+
+    .subtab-pane {
+      display: none;
+    }
+
+    .subtab-pane.active {
+      display: block;
+    }
+
+    .download-section {
+      text-align: center;
+      margin: 10px 0 18px;
+    }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: #1d4ed8;
+      color: white;
+      text-decoration: none;
+      border-radius: 9px;
+    }
+
+    .download-btn:hover {
+      background: #1e40af;
     }
 
     .db-wrap {
@@ -125,128 +253,343 @@
     }
 
     .db-controls {
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      justify-content:center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
       margin: 8px 0 12px;
     }
 
-    .db-input, .db-select, .db-btn {
-      padding:10px 12px;
-      border-radius:8px;
-      border:1px solid #d1d5db;
-      font-size:0.96rem;
-    }
-    .db-input { min-width: 320px; }
-    .db-select { background:#fff; }
-    .db-select[multiple] { min-height: 120px; }
-    .db-btn { border:none; background:#1d4ed8; color:#fff; font-weight:600; cursor:pointer; }
-    .db-btn:hover { background:#1e40af; }
-    .db-btn.secondary { background:#e5e7eb; color:#111827; border:1px solid #d1d5db; }
-    .db-btn.secondary:hover { background:#d1d5db; }
-
-    .db-meta { text-align:center; color:#374151; margin:8px 0 14px; font-size:0.95rem; }
-    .db-loading { text-align:center; padding:28px 8px; color:#1d4ed8; font-weight:600; }
-
-    .db-table-wrap { overflow:auto; max-height: 72vh; border-radius: 10px; border: 1px solid #e5e7eb; }
-    table.db-table { width:100%; border-collapse:collapse; background:white; }
-    .db-table th, .db-table td {
-      padding: 9px 8px; border-bottom: 1px solid #e5e7eb;
-      text-align:left; vertical-align: top; font-size: 1.3rem; white-space: nowrap;
-    }
-    .db-table th { background:#1e40af; color:white; position: sticky; top: 0; z-index: 5; cursor:pointer; }
-    .db-table tr:hover td { background:#f0f9ff; }
-
-    .filter-row input, .filter-row select {
-      width:100%; padding:8px 9px; border:1px solid #cbd5e1;
-      border-radius:6px; height:38px; box-sizing:border-box; font-size:0.85rem; background:#fff;
+    .db-input,
+    .db-select {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 0.96rem;
+      background: white;
     }
 
-    .long-text { white-space: normal !important; min-width: 120px; max-width: 260px; overflow-wrap: anywhere; }
-
-
-    .row-actions { display:flex; gap:6px; flex-wrap:wrap; }
-    .source-btn, .explain-btn, .lookup-btn {
-      border:none;
-      border-radius:6px;
-      padding:6px 10px;
-      color:#fff;
-      cursor:pointer;
-      font-size:0.84rem;
-      white-space:nowrap;
+    .db-input {
+      min-width: 320px;
     }
 
-    .source-btn { background:#3b82f6; }
-    .source-btn:hover { background:#2563eb; }
-    .lookup-btn.wiktionary { background:#059669; }
-    .lookup-btn.wiktionary:hover { background:#047857; }
-    .lookup-btn.etymonline { background:#ea580c; }
-    .lookup-btn.etymonline:hover { background:#c2410c; }
-    .lookup-btn.wordnik { background:#16a34a; }
-    .lookup-btn.wordnik:hover { background:#15803d; }
-    .explain-btn { background:#8b5cf6; }
-    .explain-btn:hover { background:#7c3aed; }
-    .report-btn { background:#ef4444; border:none; border-radius:6px; padding:6px 10px; color:#fff; cursor:pointer; font-size:0.84rem; white-space:nowrap; }
-    .report-btn:hover { background:#dc2626; }
-    .report-btn:disabled { opacity:0.45; cursor:not-allowed; }
-
-    .source-btn:disabled,
-    .explain-btn:disabled,
-    .lookup-btn:disabled { opacity:0.45; cursor:not-allowed; }
-
-    .pagination { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:10px; margin-top:12px; }
-    .pagination button, .pagination select { padding:8px 10px; border:1px solid #d1d5db; border-radius:7px; background:#fff; cursor:pointer; }
-
-    .download-section { text-align:center; margin:10px 0 18px; }
-    .download-btn {
-      display:inline-flex; align-items:center; gap:10px; padding:10px 20px;
-      font-size:1rem; font-weight:600; background:#1d4ed8; color:white;
-      text-decoration:none; border-radius:9px;
+    .db-select[multiple] {
+      min-height: 120px;
+      min-width: 260px;
     }
-    .download-btn:hover { background:#1e40af; }
 
-    .subtabs { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin: 4px 0 18px; }
-    .subtab-btn { border:none; background:#e5e7eb; color:#1f2937; padding:9px 14px; border-radius:999px; font-weight:600; cursor:pointer; }
-    .subtab-btn.active { background:#1d4ed8; color:#fff; }
-    .subtab-pane { display:none; }
-    .subtab-pane.active { display:block; }
+    .db-meta {
+      text-align: center;
+      color: #374151;
+      margin: 8px 0 14px;
+      font-size: 0.95rem;
+    }
+
+    .db-loading {
+      text-align: center;
+      padding: 28px 8px;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+
+    .db-table-wrap {
+      overflow: auto;
+      max-height: 72vh;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+    }
+
+    table.db-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    .db-table th,
+    .db-table td {
+      padding: 9px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      vertical-align: top;
+      font-size: 1.08rem;
+      white-space: nowrap;
+    }
+
+    .db-table th {
+      background: #1e40af;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      cursor: pointer;
+    }
+
+    .db-table tr:hover td {
+      background: #f0f9ff;
+    }
+
+    .filter-row input {
+      width: 100%;
+      padding: 8px 9px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      height: 36px;
+      box-sizing: border-box;
+      font-size: 0.85rem;
+      background: #fff;
+    }
+
+    .long-text {
+      white-space: normal !important;
+      min-width: 140px;
+      max-width: 320px;
+      overflow-wrap: anywhere;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .source-btn,
+    .explain-btn,
+    .lookup-btn,
+    .report-btn {
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.84rem;
+      white-space: nowrap;
+    }
+
+    .source-btn {
+      background: #3b82f6;
+    }
+
+    .source-btn:hover {
+      background: #2563eb;
+    }
+
+    .lookup-btn.wiktionary {
+      background: #059669;
+    }
+
+    .lookup-btn.wiktionary:hover {
+      background: #047857;
+    }
+
+    .lookup-btn.etymonline {
+      background: #ea580c;
+    }
+
+    .lookup-btn.etymonline:hover {
+      background: #c2410c;
+    }
+
+    .lookup-btn.wordnik {
+      background: #16a34a;
+    }
+
+    .lookup-btn.wordnik:hover {
+      background: #15803d;
+    }
+
+    .explain-btn {
+      background: #8b5cf6;
+    }
+
+    .explain-btn:hover {
+      background: #7c3aed;
+    }
+
+    .report-btn {
+      background: #ef4444;
+    }
+
+    .report-btn:hover {
+      background: #dc2626;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .pagination button,
+    .pagination select {
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .adv-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .adv-box {
+      background: #f8fafc;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .adv-box label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+      color: #374151;
+    }
+
+    .adv-input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .adv-input-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
 
     #wordInput {
-      width: 90%; max-width: 900px; height: 220px; padding: 16px;
-      font-family: ui-monospace, monospace; font-size: 1rem;
-      border: 2px solid #d1d5db; border-radius: 10px; resize: vertical; margin:0 auto;
+      width: 90%;
+      max-width: 900px;
+      height: 220px;
+      padding: 16px;
+      font-family: ui-monospace, monospace;
+      font-size: 1rem;
+      border: 2px solid #d1d5db;
+      border-radius: 10px;
+      resize: vertical;
+      margin: 0 auto;
     }
-    #wordCanvas { display:block; margin:24px auto 0; max-width:100%; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.08); background:#fff; }
 
-    .modal { display: none; position: fixed; inset: 0; z-index: 2147483647; background-color: rgba(0,0,0,0.7); overflow-y: auto; }
-    .modal.show { display: block; }
+    #wordCanvas {
+      display: block;
+      margin: 24px auto 0;
+      max-width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      background: #fff;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      background-color: rgba(0,0,0,0.7);
+      overflow-y: auto;
+    }
+
+    .modal.show {
+      display: block;
+    }
+
     .modal-content {
-      position: relative; z-index: 2147483648; background: #fff; margin: 40px auto;
-      padding: 30px; border-radius: 12px; max-width: 980px;
+      position: relative;
+      z-index: 2147483648;
+      background: #fff;
+      margin: 40px auto;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 980px;
     }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .modal-header h2, .modal-header h3 { margin: 0; color: #1d4ed8; }
-    .close { font-size: 28px; font-weight: bold; color: #6b7280; cursor: pointer; border:none; background:transparent; }
-    .close:hover { color: #111827; }
-    .modal-body { max-height: 70vh; overflow-y: auto; }
-    .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:10px; flex-wrap:wrap; }
-    body.modal-open { overflow:hidden; }
 
-    /* Custom Query Builder Styles */
-    .adv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
-    .adv-box { background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb; }
-    .adv-box label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.95rem; color: #374151; }
-    .adv-input-group { display: flex; gap: 8px; }
-    .adv-input-group input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .modal-header h2,
+    .modal-header h3 {
+      margin: 0;
+      color: #1d4ed8;
+    }
+
+    .close {
+      font-size: 28px;
+      font-weight: bold;
+      color: #6b7280;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+    }
+
+    .close:hover {
+      color: #111827;
+    }
+
+    .modal-body {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .db-table td,
+    .db-table th {
+      cursor: cell;
+    }
+
+    .db-table td {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .db-table td.excel-selected {
+      background: #dbeafe !important;
+    }
+
+    .db-table td.excel-anchor {
+      outline: 2px solid #2563eb;
+      outline-offset: -2px;
+    }
+
+    body.excel-dragging {
+      user-select: none;
+      -webkit-user-select: none;
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
     <header>
-      <h1>The British and American Word Families (BAWF) Morphological Database</h1>
-      <div class="tagline">Morphology, roots, affixes, compounds, and etymology</div>
+      <h1>The British and American Word Families Morphological Database</h1>
+      <div class="tagline">Morphology, roots, affixes, compounds, frequency, and word-family structure</div>
     </header>
 
     <div class="visual-banner">
@@ -260,22 +603,22 @@
     <div class="info-card">
       <h3>About this Database</h3>
       <ul>
-        <li>Explore English word families, compound words, and definitions/etymologies.</li>
-        <li>The British and American Word Families (BAWF) is a tool for vocabulary morphology instruction. </li>
+        <li>Explore English word families, compound words, basewords, roots, prefixes, suffixes, and frequency measures.</li>
+        <li>The BAWF database is designed to support vocabulary, morphology, and word-family instruction.</li>
         <li>Morphology is the study of how words are built from meaningful units, including bases, roots, prefixes, and suffixes.</li>
-        <li>Filter or search for words you want and particular morphemes.</li>
-        <li>Word Parts coded by GPT + direct links to AI models, dictionaries and etymological resources for further information and classroom resources.</li>
-        <li>Use sorting, filtering, and column search to find morphologically related words quickly.</li>
-        <li>Copy and Paste word + frequency (Right click and Ctrl) into the Word Cloud tab to make visuals.</li>
-        <li>Use Zipf frequencies to sort by freq. bands (1st 1000 words, 2nd 1000, etc.).</li>
-        <li>Download the raw spreadsheet (CSV) files for offline use and advanced analysis.</li>
-        <li>Use the helper buttons for dictionary links, to generate AI explanations & activities, or help improve the database by reporting an error!</li>
+        <li>Use the curated tab to focus on familiar and high-utility word families for teaching.</li>
+        <li>Use the full database tabs to explore the broader lexicon attested in large English corpora.</li>
+        <li>Use sorting, filtering, AI explanation prompts, dictionary links, and etymology links to explore entries.</li>
+        <li>Download the raw compressed CSV files for offline use and advanced analysis.</li>
+        <li>Use the Word Cloud tab to create visuals from word-frequency lists.</li>
       </ul>
-      <p style="margin-top: 16px; font-style: italic;">Be inspired by joyful word learning and reading — dive in and explore!</p>
+      <p style="margin-top:16px; font-style:italic;">
+        Be inspired by joyful word learning and reading — dive in and explore!
+      </p>
     </div>
 
     <div class="loading-note">
-      <strong>Note:</strong> Large datasets need about 30-60 seconds to load so you can browse instantly.
+      <strong>Note:</strong> Large datasets may need 30–60 seconds to load.
     </div>
 
     <div style="text-align:center; margin:25px 0;">
@@ -283,176 +626,116 @@
     </div>
 
     <div class="tabs">
-      <button class="tab-btn active" onclick="openTab('word-families', this)">Word Families</button>
-      <button class="tab-btn" onclick="openTab('compounds', this)">Compound Words</button>
+      <button class="tab-btn active" onclick="openTab('curated', this)">Curated Frequent & Familiar Word Families</button>
+      <button class="tab-btn" onclick="openTab('word-families', this)">Full Database: Word Families</button>
+      <button class="tab-btn" onclick="openTab('compounds', this)">Full Database: Compound Words</button>
       <button class="tab-btn" onclick="openTab('adv-queries', this)">Advanced Query Builder</button>
       <button class="tab-btn" onclick="openTab('wordcloud', this)">Word Cloud Generator</button>
-      <button class="tab-btn" onclick="openTab('llm-generator', this)">🪄 Generate AI Stories & Worksheets!</button>
+      <button class="tab-btn" onclick="openTab('llm-generator', this)">🪄 Generate AI Stories & Worksheets</button>
     </div>
 
-    <!-- TAB 1: Word Families -->
-    <div id="word-families" class="tab-content active">
+    <!-- CURATED TAB -->
+    <div id="curated" class="tab-content active">
+      <div class="info-card">
+        <h3>Curated Word Family List: Frequent and Familiar Words</h3>
+        <p>
+          This focused database is a trimmed version of the full BAWF database. It lists word families made up of
+          frequent and familiar words that most English speakers are likely to know and that cover much of the text
+          children read.
+        </p>
+        <p>
+          The focused spreadsheet includes the basewords and familiar derived members of each word family. It does not
+          contain all information from the full database. Family size and word-family frequency are computed only within
+          this familiar-word subset. This is useful because an instructional word-family size can be interpreted as the
+          number of family members that English speakers typically know.
+        </p>
+      </div>
+
       <div class="download-section">
-        <a class="download-btn" href="BAWF_FINAL.csv.gz" download>↓ Download Word Families (.csv.gz)</a>
+        <a class="download-btn" href="BAWF__freq_and_familair_families.csv.gz" download>↓ Download Curated Word Families (.csv.gz)</a>
       </div>
-      <div class="db-wrap" id="wfWrap">
-        <div class="db-controls">
-          <button class="db-btn" onclick="exportCSV('wf', 'BAWF_Word_Families_Filtered.csv')">↓ Export CSV</button>
-          <button class="db-btn secondary" onclick="copyColumnValues('wf')">📋 Copy Column Cells</button>
-       <select id="wfAddCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-<button id="wfAddColsBtn" class="db-btn secondary">➕ Add Selected Columns</button>
 
-<select id="wfRemoveCols" class="db-select" multiple size="4" style="min-width:280px;"></select>
-<button id="wfRemoveColsBtn" class="db-btn secondary">➖ Remove Selected Columns</button>
-
-<button class="db-btn secondary" onclick="resetColumns('wf')">↩ Reset Default Columns</button>
-
-        </div>
-
-        <div class="db-meta">Showing <strong id="wfRowCount">0</strong> rows</div>
-        <div id="wfLoading" class="db-loading">Loading Word Families dataset...</div>
-
-        <div class="db-table-wrap">
-          <table id="wfTable" class="db-table" style="display:none;">
-            <thead>
-              <tr id="wfHeaderRow"></tr>
-              <tr id="wfFilterRow" class="filter-row"></tr>
-            </thead>
-            <tbody id="wfTableBody"></tbody>
-          </table>
-        </div>
-
-        <div id="wfPagination" class="pagination" style="display:none;">
-          <button onclick="prevPage('wf')">← Previous</button>
-          <span>Page <span id="wfCurrentPage">1</span> of <span id="wfTotalPages">1</span></span>
-          <button onclick="nextPage('wf')">Next →</button>
-          <select id="wfRowsPerPage" onchange="changeRowsPerPage('wf')">
-            <option value="50">50 rows</option>
-            <option value="100" selected>100 rows</option>
-            <option value="250">250 rows</option>
-          </select>
-        </div>
-      </div>
+      <div class="db-wrap" id="cfWrap"></div>
     </div>
 
-    <!-- TAB 2: Compounds -->
+    <!-- FULL WORD FAMILIES TAB -->
+    <div id="word-families" class="tab-content">
+      <div class="info-card">
+        <h3>Full Database: Word Families</h3>
+        <p>
+          The full database is for exploring a broad set of words attested in large current English corpora. It includes
+          extensive morphological, root, affix, frequency, familiarity, and educational information.
+        </p>
+      </div>
+
+      <div class="download-section">
+        <a class="download-btn" href="BAWF_FINAL__Sheet1_cleaned.csv.gz" download>↓ Download Full Word Families (.csv.gz)</a>
+      </div>
+
+      <div class="db-wrap" id="wfWrap"></div>
+    </div>
+
+    <!-- COMPOUNDS TAB -->
     <div id="compounds" class="tab-content">
-      <style>
-        #compounds .db-controls { display: none !important; }
-        #compounds #cmFilterRow, #compounds #csFilterRow { display: table-row !important; }
-      </style>
+      <div class="info-card">
+        <h3>Full Database: Compound Words</h3>
+        <p>
+          This section contains compound words and compound-related family statistics.
+        </p>
+      </div>
+
       <div class="subtabs">
-        <button class="subtab-btn active" onclick="openCompoundSubTab('comp-main', this)">Main Compound</button>
+        <button class="subtab-btn active" onclick="openCompoundSubTab('comp-main', this)">Main Compound File</button>
         <button class="subtab-btn" onclick="openCompoundSubTab('comp-stats', this)">Word Family Size Stats</button>
       </div>
 
-      <!-- Subtab: Main Compound -->
       <div id="comp-main" class="subtab-pane active">
         <div class="download-section">
           <a class="download-btn" href="BAWF_Compound_Words_FINAL__Main_Compound.csv.gz" download>↓ Download Compound Main (.csv.gz)</a>
         </div>
-        <div class="db-wrap" id="cmWrap">
-          <div class="db-meta">Showing <strong id="cmRowCount">0</strong> rows</div>
-          <div id="cmLoading" class="db-loading">Loading Compound Main dataset...</div>
-          <div class="db-controls" id="cmControls">
-            <input id="cmGlobalSearch" type="text" placeholder="Search all columns..." />
-            <select id="cmCopyColumnSelect"></select>
-            <button id="cmAddCols" type="button">Apply Columns</button>
-            <button id="cmResetCols" type="button">Reset Columns</button>
-            <button id="cmClearFilters" type="button">Clear Filters</button>
-          </div>
-          <div class="db-table-wrap">
-            <table id="cmTable" class="db-table" style="display:none;">
-              <thead>
-                <tr id="cmHeaderRow"></tr>
-                <tr id="cmFilterRow" class="filter-row"></tr>
-              </thead>
-              <tbody id="cmTableBody"></tbody>
-            </table>
-          </div>
-          <div id="cmPagination" class="pagination" style="display:none;">
-            <button type="button" onclick="prevPage('cm')">← Previous</button>
-            <span>Page <span id="cmCurrentPage">1</span> of <span id="cmTotalPages">1</span></span>
-            <button type="button" onclick="nextPage('cm')">Next →</button>
-            <select id="cmRowsPerPage" onchange="changeRowsPerPage('cm')">
-              <option value="50">50 rows</option>
-              <option value="100" selected>100 rows</option>
-              <option value="250">250 rows</option>
-            </select>
-          </div>
-        </div>
+        <div class="db-wrap" id="cmWrap"></div>
       </div>
 
-      <!-- Subtab: Word Family Size Stats -->
       <div id="comp-stats" class="subtab-pane">
         <div class="download-section">
           <a class="download-btn" href="BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz" download>↓ Download Compound Stats (.csv.gz)</a>
         </div>
-        <div class="db-wrap" id="csWrap">
-          <div class="db-meta">Showing <strong id="csRowCount">0</strong> rows</div>
-          <div id="csLoading" class="db-loading">Loading Compound Stats dataset...</div>
-          <div class="db-controls" id="csControls">
-            <input id="csGlobalSearch" type="text" placeholder="Search all columns..." />
-            <select id="csCopyColumnSelect"></select>
-            <button id="csAddCols" type="button">Apply Columns</button>
-            <button id="csResetCols" type="button">Reset Columns</button>
-            <button id="csClearFilters" type="button">Clear Filters</button>
-          </div>
-          <div class="db-table-wrap">
-            <table id="csTable" class="db-table" style="display:none;">
-              <thead>
-                <tr id="csHeaderRow"></tr>
-                <tr id="csFilterRow" class="filter-row"></tr>
-              </thead>
-              <tbody id="csTableBody"></tbody>
-            </table>
-          </div>
-          <div id="csPagination" class="pagination" style="display:none;">
-            <button type="button" onclick="prevPage('cs')">← Previous</button>
-            <span>Page <span id="csCurrentPage">1</span> of <span id="csTotalPages">1</span></span>
-            <button type="button" onclick="nextPage('cs')">Next →</button>
-            <select id="csRowsPerPage" onchange="changeRowsPerPage('cs')">
-              <option value="50">50 rows</option>
-              <option value="100" selected>100 rows</option>
-              <option value="250">250 rows</option>
-            </select>
-          </div>
-        </div>
+        <div class="db-wrap" id="csWrap"></div>
       </div>
     </div>
 
-    <!-- TAB 3: Advanced Queries -->
+    <!-- ADVANCED QUERY TAB -->
     <div id="adv-queries" class="tab-content">
-      <div class="info-card" style="max-width: 1200px; padding:25px;">
+      <div class="info-card" style="max-width:1200px; padding:25px;">
         <h3>🔍 Custom Wordlist Builder</h3>
-        <p style="margin-bottom:20px; font-size:1.05rem;">
-          Generate highly specific wordlists by stacking multiple criteria ranges. 
-          Leave fields blank to ignore them. Note: Must wait for Word Families database to load fully first.
+        <p>
+          Generate specific wordlists by stacking multiple criteria. Leave fields blank to ignore them.
         </p>
-        
+
         <div class="adv-grid">
           <div class="adv-box">
-            <label>1. Target Output List (Group By):</label>
+            <label>Source Database:</label>
+            <select id="advSource" class="db-select" style="width:100%;">
+              <option value="cf" selected>Curated Frequent & Familiar Families</option>
+              <option value="wf">Full Word Families</option>
+            </select>
+          </div>
+
+          <div class="adv-box">
+            <label>Target Output:</label>
             <select id="advTarget" class="db-select" style="width:100%;">
               <option value="Word">Unique Words</option>
               <option value="Baseword">Unique Basewords</option>
-              <option value="GPT_Root">Unique Roots (GPT)</option>
+              <option value="GPT_Root">Unique GPT Roots</option>
               <option value="Greek_Latin_Root_1">Unique Greek/Latin Roots</option>
             </select>
           </div>
-          <div class="adv-box">
-  <label>Word Zipf Rank (1 = most frequent):</label>
-  <div class="adv-input-group">
-    <input type="number" id="advZipfRankMin" placeholder="Min rank (e.g. 1)">
-    <input type="number" id="advZipfRankMax" placeholder="Max rank (e.g. 1000)">
-  </div>
-</div>
 
           <div class="adv-box">
-            <label>Word Zipf Freq. (e.g. 1-8):</label>
+            <label>Word Zipf Frequency:</label>
             <div class="adv-input-group">
-              <input type="number" step="0.1" id="advWordZipfMin" placeholder="Min (e.g. 1)">
-              <input type="number" step="0.1" id="advWordZipfMax" placeholder="Max (e.g. 7)">
+              <input type="number" step="0.1" id="advWordZipfMin" placeholder="Min">
+              <input type="number" step="0.1" id="advWordZipfMax" placeholder="Max">
             </div>
           </div>
 
@@ -465,7 +748,7 @@
           </div>
 
           <div class="adv-box">
-            <label>Grade Level (e.g. 4-6):</label>
+            <label>Grade Level:</label>
             <div class="adv-input-group">
               <input type="number" step="0.1" id="advGradeMin" placeholder="Min">
               <input type="number" step="0.1" id="advGradeMax" placeholder="Max">
@@ -473,70 +756,97 @@
           </div>
 
           <div class="adv-box">
-            <label>GPT Familiarity (e.g. 3-5):</label>
+            <label>Morpheme Count:</label>
             <div class="adv-input-group">
-              <input type="number" step="0.1" id="advFamMin" placeholder="Min">
-              <input type="number" step="0.1" id="advFamMax" placeholder="Max">
+              <input type="number" id="advMorphMin" placeholder="Min">
+              <input type="number" id="advMorphMax" placeholder="Max">
             </div>
-          </div>
-          
-          <div class="adv-box">
-             <label>Morpheme Count:</label>
-             <div class="adv-input-group">
-               <input type="number" id="advMorphMin" placeholder="Min">
-               <input type="number" id="advMorphMax" placeholder="Max">
-             </div>
           </div>
         </div>
 
-        <div style="text-align: center; margin-top: 10px;">
-          <button class="key-btn" onclick="runAdvancedQuery()" style="padding:14px 28px; font-size:1.1rem;">Generate Custom Wordlist</button>
-          <button class="db-btn secondary" onclick="clearAdvancedQuery()" style="padding:14px 24px; margin-left:10px;">Clear Filters</button>
+        <div style="text-align:center;">
+          <button class="key-btn" onclick="runAdvancedQuery()">Generate Custom Wordlist</button>
+          <button class="db-btn secondary" onclick="clearAdvancedQuery()">Clear Filters</button>
         </div>
       </div>
 
-      <div class="db-wrap" style="max-width: 1200px; margin: 20px auto 0;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
-           <div class="db-meta" style="margin:0; font-size:1.1rem;">Found <strong id="advCount" style="color:#1d4ed8;">0</strong> unique results</div>
-           <div style="display:flex; gap: 10px;">
-             <button class="db-btn" onclick="downloadAdvancedList()">↓ Download List (.csv)</button>
-             <button class="db-btn secondary" onclick="copyAdvancedList()">📋 Copy to Clipboard</button>
-           </div>
+      <div class="db-wrap" style="max-width:1200px; margin:20px auto 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+          <div class="db-meta" style="margin:0; font-size:1.1rem;">
+            Found <strong id="advCount" style="color:#1d4ed8;">0</strong> unique results
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="db-btn" onclick="downloadAdvancedList()">↓ Download List (.csv)</button>
+            <button class="db-btn secondary" onclick="copyAdvancedList()">📋 Copy to Clipboard</button>
+          </div>
         </div>
-        <textarea id="advResultsText" style="width: 100%; height: 350px; padding: 16px; font-family: ui-monospace, monospace; font-size: 1.05rem; border: 2px solid #d1d5db; border-radius: 8px; resize: vertical; background:#f9fafb;" placeholder="Your custom wordlist will appear here..." readonly></textarea>
+
+        <textarea id="advResultsText" style="width:100%; height:350px; padding:16px; font-family:ui-monospace, monospace; font-size:1.05rem; border:2px solid #d1d5db; border-radius:8px; resize:vertical; background:#f9fafb;" placeholder="Your custom wordlist will appear here..." readonly></textarea>
       </div>
     </div>
 
-    <!-- TAB 4: Wordcloud -->
+    <!-- WORD CLOUD TAB -->
     <div id="wordcloud" class="tab-content">
       <div style="max-width:900px; margin:0 auto; text-align:center;">
-        <p><strong>Instructions:</strong> Paste Word + Frequency (one per line)</p>
+        <p><strong>Instructions:</strong> Paste word + frequency, one per line.</p>
         <textarea id="wordInput" placeholder="analysis 120&#10;morphology 95&#10;prefix 78"></textarea><br><br>
-        <button id="generateBtn" onclick="generateWordCloud()" class="key-btn">Generate Word Cloud</button>
+        <button onclick="generateWordCloud()" class="key-btn">Generate Word Cloud</button>
         <p id="cloudStatus" style="margin-top:12px; font-weight:500;"></p>
       </div>
       <canvas id="wordCanvas" width="1100" height="700"></canvas>
     </div>
 
-    <!-- TAB 5: LLM Generator -->
+    <!-- LLM GENERATOR TAB -->
     <div id="llm-generator" class="tab-content">
       <div style="max-width:1100px; margin:0 auto;">
-        <h2 style="text-align:center; color:#1d4ed8;">🪄 AI Prompt Generator</h2>
-        <textarea id="llmInput" rows="8" style="width:100%; padding:14px; font-family:monospace; font-size:1.02rem; border:2px solid #d1d5db; border-radius:10px; resize:vertical;" placeholder="Paste target words (one per line)"></textarea>
+        <h2 style="text-align:center;">🪄 AI Prompt Generator</h2>
 
-        <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:14px 0;">
-          <div><label><strong>Prompt Type</strong></label><br><select id="llmTextType" style="width:100%; padding:10px; border-radius:8px;"><option value="informational">Informational Text</option><option value="fiction">Fiction Text</option><option value="Worksheet">Worksheet</option></select></div>
-          <div><label><strong>Grade Level</strong></label><br><select id="llmGrade" style="width:100%; padding:10px; border-radius:8px;"><option>K–1</option><option>2–3</option><option selected>4–6</option><option>7–8</option><option>9–10</option><option>10–12</option><option>12+</option></select></div>
-          <div><label><strong>Length</strong></label><br><select id="llmLength" style="width:100%; padding:10px; border-radius:8px;"><option value="short (~100 words)">Short</option><option value="medium (~200 words)" selected>Medium</option><option value="long (~300)">Long</option></select></div>
-          <div><label><strong>Content Area</strong></label><br><input id="llmContentArea" type="text" placeholder="e.g., Industrial Revolution" style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;"></div>
+        <textarea id="llmInput" rows="8" style="width:100%; padding:14px; font-family:monospace; font-size:1.02rem; border:2px solid #d1d5db; border-radius:10px; resize:vertical;" placeholder="Paste target words, one per line"></textarea>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:14px 0;">
+          <div>
+            <label><strong>Prompt Type</strong></label><br>
+            <select id="llmTextType" style="width:100%; padding:10px; border-radius:8px;">
+              <option value="informational">Informational Text</option>
+              <option value="fiction">Fiction Text</option>
+              <option value="worksheet">Worksheet</option>
+            </select>
+          </div>
+
+          <div>
+            <label><strong>Grade Level</strong></label><br>
+            <select id="llmGrade" style="width:100%; padding:10px; border-radius:8px;">
+              <option>K–1</option>
+              <option>2–3</option>
+              <option selected>4–6</option>
+              <option>7–8</option>
+              <option>9–10</option>
+              <option>10–12</option>
+              <option>12+</option>
+            </select>
+          </div>
+
+          <div>
+            <label><strong>Length</strong></label><br>
+            <select id="llmLength" style="width:100%; padding:10px; border-radius:8px;">
+              <option value="short, about 100 words">Short</option>
+              <option value="medium, about 200 words" selected>Medium</option>
+              <option value="long, about 300 words">Long</option>
+            </select>
+          </div>
+
+          <div>
+            <label><strong>Content Area</strong></label><br>
+            <input id="llmContentArea" type="text" placeholder="e.g., ecosystems" style="width:100%; padding:10px; border-radius:8px; border:1px solid #d1d5db;">
+          </div>
         </div>
 
-        <label><strong>Teacher Focus Area (black box)</strong></label>
-        <textarea id="llmFocus" rows="3" style="width:100%; padding:12px; border-radius:10px; background:#111827; color:#f9fafb; border:1px solid #374151; font-family:inherit;" placeholder="Type focus here (e.g., prefixes un-/re-)"></textarea>
+        <label><strong>Teacher Focus Area</strong></label>
+        <textarea id="llmFocus" rows="3" style="width:100%; padding:12px; border-radius:10px; background:#111827; color:#f9fafb; border:1px solid #374151; font-family:inherit;" placeholder="e.g., prefixes re-/un-, suffix -tion, Greek/Latin roots"></textarea>
 
         <div style="margin-top:14px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px;">
           <strong>Include Activities:</strong>
-          <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:8px; margin-top:8px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px; margin-top:8px;">
             <label><input type="checkbox" class="act-option" value="Word ladder activity" checked> Word ladder</label>
             <label><input type="checkbox" class="act-option" value="Semantically related word lists" checked> Semantic word lists</label>
             <label><input type="checkbox" class="act-option" value="Gap-fill activity" checked> Gap fill</label>
@@ -547,121 +857,76 @@
         </div>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:16px 0;">
-          <select id="llmProvider" style="padding:10px 14px; font-size:1rem; border-radius:8px;"><option value="gemini" selected>Gemini</option><option value="chatgpt">ChatGPT</option><option value="claude">Claude</option></select>
-          <button onclick="generateWithLLM()" style="padding:12px 18px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px; cursor:pointer;">Generate Prompt</button>
-          <button onclick="copyLLMPrompt()" style="padding:12px 18px; font-weight:600; background:#0f766e; color:white; border:none; border-radius:8px; cursor:pointer;">Copy Prompt</button>
-          <button onclick="openInLLM()" style="padding:12px 18px; font-weight:600; background:#7c3aed; color:white; border:none; border-radius:8px; cursor:pointer;">Open in LLM</button>
+          <select id="llmProvider" style="padding:10px 14px; font-size:1rem; border-radius:8px;">
+            <option value="gemini" selected>Gemini</option>
+            <option value="chatgpt">ChatGPT</option>
+            <option value="claude">Claude</option>
+          </select>
+
+          <button onclick="generateWithLLM()" class="db-btn">Generate Prompt</button>
+          <button onclick="copyLLMPrompt()" class="db-btn secondary">Copy Prompt</button>
+          <button onclick="openInLLM()" class="db-btn">Open in LLM</button>
         </div>
+
         <p id="llmStatus" style="text-align:center; font-weight:600; min-height:24px;"></p>
+
         <textarea id="finalPrompt" rows="12" style="width:100%; padding:14px; font-family:monospace; border:2px solid #d1d5db; border-radius:10px; background:#f9fafb;"></textarea>
-         <!-- === EMBEDDED AI SECTION === -->
-        <hr style="margin:30px 0 20px 0;">
-        <h3 style="text-align:center; color:#1d4ed8;">🧠 Embedded Local LLM (WebLLM)</h3>
-
-        <div style="border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#f8fafc;">
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-            <label><strong>Model:</strong></label>
-            <select id="webllmModel" style="padding:8px; border-radius:8px; min-width:320px;"></select>
-            <button id="loadWebLLMBtn" onclick="initWebLLM()"
-              style="padding:10px 14px; font-weight:600; background:#1d4ed8; color:white; border:none; border-radius:8px; cursor:pointer;">
-              Load Model
-            </button>
-            <button id="resetWebLLMBtn" onclick="resetWebLLMChat()"
-              style="padding:10px 14px; font-weight:600; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer;">
-              Reset Chat
-            </button>
-          </div>
-
-          <p id="webllmStatus" style="margin:6px 0 12px 0; font-weight:600; color:#374151;">
-            WebLLM not loaded yet.
-          </p>
-
-          <div id="webllmChat"
-               style="height:300px; overflow:auto; background:white; border:1px solid #d1d5db; border-radius:10px; padding:10px; margin-bottom:10px;"></div>
-
-          <div style="display:flex; gap:8px;">
-            <textarea id="webllmInput" rows="3"
-              placeholder="Type a prompt..."
-              style="flex:1; padding:10px; border-radius:8px; border:1px solid #d1d5db; resize:vertical;"></textarea>
-            <button onclick="sendWebLLM()"
-              style="padding:10px 14px; font-weight:600; background:#0f766e; color:white; border:none; border-radius:8px; cursor:pointer;">
-              Send
-            </button>
-      
-      
       </div>
     </div>
   </div>
-</div> 
-  <!-- Key Modal -->
+
+  <!-- COLUMN KEY MODAL -->
   <div id="columnModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
         <h2>Column Definitions</h2>
         <button class="close" onclick="closeModal()">×</button>
       </div>
+
       <div class="modal-body">
         <h3>Core Word Information</h3>
         <ul>
-          <li><strong>Word:</strong> The surface wordform (as it appears in the dictionary and corpora)</li>
-          <li><strong>Word_frq_Zipf:</strong> Zipf frequency score of the wordform, - basically a 1-7 scale of how frequent a word is calculated from a large English corpus (higher value = more frequent in everyday language use). A Zipf value of 1 is among the 1,000 most common words.</li>
-          <li><strong>FLemma:</strong> The lemma of the word (ignoring part of speech)- dictionary headword.</li>
-          <li><strong>GPT_Coded_Word_Parts:</strong> Morphological breakdown of the word into prefixes, root(s), and suffixes, generated by fine-tuned GPT analysis.</li>
+          <li><strong>Word:</strong> The surface wordform.</li>
+          <li><strong>Word_frq_Zipf / Word_frq_Zipf_Recomputed:</strong> Zipf frequency score of the wordform based on BNC/COCA frequency data. Higher values mean more frequent words.</li>
+          <li><strong>FLemma:</strong> Lemma or dictionary-style headword when available.</li>
+          <li><strong>GPT_Coded_Word_Parts:</strong> GPT-assisted morphological breakdown of the word.</li>
         </ul>
 
-        <h3>Baseword / Root Information</h3>
+        <h3>Baseword Information</h3>
         <ul>
-          <li><strong>Baseword:</strong> The central baseword form of the word after removing affixes according to GPT.</li>
-          <li><strong>Baseword_frq_Zipf:</strong> Zipf frequency score of the baseword itself.</li>
-          <li><strong>Baseword_Family_Size:</strong> Number of different wordforms that belong to the same baseword family (excluding compounds).</li>
-          <li><strong>Baseword_FamilySize_Incl_Compounds:</strong> Number of different wordforms in the baseword family, including compounds.</li>
-          <li><strong>Baseword_Zipf_Inc_Compounds:</strong> Zipf frequency of the baseword, adjusted to include compounds.</li>
+          <li><strong>Baseword:</strong> The central baseword of a word family.</li>
+          <li><strong>Baseword_frq_Zipf:</strong> Word-family frequency computed from the summed frequencies of family members.</li>
+          <li><strong>Baseword_Family_Size:</strong> Number of different known wordforms in the baseword family.</li>
         </ul>
 
-        <h3>Root & Etymological Information</h3>
+        <h3>Roots, Prefixes, and Suffixes</h3>
         <ul>
-          <li><strong>GPT_Root:</strong> The primary root identified using GPT-assisted morphological analysis.</li>
-          <li><strong>Avg_Root_Zipf_BNC_COCA:</strong> Average Zipf frequency (based on BNC-COCA data) of words sharing the same root.</li>
-          <li><strong>Root_FamilySize:</strong> Number of different wordforms sharing the same root (excluding compounds).</li>
-          <li><strong>Root_FamilySize_Inc_Compounds:</strong> Number of different wordforms sharing the same root, including compounds.</li>
-          <li><strong>Avg_Root_Zipf_Inc_Compounds:</strong> Average Zipf frequency of words sharing the root, including compounds.</li>
+          <li><strong>GPT_Root:</strong> Main root identified by GPT-assisted morphological analysis.</li>
+          <li><strong>Greek_Latin_Root_1:</strong> First identified classical root when available.</li>
+          <li><strong>Prefix_1 to Prefix_3:</strong> Prefixes identified in the word.</li>
+          <li><strong>Suffix_1 to Suffix_6:</strong> Suffixes identified in the word.</li>
         </ul>
 
-        <h3>Greek / Latin Roots</h3>
+        <h3>Educational Measures</h3>
         <ul>
-          <li><strong>Greek_Latin_Root_1:</strong> First identified classical (Greek or Latin) root.</li>
-          <li><strong>Greek_Latin_Meaning_1:</strong> Meaning of the first classical root.</li>
-          <li><strong>Greek_Latin_Root_1_FamilySize:</strong> Number of different wordforms containing this classical root.</li>
-          <li><strong>Avg_Greek_Latin_Root_1_Zipf_BNC_COCA:</strong> Average Zipf frequency of words containing the first classical root.</li>
-          <li><strong>Greek_Latin_Root_2:</strong> Second identified classical root (if present).</li>
-          <li><strong>Greek_Latin_Meaning_2:</strong> Meaning of the second classical root.</li>
-          <li><strong>Greek_Latin_Roots_FamilySize_Incl_compounds:</strong> Total family size for classical roots, including compounds.</li>
-          <li><strong>Greek_Latin_Roots_Zipf_Incl_compounds:</strong> Zipf frequency measures for classical roots, including compounds.</li>
-        </ul>
-
-        <h3>Prefixes & Suffixes</h3>
-        <ul>
-          <li><strong>Prefix_1 to Prefix_3 and Suffix_1 to Suffix_6:</strong> Include meaning, all forms, frequency, count, and mean Zipf scores.</li>
-        </ul>
-
-        <h3>Other Morphological & Psycholinguistic & Educational Measures</h3>
-        <ul>
-          <li><strong>N_Morphemes:</strong> Total number of morphemes in the word.</li>
-          <li><strong>Reading AoA (Green et al., 2025):</strong> Age of Acquisition for Reading this word- when people typcalliy learn to read the word.</li>
-          <li><strong>Vocabulary eXpected Grade Level (Flor et al., 2024):</strong> Expected U.S. grade level at which a word is known- from 0 (kindergarten) to 16 (fourth year of college) (.</li>
-          <li><strong>GPT_Familiarity (Brysbaert et al., 2024):</strong> GPT-estimated familiarity rating - values above  3 are typcially well-known and so more useful for teaching.</li>
+          <li><strong>N_Morphemes_from_GPT_parse_without_inflections:</strong> Morpheme count excluding inflectional morphemes.</li>
+          <li><strong>N_Morphemes_from_GPT_parse_plus_inflections:</strong> Morpheme count including inflectional morphemes.</li>
+          <li><strong>Reading AoA Green et al._ 2025:</strong> Estimated reading age of acquisition.</li>
+          <li><strong>Vocabulary eXpected Grade Level Flor et al._ 2024:</strong> Estimated grade level at which the word is known.</li>
+          <li><strong>GPT_Familiarity Brysbaert et al._ 2024:</strong> GPT-estimated familiarity rating when available.</li>
         </ul>
       </div>
     </div>
   </div>
 
-  <!-- Explain Row Modal -->
+  <!-- EXPLAIN MODAL -->
   <div id="explainModalBackdrop" class="modal">
     <div class="modal-content" style="max-width:780px;">
       <div class="modal-header">
         <h3>Explain Morphology Row</h3>
         <button class="close" onclick="closeExplainModal()">×</button>
       </div>
+
       <div class="modal-body">
         <div style="margin-bottom:10px;">
           <label for="explainTask" style="font-weight:600;">What should AI do?</label>
@@ -671,6 +936,7 @@
             <option value="both" selected>Explain + etymology</option>
           </select>
         </div>
+
         <div style="margin-bottom:10px;">
           <label for="explainProvider" style="font-weight:600;">Open in</label>
           <select id="explainProvider" class="db-select" style="width:100%;">
@@ -679,10 +945,12 @@
             <option value="claude">Claude</option>
           </select>
         </div>
+
         <div>
-          <label for="explainPreview" style="font-weight:600;">Prompt preview (editable)</label>
-          <textarea id="explainPreview" style="width:100%; min-height:180px; border:1px solid #cbd5e1; border-radius:8px; padding:10px;"></textarea>
+          <label for="explainPreview" style="font-weight:600;">Prompt preview, editable</label>
+          <textarea id="explainPreview" style="width:100%; min-height:220px; border:1px solid #cbd5e1; border-radius:8px; padding:10px;"></textarea>
         </div>
+
         <div class="modal-actions">
           <button class="db-btn secondary" onclick="copyExplainPrompt()">📋 Copy</button>
           <button class="db-btn" onclick="openExplainInAI()">Open AI Tool</button>
@@ -690,15 +958,18 @@
       </div>
     </div>
   </div>
-<div id="reportModalBackdrop" class="modal">
+
+  <!-- REPORT MODAL -->
+  <div id="reportModalBackdrop" class="modal">
     <div class="modal-content" style="max-width:600px;">
       <div class="modal-header">
         <h3>Report Database Error</h3>
         <button class="close" onclick="closeReportModal()">×</button>
       </div>
+
       <div class="modal-body">
-        <p style="margin-top:0; color:#4b5563;">Help us improve! What looks wrong with this entry?</p>
-        
+        <p style="margin-top:0; color:#4b5563;">Help improve the database. What looks wrong with this entry?</p>
+
         <div style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:14px;">
           <strong>Word:</strong> <span id="reportWord" style="color:#1d4ed8;"></span><br>
           <strong>Current Parts:</strong> <span id="reportParts"></span>
@@ -706,227 +977,283 @@
 
         <div style="margin-bottom:10px;">
           <label for="reportNotes" style="font-weight:600; display:block; margin-bottom:6px;">Your Correction / Notes:</label>
-          <textarea id="reportNotes" placeholder="e.g., The root should be 'spect', not the whole word..." style="width:100%; min-height:100px; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-family:inherit;"></textarea>
+          <textarea id="reportNotes" placeholder="e.g., The root should be spect, not the whole word..." style="width:100%; min-height:100px; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-family:inherit;"></textarea>
         </div>
-        
-        <input type="hidden" id="reportDatasetKey">
-        <input type="hidden" id="reportRowIndex">
 
         <div class="modal-actions">
           <button class="db-btn secondary" onclick="closeReportModal()">Cancel</button>
           <button class="db-btn" onclick="submitErrorReport()" id="submitReportBtn">Submit Report</button>
         </div>
+
         <p id="reportStatus" style="text-align:right; font-weight:600; margin-top:8px; font-size:0.9rem;"></p>
       </div>
     </div>
   </div>
+
   <script>
-    const DATASETS = {
-      wf: { file: "BAWF_FINAL.csv.gz", name: "Word Families", loaded: false, data: [], filtered: [], all: [], visible: [], page: 1, rpp: 100, sortBy: "", sortDesc: false },
-      cm: { file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz", name: "Compound Main", loaded: false, data: [], filtered: [], all: [], visible: [], page: 1, rpp: 100, sortBy: "", sortDesc: false },
-      cs: { file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz", name: "Compound Stats", loaded: false, data: [], filtered: [], all: [], visible: [], page: 1, rpp: 100, sortBy: "", sortDesc: false }
-    };
-
-    function isLikelyNumeric(v){
-      if (v === null || v === undefined) return false;
-      const s = String(v).trim();
-      return s && /^-?\d+(\.\d+)?$/.test(s);
-    }
-
-    function toRoundedInt(v){
-      const n = parseFloat(String(v ?? "").trim());
-      return Number.isFinite(n) ? Math.round(n) : null;
-    }
-
-       const dropdownCache = {};
-    function getDropdownMeta(key, col) {
-      const cacheKey = key + '_' + col;
-      if (dropdownCache[cacheKey]) return dropdownCache[cacheKey];
-
-      const config = DATASETS[key];
-      const raw = config.data.map(r => {
-        let val = r[col] ?? '';
-        if (typeof val === 'string') {
-          val = val.replace(/�+/g, '').trim();   // fix mojibake
-        } else {
-          val = String(val).trim();
-        }
-        return val;
-      }).filter(Boolean);
-
-      const numericLike = raw.length > 0 && raw.every(isLikelyNumeric);
-      const isZipf = /zipf/i.test(col); 
-
-      let options;
-      if (numericLike) {
-        if (isZipf) options = [...new Set(raw)].sort((a, b) => Number(a) - Number(b));
-        else options = [...new Set(raw.map(toRoundedInt).filter(v => v !== null))].sort((a, b) => a - b).map(String);
-      } else {
-        options = [...new Set(raw)].sort((a, b) => a.localeCompare(b));
-      }
-
-      dropdownCache[cacheKey] = { numericLike, isZipf, options };
-      return dropdownCache[cacheKey];
-    }
-
     const EMPTY_HEADER_PREFIX = "__EMPTY_COL_";
 
-const MORPHEME_COL_WITHOUT_INFLECTIONS = "N_Morphemes_from_GPT_parse_without_inflections";
-const MORPHEME_COL_PLUS_INFLECTIONS = "N_Morphemes_from_GPT_parse_plus_inflections";
-const DISPLAY_LABELS = {
-  [MORPHEME_COL_PLUS_INFLECTIONS]: "N_morphemes incl. Inflections"
-};
+    const MORPHEME_COL_WITHOUT_INFLECTIONS = "N_Morphemes_from_GPT_parse_without_inflections";
+    const MORPHEME_COL_PLUS_INFLECTIONS = "N_Morphemes_from_GPT_parse_plus_inflections";
 
-function displayColumnName(col) {
-  return DISPLAY_LABELS[col] || col;
-}
-   
+    const DISPLAY_LABELS = {
+      "Word_frq_Zipf_Recomputed": "Word Zipf",
+      "Word_frq_Zipf": "Word Zipf",
+      "Baseword_frq_Zipf": "Family Zipf",
+      "Baseword_Family_Size": "Family Size",
+      [MORPHEME_COL_PLUS_INFLECTIONS]: "N morphemes incl. inflections",
+      [MORPHEME_COL_WITHOUT_INFLECTIONS]: "N morphemes excl. inflections"
+    };
 
-     function chooseDefaultColumns(key, headers){
-      // Compound tables show everything by default
-      if (key === "cm" || key === "cs") return [...headers];
+    function displayColumnName(col) {
+      return DISPLAY_LABELS[col] || col;
+    }
 
-      // Word Families default columns:
-      // keep useful default columns, but include only the morpheme count WITH inflections
+    const DATASETS = {
+      cf: {
+        file: "BAWF__freq_and_familair_families.csv.gz",
+        name: "Curated Frequent and Familiar Word Families",
+        loaded: false,
+        data: [],
+        filtered: [],
+        all: [],
+        visible: [],
+        page: 1,
+        rpp: 100,
+        sortBy: "",
+        sortDesc: false
+      },
+      wf: {
+        file: "BAWF_FINAL__Sheet1_cleaned.csv.gz",
+        name: "Full Word Families",
+        loaded: false,
+        data: [],
+        filtered: [],
+        all: [],
+        visible: [],
+        page: 1,
+        rpp: 100,
+        sortBy: "",
+        sortDesc: false
+      },
+      cm: {
+        file: "BAWF_Compound_Words_FINAL__Main_Compound.csv.gz",
+        name: "Compound Main",
+        loaded: false,
+        data: [],
+        filtered: [],
+        all: [],
+        visible: [],
+        page: 1,
+        rpp: 100,
+        sortBy: "",
+        sortDesc: false
+      },
+      cs: {
+        file: "BAWF_Compound_Words_FINAL__Word_Family_Size_Stats.csv.gz",
+        name: "Compound Stats",
+        loaded: false,
+        data: [],
+        filtered: [],
+        all: [],
+        visible: [],
+        page: 1,
+        rpp: 100,
+        sortBy: "",
+        sortDesc: false
+      }
+    };
+
+    let activeKey = "cf";
+    let columnFilters = {};
+    let filterTimeouts = {};
+    let reportContext = null;
+
+    window.addEventListener("DOMContentLoaded", () => {
+      buildDatasetShell("cf");
+      buildDatasetShell("wf");
+      buildDatasetShell("cm");
+      buildDatasetShell("cs");
+      initDataset("cf");
+    });
+
+    function buildDatasetShell(key) {
+      const wrap = document.getElementById(`${key}Wrap`);
+      if (!wrap) return;
+
+      wrap.innerHTML = `
+        <div class="db-controls">
+          <input id="${key}GlobalSearch" class="db-input" type="text" placeholder="Search visible columns..." oninput="filterTableDebounced('${key}')">
+          <select id="${key}CopyColumnSelect" class="db-select"></select>
+          <button class="db-btn secondary" onclick="copyColumnValues('${key}')">📋 Copy Column Cells</button>
+          <button class="db-btn" onclick="exportCSV('${key}', '${DATASETS[key].name.replace(/[^a-z0-9]+/gi, "_")}_Filtered.csv')">↓ Export Filtered CSV</button>
+          <select id="${key}AddCols" class="db-select" multiple size="4"></select>
+          <button class="db-btn secondary" onclick="addSelectedColumns('${key}')">➕ Add Selected Columns</button>
+          <select id="${key}RemoveCols" class="db-select" multiple size="4"></select>
+          <button class="db-btn secondary" onclick="removeSelectedColumns('${key}')">➖ Remove Selected Columns</button>
+          <button class="db-btn secondary" onclick="resetColumns('${key}')">↩ Reset Default Columns</button>
+          <button class="db-btn secondary" onclick="clearFilters('${key}')">Clear Filters</button>
+        </div>
+
+        <div class="db-meta">
+          Showing <strong id="${key}RowCount">0</strong> rows
+        </div>
+
+        <div id="${key}Loading" class="db-loading">Loading ${DATASETS[key].name}...</div>
+
+        <div class="db-table-wrap">
+          <table id="${key}Table" class="db-table" style="display:none;">
+            <thead>
+              <tr id="${key}HeaderRow"></tr>
+              <tr id="${key}FilterRow" class="filter-row"></tr>
+            </thead>
+            <tbody id="${key}TableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="${key}Pagination" class="pagination" style="display:none;">
+          <button onclick="prevPage('${key}')">← Previous</button>
+          <span>Page <span id="${key}CurrentPage">1</span> of <span id="${key}TotalPages">1</span></span>
+          <button onclick="nextPage('${key}')">Next →</button>
+          <select id="${key}RowsPerPage" onchange="changeRowsPerPage('${key}')">
+            <option value="50">50 rows</option>
+            <option value="100" selected>100 rows</option>
+            <option value="250">250 rows</option>
+            <option value="500">500 rows</option>
+          </select>
+        </div>
+      `;
+    }
+
+    function chooseDefaultColumns(key, headers) {
+      if (key === "cf") {
+        const preferred = [
+          "Baseword",
+          "Baseword_frq_Zipf",
+          "Baseword_Family_Size",
+          "Word",
+          "Word_frq_Zipf_Recomputed",
+          "GPT_Coded_Word_Parts",
+          "Prefix_1",
+          "Prefix_2",
+          "Prefix_3",
+          "Suffix_1",
+          "Suffix_2",
+          "Suffix_3",
+          "Suffix_4",
+          "Suffix_5",
+          "Suffix_6",
+          MORPHEME_COL_PLUS_INFLECTIONS,
+          "Reading AoA Green et al._ 2025",
+          "Vocabulary eXpected Grade Level Flor et al._ 2024"
+        ];
+
+        const found = preferred.filter(c => headers.includes(c));
+        return found.length ? found : headers.slice(0, 18);
+      }
+
       if (key === "wf") {
         const preferred = [
           "Word",
           "Word_frq_Zipf",
           "Baseword",
-          "Greek_Latin_Root_1",
-          "Greek_Latin_Meaning_1",
+          "Baseword_frq_Zipf",
+          "Baseword_Family_Size",
+          "GPT_Root",
+          "GPT_Coded_Word_Parts",
           "Prefix_1",
+          "Prefix_2",
+          "Prefix_3",
           "Suffix_1",
+          "Suffix_2",
+          "Suffix_3",
+          "Suffix_4",
+          "Suffix_5",
+          "Suffix_6",
           MORPHEME_COL_PLUS_INFLECTIONS,
-          "Vocabulary eXpected Grade Level (Flor et al., 2024)",
-          "GPT_Familiarity (Brysbaert et al., 2024)"
+          "Vocabulary eXpected Grade Level Flor et al._ 2024",
+          "GPT_Familiarity Brysbaert et al._ 2024"
         ];
 
-        const found = preferred.filter(col => headers.includes(col));
-        return found.length ? found : headers.slice(0, 14);
+        const found = preferred.filter(c => headers.includes(c));
+        return found.length ? found : headers.slice(0, 20);
       }
 
-      return headers.slice(0, 14);
-    }
-    
-const TEXT_SEARCH_COLS = [
-  'Word', 
-  'FLemma', 
-  'Baseword', 
-  'Component_1', 
-  'Component_2',
-  'Definition', 
-  'Etymology', 
-  'GPT_Root',
-  'GPT_Coded_Word_Parts'
-];
-
-
-let activeTabId = 'word-families';
-let activeKey = 'wf';
-let columnFilters = {}; 
-let filterTimeouts = {};
-let reportContext = null;
-
-    window.addEventListener('DOMContentLoaded', () => {
-      initDataset('wf');
-      setupAddColsListener('wf'); setupAddColsListener('cm'); setupAddColsListener('cs'); 
-    });
-    function addZipfRankColumn() {
-      const config = DATASETS['wf'];
-      if (!config.data.length) return;
-
-      const rankMap = getWordZipfRankMap();   // reuse existing function
-
-      config.data.forEach(row => {
-        const word = String(row['Word'] || '').trim();
-        row['Word_Zipf_Rank'] = rankMap.get(word) || null;
-      });
-
-      // Also add it to all columns list
-      if (!config.all.includes('Word_Zipf_Rank')) {
-        config.all.unshift('Word_Zipf_Rank');
+      if (key === "cm" || key === "cs") {
+        return headers.slice(0, 28);
       }
-    }
-    function ensureLoaded(key){
-      if (!DATASETS[key].loaded) initDataset(key);
-      else renderTable(key);
-    }
 
-    function openTab(tabName, btnEl){
-      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-      byId(tabName)?.classList.add("active");
-      btnEl?.classList.add("active");
-
-      if (tabName === "word-families") { activeKey = "wf"; ensureLoaded("wf"); }
-      if (tabName === "compounds") {
-        const activeSub = document.querySelector("#compounds .subtab-pane.active")?.id;
-        activeKey = activeSub === "comp-stats" ? "cs" : "cm";
-        ensureLoaded(activeKey);
-      }
-    }
-
-    function openCompoundSubTab(subPaneId, btn) {
-      const parent = document.getElementById('compounds');
-      parent.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
-      parent.querySelectorAll('.subtab-pane').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active'); document.getElementById(subPaneId).classList.add('active');
-      const key = (subPaneId === 'comp-main') ? 'cm' : 'cs';
-      activeKey = key;
-      if (!DATASETS[key].data.length) initDataset(key); else renderTable(key);
+      return headers.slice(0, 16);
     }
 
     async function initDataset(key) {
       const config = DATASETS[key];
       const loadingEl = document.getElementById(`${key}Loading`);
+
+      if (!config || config.loaded || config.data.length) {
+        renderTable(key);
+        return;
+      }
+
       try {
-        if (loadingEl) loadingEl.textContent = `Downloading dataset...`;
-        const res = await fetch(config.file);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
-        if (loadingEl) loadingEl.textContent = `Decompressing data...`;
-        const buffer = await res.arrayBuffer();
+        if (loadingEl) loadingEl.textContent = `Downloading ${config.name}...`;
+
+        const response = await fetch(config.file);
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${config.file}`);
+
+        if (loadingEl) loadingEl.textContent = "Decompressing data...";
+
+        const buffer = await response.arrayBuffer();
         const inflatedBytes = pako.ungzip(new Uint8Array(buffer));
 
-        if (loadingEl) loadingEl.textContent = `Parsing records...`;
-        const blob = new Blob([inflatedBytes], { type: 'text/csv;charset=utf-8' });
+        if (loadingEl) loadingEl.textContent = "Parsing records...";
+
+        const blob = new Blob([inflatedBytes], { type: "text/csv;charset=utf-8" });
+
+        config.data = [];
+        config.filtered = [];
+        config.all = [];
+        config.visible = [];
+        config.loaded = false;
 
         let firstPaint = false;
-        config.data = []; config.filtered = []; config.all = []; config.visible = []; config.loaded = false;
-if (key === 'wf') wfWordZipfRankMap = null;
 
-              Papa.parse(blob, {
-          header: true, 
-          skipEmptyLines: 'greedy', 
+        Papa.parse(blob, {
+          header: true,
+          skipEmptyLines: "greedy",
           chunkSize: 1024 * 1024 * 4,
           quoteChar: '"',
           escapeChar: '"',
-          delimiter: "",   // auto-detect
-          newline: "",     // auto-detect
-          encoding: "UTF-8",
+          delimiter: "",
+          newline: "",
           dynamicTyping: false,
+
           transformHeader: function(h, i) {
-            const clean = String(h || "").replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "").trim();
+            const clean = String(h || "")
+              .replace(/^[\uFEFF\u200B\u200C\u200D\u200E\u200Fï»¿]+/, "")
+              .replace(/\xa0/g, " ")
+              .trim();
+
             return clean || `${EMPTY_HEADER_PREFIX}${i}`;
           },
+
           chunk: function(results) {
-           if (!config.all.length) {
-              const fields = results.meta?.fields || [];
+            if (!config.all.length) {
+              const fields = results.meta && results.meta.fields ? results.meta.fields : [];
               config.all = fields.filter(f => f && !String(f).startsWith(EMPTY_HEADER_PREFIX));
               config.visible = chooseDefaultColumns(key, config.all);
+              buildDropdowns(key);
             }
-            
-            const validRows = results.data.filter(r => {
-              const w = r['Word'] || r['Baseword'];
+
+            const validRows = results.data.filter(row => {
+              const w = row["Word"] || row["Baseword"] || row["FLemma"];
               return w && String(w).trim().length > 0;
             });
 
-            // Clean mojibake in rows
             validRows.forEach(row => {
               Object.keys(row).forEach(col => {
-                if (typeof row[col] === 'string') {
-                  row[col] = row[col].replace(/�+/g, '').trim();
+                if (typeof row[col] === "string") {
+                  row[col] = row[col].replace(/�+/g, "").trim();
                 }
               });
             });
@@ -936,1223 +1263,1045 @@ if (key === 'wf') wfWordZipfRankMap = null;
             if (!firstPaint && config.data.length >= config.rpp) {
               firstPaint = true;
               config.filtered = [...config.data];
-              if (loadingEl) loadingEl.textContent = `Loading remaining records in background...`;
-              document.getElementById(`${key}Table`).style.display = 'table';
-              document.getElementById(`${key}Pagination`).style.display = 'flex';
-              buildDropdowns(key); renderTable(key);
+
+              document.getElementById(`${key}Table`).style.display = "table";
+              document.getElementById(`${key}Pagination`).style.display = "flex";
+
+              if (loadingEl) {
+                loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`;
+              }
+
+              renderTable(key);
             } else if (firstPaint && loadingEl) {
               loadingEl.textContent = `Loading remaining records in background... (${config.data.length.toLocaleString()} loaded)`;
             }
           },
+
           complete: function() {
             config.loaded = true;
             config.filtered = [...config.data];
-            if (key === 'wf') {
-              addZipfRankColumn();        // ← ADD THIS LINE
-            }
-            if (!firstPaint) {
-              document.getElementById(`${key}Table`).style.display = 'table';
-              document.getElementById(`${key}Pagination`).style.display = 'flex';
-              buildDropdowns(key); renderTable(key);
-            } else { filterTable(key); }
-            if (loadingEl) loadingEl.style.display = 'none';
+            config.page = 1;
+
+            buildDropdowns(key);
+            renderTable(key);
+
+            document.getElementById(`${key}Table`).style.display = "table";
+            document.getElementById(`${key}Pagination`).style.display = "flex";
+
+            if (loadingEl) loadingEl.style.display = "none";
+          },
+
+          error: function(err) {
+            throw err;
           }
         });
-      } catch (e) {
-        if (loadingEl) loadingEl.textContent = `Failed to load file: ${e.message}`;
+
+      } catch (err) {
+        console.error(err);
+        if (loadingEl) {
+          loadingEl.textContent = `Failed to load ${config.name}: ${err.message}`;
+        }
       }
     }
 
-function buildDropdowns(key) {
-  const config = DATASETS[key];
+    function buildDropdowns(key) {
+      const config = DATASETS[key];
 
-  const copySelect = document.getElementById(`${key}CopyColumnSelect`);
-  if (copySelect) {
-    copySelect.innerHTML = config.visible
-      .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
-      .join('');
-  }
+      const copySelect = document.getElementById(`${key}CopyColumnSelect`);
+      if (copySelect) {
+        copySelect.innerHTML = config.visible
+          .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
+          .join("");
+      }
 
-  const addSelect = document.getElementById(`${key}AddCols`);
-  if (addSelect) {
-    addSelect.innerHTML = config.all
-      .filter(c => !config.visible.includes(c))
-      .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
-      .join('');
-  }
+      const addSelect = document.getElementById(`${key}AddCols`);
+      if (addSelect) {
+        addSelect.innerHTML = config.all
+          .filter(c => !config.visible.includes(c))
+          .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
+          .join("");
+      }
 
-  const removeSelect = document.getElementById(`${key}RemoveCols`);
-  if (removeSelect) {
-    removeSelect.innerHTML = config.visible
-      .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
-      .join('');
-  }
-}
+      const removeSelect = document.getElementById(`${key}RemoveCols`);
+      if (removeSelect) {
+        removeSelect.innerHTML = config.visible
+          .map(c => `<option value="${escapeHTML(c)}">${escapeHTML(displayColumnName(c))}</option>`)
+          .join("");
+      }
+    }
 
-function setupAddColsListener(key) {
-  const addBtn = document.getElementById(`${key}AddColsBtn`);
-  if (addBtn) {
-    addBtn.onclick = () => {
+    function renderTable(key) {
+      const config = DATASETS[key];
+      if (!config) return;
+
+      const rowCountEl = document.getElementById(`${key}RowCount`);
+      if (rowCountEl) rowCountEl.textContent = config.filtered.length.toLocaleString();
+
+      const headerRow = document.getElementById(`${key}HeaderRow`);
+      const filterRow = document.getElementById(`${key}FilterRow`);
+      const tbody = document.getElementById(`${key}TableBody`);
+
+      if (!headerRow || !filterRow || !tbody) return;
+
+      headerRow.innerHTML = config.visible.map(col => {
+        const symbol = config.sortBy === col ? (config.sortDesc ? " 🔽" : " 🔼") : "";
+        return `<th onclick="sortTable('${key}', '${escapeJS(col)}')">${escapeHTML(displayColumnName(col))}${symbol}</th>`;
+      }).join("") + `<th>Actions</th>`;
+
+      filterRow.innerHTML = config.visible.map(col => {
+        const currentVal = columnFilters[key] && columnFilters[key][col] ? columnFilters[key][col] : "";
+        return `<td><input type="text" placeholder="Filter..." value="${escapeHTML(currentVal)}" oninput="onColumnFilter('${key}', '${escapeJS(col)}', this.value)"></td>`;
+      }).join("") + `<td></td>`;
+
+      const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
+      if (config.page > totalPages) config.page = totalPages;
+
+      document.getElementById(`${key}CurrentPage`).textContent = config.page;
+      document.getElementById(`${key}TotalPages`).textContent = totalPages;
+
+      const pageStart = (config.page - 1) * config.rpp;
+      const pageData = config.filtered.slice(pageStart, config.page * config.rpp);
+
+      if (!pageData.length) {
+        tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`;
+        return;
+      }
+
+      let html = "";
+
+      pageData.forEach((row, idx) => {
+        const rowIndex = pageStart + idx;
+
+        html += "<tr>";
+
+        config.visible.forEach(col => {
+          let rawVal = row[col] ?? "";
+
+          if (typeof rawVal === "string") {
+            rawVal = rawVal.replace(/�+/g, "").trim();
+          }
+
+          if ((col === "GPT_Coded_Word_Parts" || col === "GPT_CODES") && typeof rawVal === "string") {
+            rawVal = rawVal.replace(/^\[|\]$/g, "").trim();
+          }
+
+          let displayVal = formatCellValue(col, rawVal);
+          const cellClass = String(displayVal).length > 60 ? "long-text" : "";
+
+          html += `<td class="${cellClass}">${escapeHTML(displayVal)}</td>`;
+        });
+
+        const lookupWord = getLookupWordFromRow(row);
+        const escWord = escapeJS(lookupWord);
+
+        html += `
+          <td>
+            <div class="row-actions">
+              <button class="source-btn" ${lookupWord ? `onclick="lookupGoogle('${escWord}')"` : "disabled"}>🔎 Google</button>
+              <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
+              <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
+              <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
+              <button class="explain-btn" onclick="showExplainFromIndex('${key}', ${rowIndex})">✨ Explain</button>
+              <button class="report-btn" onclick="showReportFromIndex('${key}', ${rowIndex})">⚠️ Report</button>
+            </div>
+          </td>
+        `;
+
+        html += "</tr>";
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function formatCellValue(col, val) {
+      const s = String(val ?? "").trim();
+      if (!s) return "";
+
+      const n = Number(s);
+
+      if (Number.isFinite(n)) {
+        if (/zipf/i.test(col)) {
+          return n.toFixed(2);
+        }
+
+        if (/grade|familiarity|aoa/i.test(col)) {
+          return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, "");
+        }
+
+        if (/family.?size|count|morpheme/i.test(col)) {
+          return Number.isInteger(n) ? String(n) : String(Math.round(n));
+        }
+
+        return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, "");
+      }
+
+      return s;
+    }
+
+    function onColumnFilter(key, col, val) {
+      if (!columnFilters[key]) columnFilters[key] = {};
+
+      if (!val || !String(val).trim()) {
+        delete columnFilters[key][col];
+      } else {
+        columnFilters[key][col] = String(val).trim().toLowerCase();
+      }
+
+      filterTableDebounced(key);
+    }
+
+    function filterTableDebounced(key) {
+      clearTimeout(filterTimeouts[key]);
+      filterTimeouts[key] = setTimeout(() => filterTable(key), 350);
+    }
+
+    function filterTable(key) {
+      const config = DATASETS[key];
+      if (!config) return;
+
+      const globalSearchEl = document.getElementById(`${key}GlobalSearch`);
+      const globalQuery = globalSearchEl ? globalSearchEl.value.trim().toLowerCase() : "";
+      const colFilters = columnFilters[key] || {};
+      const filterCols = Object.keys(colFilters);
+
+      if (!globalQuery && filterCols.length === 0) {
+        config.filtered = [...config.data];
+        config.page = 1;
+        renderTable(key);
+        return;
+      }
+
+      config.filtered = config.data.filter(row => {
+        for (const col of filterCols) {
+          const q = colFilters[col];
+          const cell = String(row[col] ?? "").toLowerCase();
+          if (!cell.includes(q)) return false;
+        }
+
+        if (globalQuery) {
+          let found = false;
+
+          for (const col of config.visible) {
+            const cell = String(row[col] ?? "").toLowerCase();
+            if (cell.includes(globalQuery)) {
+              found = true;
+              break;
+            }
+          }
+
+          if (!found) return false;
+        }
+
+        return true;
+      });
+
+      config.page = 1;
+      renderTable(key);
+    }
+
+    function clearFilters(key) {
+      columnFilters[key] = {};
+      const search = document.getElementById(`${key}GlobalSearch`);
+      if (search) search.value = "";
+      filterTable(key);
+    }
+
+    function sortTable(key, col) {
+      const config = DATASETS[key];
+
+      if (config.sortBy === col) {
+        config.sortDesc = !config.sortDesc;
+      } else {
+        config.sortBy = col;
+        config.sortDesc = false;
+      }
+
+      config.filtered.sort((a, b) => {
+        const av = a[col] ?? "";
+        const bv = b[col] ?? "";
+        const an = Number(av);
+        const bn = Number(bv);
+
+        if (Number.isFinite(an) && Number.isFinite(bn)) {
+          return config.sortDesc ? bn - an : an - bn;
+        }
+
+        const as = String(av).toLowerCase();
+        const bs = String(bv).toLowerCase();
+
+        if (as < bs) return config.sortDesc ? 1 : -1;
+        if (as > bs) return config.sortDesc ? -1 : 1;
+        return 0;
+      });
+
+      renderTable(key);
+    }
+
+    function prevPage(key) {
+      if (DATASETS[key].page > 1) {
+        DATASETS[key].page--;
+        renderTable(key);
+      }
+    }
+
+    function nextPage(key) {
+      const config = DATASETS[key];
+      const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
+
+      if (config.page < totalPages) {
+        config.page++;
+        renderTable(key);
+      }
+    }
+
+    function changeRowsPerPage(key) {
+      const el = document.getElementById(`${key}RowsPerPage`);
+      if (!el) return;
+
+      DATASETS[key].rpp = parseInt(el.value, 10);
+      DATASETS[key].page = 1;
+      renderTable(key);
+    }
+
+    function addSelectedColumns(key) {
+      const config = DATASETS[key];
       const select = document.getElementById(`${key}AddCols`);
       if (!select) return;
 
       const selected = Array.from(select.selectedOptions).map(o => o.value);
       if (!selected.length) return;
 
-      DATASETS[key].visible = [
-        ...DATASETS[key].visible,
-        ...selected.filter(c => !DATASETS[key].visible.includes(c))
-      ];
+      selected.forEach(col => {
+        if (!config.visible.includes(col)) config.visible.push(col);
+      });
 
-      pruneFiltersToVisible(key);
       buildDropdowns(key);
       renderTable(key);
-    };
-  }
+    }
 
-  const removeBtn = document.getElementById(`${key}RemoveColsBtn`);
-  if (removeBtn) {
-    removeBtn.onclick = () => {
+    function removeSelectedColumns(key) {
+      const config = DATASETS[key];
       const select = document.getElementById(`${key}RemoveCols`);
       if (!select) return;
 
       const selected = Array.from(select.selectedOptions).map(o => o.value);
       if (!selected.length) return;
 
-      const nextVisible = DATASETS[key].visible.filter(c => !selected.includes(c));
+      const next = config.visible.filter(c => !selected.includes(c));
 
-      if (!nextVisible.length) {
-        alert("You need to keep at least one visible column.");
+      if (!next.length) {
+        alert("You must keep at least one visible column.");
         return;
       }
 
-      DATASETS[key].visible = nextVisible;
+      config.visible = next;
 
-      pruneFiltersToVisible(key);
+      if (columnFilters[key]) {
+        Object.keys(columnFilters[key]).forEach(col => {
+          if (!config.visible.includes(col)) delete columnFilters[key][col];
+        });
+      }
+
       buildDropdowns(key);
       renderTable(key);
-    };
-  }
-}
-function pruneFiltersToVisible(key) {
-  if (!columnFilters[key]) return;
-
-  const visibleSet = new Set(DATASETS[key].visible);
-
-  Object.keys(columnFilters[key]).forEach(col => {
-    if (!visibleSet.has(col)) {
-      delete columnFilters[key][col];
-    }
-  });
-}
-
-function resetColumns(key) {
-  const config = DATASETS[key];
-
-  config.visible = chooseDefaultColumns(key, config.all);
-  config.page = 1;
-
-  if (columnFilters[key]) {
-    columnFilters[key] = {};
-  }
-
-  buildDropdowns(key);
-  filterTable(key);
-}
-
-function renderTable(key) {
-  const config = DATASETS[key];
-  document.getElementById(`${key}RowCount`).textContent = config.filtered.length.toLocaleString();
-
-  const headerRow = document.getElementById(`${key}HeaderRow`);
-  headerRow.innerHTML = config.visible.map(col => {
-    let sym = (config.sortBy === col) ? (config.sortDesc ? ' 🔽' : ' 🔼') : '';
-    return `<th onclick="sortTable('${key}', '${col}')">${escapeHTML(displayColumnName(col))}${sym}</th>`;
-  }).join('') + `<th>Actions</th>`;
-
-  const filterRow = document.getElementById(`${key}FilterRow`);
-  filterRow.innerHTML = config.visible.map(col => {
-    const filterData = (columnFilters[key] && columnFilters[key][col]) ? columnFilters[key][col] : null;
-    const currentVal = filterData ? filterData.val : '';
-
-    if (TEXT_SEARCH_COLS.includes(col)) {
-      return `<td><input type="text" placeholder="Search..." value="${currentVal}" oninput="onColumnFilter('${key}', '${col}', this.value, false)" /></td>`;
-    } else {
-      const meta = getDropdownMeta(key, col);
-      let opts = `<option value="">All</option>`;
-      meta.options.forEach(u => {
-        const valStr = String(u);
-        const sel = (currentVal === valStr) ? 'selected' : '';
-        opts += `<option value="${valStr.replace(/"/g, '&quot;')}" ${sel}>${valStr}</option>`;
-      });
-      return `<td><select onchange="onColumnFilter('${key}', '${col}', this.value, true, ${meta.numericLike ? 'true' : 'false'}, ${meta.isZipf ? 'true' : 'false'})">${opts}</select></td>`;
-    }
-  }).join('') + `<td></td>`;
-
-  const totalPages = Math.ceil(config.filtered.length / config.rpp) || 1;
-  if (config.page > totalPages) config.page = totalPages;
-  document.getElementById(`${key}CurrentPage`).textContent = config.page;
-  document.getElementById(`${key}TotalPages`).textContent = totalPages;
-
-  const pageStart = (config.page - 1) * config.rpp;
-  const pageData = config.filtered.slice(pageStart, config.page * config.rpp);
-  const tbody = document.getElementById(`${key}TableBody`);
-
-  if (!pageData.length) {
-    tbody.innerHTML = `<tr><td colspan="${config.visible.length + 1}" style="text-align:center; padding:30px;">No records found.</td></tr>`;
-    return;
-  }
-
-  let bodyHtml = '';
-  pageData.forEach((row, idx) => {
-    const rowIndex = pageStart + idx; // index in config.filtered
-    bodyHtml += `<tr>`;
-
-    config.visible.forEach(col => {
-      let rawVal = row[col] ?? '';
-
-      // Clean mojibake
-      if (typeof rawVal === 'string') {
-        rawVal = rawVal.replace(/�+/g, '').trim();
-      }
-
-      // Special handling for GPT_Coded_Word_Parts
-      if (col === 'GPT_Coded_Word_Parts' && typeof rawVal === 'string') {
-        rawVal = rawVal.replace(/^\[|\]$/g, '').trim();
-      }
-
-      let displayVal = String(rawVal);
-
-      // Round these columns to integer
-      if (col.includes("Grade Level") || col.includes("Familiarity")) {
-        const num = parseFloat(rawVal);
-        if (!isNaN(num)) {
-          displayVal = Math.round(num).toString();
-        }
-      } else if (col === 'Word_frq_Zipf') {
-        const num = parseFloat(rawVal);
-        if (!isNaN(num)) displayVal = num.toFixed(2);
-      }
-
-      const isNumericCol = getDropdownMeta(key, col).numericLike;
-      if (isNumericCol && !col.includes("Grade Level") && !col.includes("Familiarity")) {
-        displayVal = formatMax2Decimals(rawVal);
-      }
-
-      const cellClass = displayVal.length > 60 ? 'long-text' : '';
-      bodyHtml += `<td class="${cellClass}">${escapeHTML(displayVal)}</td>`;
-
-    });
-
-    const lookupWord = getLookupWordFromRow(row) || '';
-    const escWord = lookupWord.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-
-bodyHtml += `<td>
-      <div class="row-actions">
-        <button class="source-btn" ${lookupWord ? `onclick="lookupGoogle('${escWord}')"` : "disabled"}>🔎 Google</button>
-        <button class="lookup-btn wiktionary" ${lookupWord ? `onclick="lookupDefinition('${escWord}')"` : "disabled"}>📖 Definition</button>
-        <button class="lookup-btn etymonline" ${lookupWord ? `onclick="lookupEtymology('${escWord}')"` : "disabled"}>🏛 Etymology</button>
-        <button class="lookup-btn wordnik" ${lookupWord ? `onclick="lookupWordnik('${escWord}')"` : "disabled"}>🧠 Wordnik</button>
-        <button class="explain-btn" data-explain-key="${key}" data-explain-index="${rowIndex}">✨ Explain</button>
-        <button class="report-btn" data-report-key="${key}" data-report-index="${rowIndex}">⚠️ Report</button>
-      </div>
-    </td></tr>`;
-  });
-
-  tbody.innerHTML = bodyHtml;
-}
-
-
-    // --- OPTIMIZED FILTER LOGIC ---
-    function onColumnFilter(key, col, val, isExact, numericRounded = false, doNotRound = false) {
-      if (!columnFilters[key]) columnFilters[key] = {};
-      
-      if (!val) {
-        delete columnFilters[key][col];
-      } else {
-        columnFilters[key][col] = { 
-          val: isExact ? String(val) : String(val).toLowerCase(),
-          exact: isExact, numericRounded: !!numericRounded, doNotRound: !!doNotRound
-        };
-      }
-      
-      clearTimeout(filterTimeouts[key]);
-      filterTimeouts[key] = setTimeout(() => filterTable(key), 700); // 400ms debounce prevents freezing
-    }
-function escapeHTML(str = "") {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-// --- REPORT ERROR LOGIC ---
-function showReportFromIndex(key, rowIndex) {
-  const config = DATASETS[key];
-  const i = Number(rowIndex);
-
-  if (!config || !Array.isArray(config.filtered) || !config.filtered[i]) {
-    alert("Could not open Report popup for this row.");
-    return;
-  }
-
-  const row = config.filtered[i];
-  const word = getFirstNonEmpty(row, ["Word", "FLemma", "Baseword"]);
-  const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts", "GPT_Root"]);
-
-  // Extra fields you requested
-  const baseword = getFirstNonEmpty(row, ["Baseword"]);
-  const greekLatinRoot1 = getFirstNonEmpty(row, ["Greek_Latin_Root_1"]);
-  const prefix1 = getFirstNonEmpty(row, ["Prefix_1"]);
-  const suffix1 = getFirstNonEmpty(row, ["Suffix_1"]);
-  const nMorphemes = getFirstNonEmpty(row, ["N_Morphemes"]);
-
-  reportContext = {
-    word,
-    current_parse: parts || "",
-    baseword,
-    greek_latin_root_1: greekLatinRoot1,
-    prefix_1: prefix1,
-    suffix_1: suffix1,
-    n_morphemes: nMorphemes
-  };
-
-  document.getElementById("reportWord").textContent = word;
-  document.getElementById("reportParts").textContent = parts || "N/A";
-  document.getElementById("reportNotes").value = "";
-  document.getElementById("reportStatus").textContent = "";
-  document.getElementById("reportDatasetKey").value = key;
-  document.getElementById("reportRowIndex").value = rowIndex;
-
-  document.getElementById("reportModalBackdrop").classList.add("show");
-  document.body.classList.add("modal-open");
-}
-
-
-function closeReportModal() {
-  document.getElementById("reportModalBackdrop").classList.remove("show");
-  document.body.classList.remove("modal-open");
-}
-
-async function submitErrorReport() {
-  const word = document.getElementById("reportWord").textContent;
-  const parts = document.getElementById("reportParts").textContent;
-  const notes = document.getElementById("reportNotes").value.trim();
-  const btn = document.getElementById("submitReportBtn");
-  const status = document.getElementById("reportStatus");
-
-  if (!notes) {
-    status.textContent = "Please enter some notes before submitting.";
-    status.style.color = "#dc2626";
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Sending...";
-  status.textContent = "";
-
-const payload = {
-  timestamp: new Date().toISOString(),
-  word: reportContext?.word || word || "",
-  current_parse: reportContext?.current_parse || parts || "",
-  baseword: reportContext?.baseword || "",
-  greek_latin_root_1: reportContext?.greek_latin_root_1 || "",
-  prefix_1: reportContext?.prefix_1 || "",
-  suffix_1: reportContext?.suffix_1 || "",
-  n_morphemes: reportContext?.n_morphemes || "",
-  user_correction: notes
-};
-
-
-  try {
-    const response = await fetch("https://script.google.com/macros/s/AKfycbydBfAee3LRNRjT8O-K2rutdLR67KS-2Lp_0TjBuER38EAhRRd7LyITADcbzDALCYgw/exec", {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await response.json();
-
-    if (result.status === "success") {
-      status.textContent = "✅ Error reported successfully! Thank you.";
-      status.style.color = "#15803d";
-      
-      setTimeout(() => {
-        closeReportModal();
-        btn.disabled = false;
-        btn.textContent = "Submit Report";
-      }, 1500);
-    } else {
-      throw new Error(result.message || "Google Script rejected the row entry.");
     }
 
-  } catch (error) {
-    console.error("Submission failed:", error);
-    status.textContent = "❌ Failed to send report. Please try again.";
-    status.style.color = "#dc2626";
-    btn.disabled = false;
-    btn.textContent = "Submit Report";
-  }
-} 
-function showExplainFromIndex(key, rowIndex) {
-  const config = DATASETS[key];
-  const i = Number(rowIndex);
-
-  if (!config || !Array.isArray(config.filtered) || !config.filtered[i]) {
-    alert("Could not open Explain popup for this row.");
-    return;
-  }
-
-  showExplainModal(key, config.filtered[i]);
-}
-
-// force global for inline onclick
-window.showExplainFromIndex = showExplainFromIndex;
-
-
-
-    function filterTable(key) {
+    function resetColumns(key) {
       const config = DATASETS[key];
-      const globalQuery = document.getElementById(`${key}GlobalSearch`)?.value.trim().toLowerCase() || '';
-      const colFilters = columnFilters[key] || {};
-      const filterKeys = Object.keys(colFilters);
-      const visibleCols = config.visible;
-
-      if (!globalQuery && filterKeys.length === 0) {
-        config.filtered = config.data;
-        config.page = 1; renderTable(key);
-        return;
-      }
-
-      config.filtered = config.data.filter(row => {
-        // 1. Column filters (fail fast)
-        for (let i = 0; i < filterKeys.length; i++) {
-          const col = filterKeys[i];
-          const filterDef = colFilters[col];
-          const rawVal = row[col];
-          const cellVal = rawVal != null ? String(rawVal) : '';
-          
-          if (filterDef.exact) {
-            if (filterDef.numericRounded && !filterDef.doNotRound) {
-              const rn = toRoundedInt(cellVal);
-              if (rn === null || String(rn) !== filterDef.val) return false;
-            } else if (filterDef.numericRounded && filterDef.doNotRound) {
-              if (cellVal === "" || isNaN(cellVal) || Number(cellVal) !== Number(filterDef.val)) return false;
-            } else {
-              if (cellVal !== filterDef.val) return false;
-            }
-          } else {
-            if (!cellVal.toLowerCase().includes(filterDef.val)) return false;
-          }
-        }
-
-        // 2. Global query check 
-        if (globalQuery) {
-          let globalMatch = false;
-          for (let i = 0; i < visibleCols.length; i++) {
-            const rawVal = row[visibleCols[i]];
-            if (rawVal != null && String(rawVal).toLowerCase().includes(globalQuery)) {
-              globalMatch = true; break; 
-            }
-          }
-          if (!globalMatch) return false;
-        }
-        return true;
-      });
-      
-      config.page = 1; 
-      renderTable(key);
+      config.visible = chooseDefaultColumns(key, config.all);
+      config.page = 1;
+      columnFilters[key] = {};
+      const search = document.getElementById(`${key}GlobalSearch`);
+      if (search) search.value = "";
+      buildDropdowns(key);
+      filterTable(key);
     }
-
-    function sortTable(key, col) {
-      const config = DATASETS[key];
-      if (config.sortBy === col) config.sortDesc = !config.sortDesc;
-      else { config.sortBy = col; config.sortDesc = false; }
-      
-      config.filtered.sort((a, b) => {
-        let v1 = a[col] || ''; let v2 = b[col] || '';
-        let isNum1 = v1 !== '' && !isNaN(Number(v1));
-        let isNum2 = v2 !== '' && !isNaN(Number(v2));
-        
-        if (isNum1 && isNum2) return config.sortDesc ? Number(v2) - Number(v1) : Number(v1) - Number(v2);
-        
-        v1 = String(v1).toLowerCase(); v2 = String(v2).toLowerCase();
-        if (v1 < v2) return config.sortDesc ? 1 : -1;
-        if (v1 > v2) return config.sortDesc ? -1 : 1;
-        return 0;
-      });
-      renderTable(key);
-    }
-
-    function prevPage(key) { if (DATASETS[key].page > 1) { DATASETS[key].page--; renderTable(key); } }
-    function nextPage(key) { if (DATASETS[key].page < Math.ceil(DATASETS[key].filtered.length / DATASETS[key].rpp)) { DATASETS[key].page++; renderTable(key); } }
-    function changeRowsPerPage(key) { DATASETS[key].rpp = parseInt(document.getElementById(`${key}RowsPerPage`).value, 10); DATASETS[key].page = 1; renderTable(key); }
 
     function copyColumnValues(key) {
       const config = DATASETS[key];
-      const col = document.getElementById(`${key}CopyColumnSelect`).value;
-      const targetRows = config.filtered;
-      navigator.clipboard.writeText(targetRows.map(r => r[col] || '').filter(v => v).join('\n')).then(() => alert(`Copied column "${col}"!`));
+      const select = document.getElementById(`${key}CopyColumnSelect`);
+
+      if (!select) return alert("No copy-column selector found.");
+
+      const col = select.value;
+
+      const text = config.filtered
+        .map(r => r[col] || "")
+        .filter(v => String(v).trim())
+        .join("\n");
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert(`Copied column "${displayColumnName(col)}"!`);
+      });
     }
 
-    function exportCSV(key, defaultFilename) {
+    function exportCSV(key, filename) {
       const config = DATASETS[key];
-      if (!config.filtered.length) return alert("No rows to export.");
-      const blob = new Blob([Papa.unparse({ fields: config.visible, data: config.filtered })], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = defaultFilename; link.click();
+
+      if (!config.filtered.length) {
+        alert("No rows to export.");
+        return;
+      }
+
+      const csv = Papa.unparse({
+        fields: config.visible,
+        data: config.filtered.map(row => {
+          const out = {};
+          config.visible.forEach(col => out[col] = row[col] ?? "");
+          return out;
+        })
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+
+      URL.revokeObjectURL(link.href);
     }
 
-    // --- ADVANCED QUERY BUILDER LOGIC ---
-    function findColumnByKey(dataCols, hint) {
-       return dataCols.find(c => c.toLowerCase().includes(hint.toLowerCase()));
-    }
-let wfWordZipfRankMap = null;
+    function openTab(tabName, btnEl) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
 
-function buildWordZipfRankMap() {
-  const config = DATASETS['wf'];
-  const bestZipfByWord = new Map();
+      document.getElementById(tabName).classList.add("active");
+      if (btnEl) btnEl.classList.add("active");
 
-  for (const row of config.data) {
-    const w = String(row['Word'] || '').trim();
-    const z = parseFloat(row['Word_frq_Zipf']);
-    if (!w || isNaN(z)) continue;
+      if (tabName === "curated") {
+        activeKey = "cf";
+        initDataset("cf");
+      }
 
-    // keep best (highest) zipf per word
-    if (!bestZipfByWord.has(w) || z > bestZipfByWord.get(w)) {
-      bestZipfByWord.set(w, z);
-    }
-  }
+      if (tabName === "word-families") {
+        activeKey = "wf";
+        initDataset("wf");
+      }
 
-  // sort by zipf descending (most frequent first), then alphabetic for stability
-  const sorted = Array.from(bestZipfByWord.entries())
-    .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]));
-
-  const rankMap = new Map();
-  sorted.forEach(([word], idx) => rankMap.set(word, idx + 1)); // rank starts at 1
-  return rankMap;
-}
-
-function getWordZipfRankMap() {
-  if (!wfWordZipfRankMap) wfWordZipfRankMap = buildWordZipfRankMap();
-  return wfWordZipfRankMap;
-}
-
-    function runAdvancedQuery() {
-       const config = DATASETS['wf'];
-       if (!config || !config.loaded || config.data.length === 0) return alert("Please wait for the Word Families dataset to finish loading first.");
-
-       const target = document.getElementById('advTarget').value;
-       const getVal = (id) => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; };
-       
-       const wZipfMin = getVal('advWordZipfMin'), wZipfMax = getVal('advWordZipfMax');
-       const bZipfMin = getVal('advBaseZipfMin'), bZipfMax = getVal('advBaseZipfMax');
-       const gradeMin = getVal('advGradeMin'), gradeMax = getVal('advGradeMax');
-       const famMin = getVal('advFamMin'), famMax = getVal('advFamMax');
-       const morphMin = getVal('advMorphMin'), morphMax = getVal('advMorphMax');
-const getIntVal = (id) => {
-  const v = parseInt(document.getElementById(id).value, 10);
-  return isNaN(v) ? null : v;
-};
-
-const zipfRankMin = getIntVal('advZipfRankMin');
-const zipfRankMax = getIntVal('advZipfRankMax');
-const rankMap = getWordZipfRankMap();
-
-       // Safely identify column names 
-       const gradeCol = findColumnByKey(config.all, 'Grade Level') || findColumnByKey(config.all, 'Grade') || 'Vocabulary eXpected Grade Level (Flor et al., 2024)';
-       const famCol = findColumnByKey(config.all, 'Familiarity') || 'GPT_Familiarity (Brysbaert et al., 2024)';
-       const morphCol = findColumnByKey(config.all, 'N_Morphemes') || 'N_Morphemes';
-
-       let results = new Set();
-       const data = config.data;
-
-       for (let i = 0; i < data.length; i++) {
-          const row = data[i];
-          let pass = true;
-
-          // Check Word Zipf
-          if (wZipfMin !== null || wZipfMax !== null) {
-              const v = parseFloat(row['Word_frq_Zipf']);
-              if (isNaN(v) || (wZipfMin !== null && v < wZipfMin) || (wZipfMax !== null && v > wZipfMax)) pass = false;
-          }
-          if (!pass) continue;
-// Check Word Zipf Rank
-if (zipfRankMin !== null || zipfRankMax !== null) {
-  const w = String(row['Word'] || '').trim();
-  const rank = rankMap.get(w);
-  if (!rank || (zipfRankMin !== null && rank < zipfRankMin) || (zipfRankMax !== null && rank > zipfRankMax)) {
-    pass = false;
-  }
-}
-if (!pass) continue;
-
-          // Check Baseword Zipf
-          if (bZipfMin !== null || bZipfMax !== null) {
-              const v = parseFloat(row['Baseword_frq_Zipf']);
-              if (isNaN(v) || (bZipfMin !== null && v < bZipfMin) || (bZipfMax !== null && v > bZipfMax)) pass = false;
-          }
-          if (!pass) continue;
-
-          // Check Grade Level
-          if (gradeMin !== null || gradeMax !== null) {
-              const v = parseFloat(row[gradeCol]);
-              if (isNaN(v) || (gradeMin !== null && v < gradeMin) || (gradeMax !== null && v > gradeMax)) pass = false;
-          }
-          if (!pass) continue;
-
-          // Check GPT Familiarity
-          if (famMin !== null || famMax !== null) {
-              const v = parseFloat(row[famCol]);
-              if (isNaN(v) || (famMin !== null && v < famMin) || (famMax !== null && v > famMax)) pass = false;
-          }
-          if (!pass) continue;
-          
-          // Check Morpheme Count
-          if (morphMin !== null || morphMax !== null) {
-              const v = parseFloat(row[morphCol]);
-              if (isNaN(v) || (morphMin !== null && v < morphMin) || (morphMax !== null && v > morphMax)) pass = false;
-          }
-          if (!pass) continue;
-
-          // Extract unique targets with Word pairs
-          if (pass) {
-              const val = row[target];
-              const surfaceWord = row['Word'] || row['Baseword'] || '';
-              if (val && val.trim() !== '') {
-                  if (target === 'Word') {
-                      results.add(val.trim());
-                  } else if (surfaceWord.trim() !== '') {
-                      results.add(`${surfaceWord.trim()}: ${val.trim()}`);
-                  }
-              }
-          }
-       }
-
-       const sortedResults = Array.from(results).sort((a,b) => a.localeCompare(b));
-       document.getElementById('advCount').textContent = sortedResults.length.toLocaleString();
-       document.getElementById('advResultsText').value = sortedResults.join('\n');
+      if (tabName === "compounds") {
+        const activeSub = document.querySelector("#compounds .subtab-pane.active");
+        activeKey = activeSub && activeSub.id === "comp-stats" ? "cs" : "cm";
+        initDataset(activeKey);
+      }
     }
 
-    function clearAdvancedQuery() {
-       document.querySelectorAll('#adv-queries input[type="number"]').forEach(el => el.value = '');
-       document.getElementById('advCount').textContent = '0';
-       document.getElementById('advResultsText').value = '';
-    }
-function formatMax2Decimals(v){
-  const s = String(v ?? '').trim();
-  if (!s || !isLikelyNumeric(s)) return String(v ?? '');
-  const n = Number(s);
-  if (!Number.isFinite(n)) return String(v ?? '');
-  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
-}
+    function openCompoundSubTab(subPaneId, btn) {
+      const parent = document.getElementById("compounds");
 
-    function copyAdvancedList() {
-       const text = document.getElementById('advResultsText').value;
-       if (!text) return alert("Please generate a wordlist first.");
-       navigator.clipboard.writeText(text).then(() => alert("List copied to clipboard!"));
+      parent.querySelectorAll(".subtab-btn").forEach(b => b.classList.remove("active"));
+      parent.querySelectorAll(".subtab-pane").forEach(p => p.classList.remove("active"));
+
+      btn.classList.add("active");
+      document.getElementById(subPaneId).classList.add("active");
+
+      const key = subPaneId === "comp-main" ? "cm" : "cs";
+      activeKey = key;
+      initDataset(key);
     }
 
-    function downloadAdvancedList() {
-       const text = document.getElementById('advResultsText').value;
-       if (!text) return alert("Please generate a wordlist first.");
-       
-       const targetSelect = document.getElementById('advTarget');
-       const targetValue = targetSelect.value;
-       const targetName = targetSelect.options[targetSelect.selectedIndex].text;
-       const safeTargetName = targetName.replace(/[^a-zA-Z0-9]/g, "_");
-       
-       let csvContent = "";
-       
-       // If the output is paired (Word: Target), split it into two proper CSV columns
-       if (targetValue === 'Word') {
-           csvContent = "Word\n" + text;
-       } else {
-           csvContent = `"Word","${targetName.replace(/"/g, '""')}"\n`;
-           const lines = text.split('\n');
-           lines.forEach(line => {
-               const splitIdx = line.indexOf(': ');
-               if (splitIdx !== -1) {
-                   const w = line.substring(0, splitIdx).replace(/"/g, '""');
-                   const t = line.substring(splitIdx + 2).replace(/"/g, '""');
-                   csvContent += `"${w}","${t}"\n`;
-               } else {
-                   csvContent += `"${line.replace(/"/g, '""')}"\n`;
-               }
-           });
-       }
-
-       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-       const link = document.createElement("a");
-       link.href = URL.createObjectURL(blob);
-       link.download = `Custom_Wordlist_${safeTargetName}.csv`;
-       link.click();
+    function getLookupWordFromRow(row) {
+      return getFirstNonEmpty(row, [
+        "Word",
+        "FLemma",
+        "Baseword",
+        "Compound",
+        "Compound_Word",
+        "GPT_Root",
+        "Greek_Latin_Root_1"
+      ]);
     }
 
+    function getFirstNonEmpty(row, candidates) {
+      for (const c of candidates) {
+        const v = String(row && row[c] !== undefined ? row[c] : "").trim();
+        if (v) return v;
+      }
+      return "";
+    }
 
-    // --- EXTERNAL LOOKUPS ---
-    function getLookupWordFromRow(row) { return getFirstNonEmpty(row, ["Word", "FLemma", "Baseword", "Compound", "GPT_Root", "Greek_Latin_Root_1"]); }
     function lookupGoogle(word) {
-  if (word) window.open(`https://www.google.com/search?q=${encodeURIComponent(word + " etymology morphology")}`, "_blank", "noopener");
-}
-function lookupDefinition(word) {
-  if (word) window.open(`https://en.wiktionary.org/wiki/${encodeURIComponent(word.replace(/\s+/g, "_"))}`, "_blank", "noopener");
-}
-function lookupEtymology(word) {
-  if (word) window.open(`https://www.etymonline.com/word/${encodeURIComponent(word)}`, "_blank", "noopener");
-}
-function lookupWordnik(word) {
-  if (word) window.open(`https://www.wordnik.com/words/${encodeURIComponent(word)}`, "_blank", "noopener");
-}
-
-    function byId(id){ return document.getElementById(id); }
-    function getFirstNonEmpty(row, candidates){
-      for (const c of candidates){ const v = String(row?.[c] ?? "").trim(); if (v) return v; } return "";
+      if (!word) return;
+      window.open(
+        `https://www.google.com/search?q=${encodeURIComponent(word + " etymology morphology")}`,
+        "_blank",
+        "noopener"
+      );
     }
 
-    // --- MODALS ---
-    function showColumnKey() { document.getElementById('columnModal').classList.add('show'); document.body.classList.add('modal-open'); }
-    function closeModal() { document.getElementById('columnModal').classList.remove('show'); document.body.classList.remove('modal-open'); }
+    function lookupDefinition(word) {
+      if (!word) return;
+      window.open(
+        `https://en.wiktionary.org/wiki/${encodeURIComponent(word.replace(/\s+/g, "_"))}`,
+        "_blank",
+        "noopener"
+      );
+    }
 
-function showExplainModal(key, row){
-  const preview = byId("explainPreview");
-  const task = byId("explainTask");
-  const modal = byId("explainModalBackdrop");
+    function lookupEtymology(word) {
+      if (!word) return;
+      window.open(
+        `https://www.etymonline.com/word/${encodeURIComponent(word)}`,
+        "_blank",
+        "noopener"
+      );
+    }
 
-  if (!preview || !task || !modal) {
-    console.error("Explain modal elements missing in DOM.");
-    return;
-  }
+    function lookupWordnik(word) {
+      if (!word) return;
+      window.open(
+        `https://www.wordnik.com/words/${encodeURIComponent(word)}`,
+        "_blank",
+        "noopener"
+      );
+    }
 
-  preview.value = buildExplainPrompt(row, task.value || "both", key);
+    function showColumnKey() {
+      document.getElementById("columnModal").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
 
-  // Make the prompt auto-update if the user changes the dropdown option
-  task.onchange = () => {
-    preview.value = buildExplainPrompt(row, task.value || "both", key);
-  };
+    function closeModal() {
+      document.getElementById("columnModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
 
-  modal.classList.add("show");
-  document.body.classList.add("modal-open");
-}
+    function showExplainFromIndex(key, rowIndex) {
+      const config = DATASETS[key];
+      const row = config.filtered[Number(rowIndex)];
 
-function closeExplainModal(){
-  byId("explainModalBackdrop").classList.remove("show");
-  document.body.classList.remove("modal-open");
-}
+      if (!row) {
+        alert("Could not open explanation for this row.");
+        return;
+      }
 
-function copyExplainPrompt(){
-  navigator.clipboard.writeText(byId("explainPreview").value.trim())
-    .then(() => alert("Prompt copied."));
-}
+      showExplainModal(key, row);
+    }
 
-function openExplainInAI(){
-  const prompt = byId("explainPreview").value.trim();
-  const provider = byId("explainProvider").value;
-  const encoded = encodeURIComponent(prompt);
+    function showExplainModal(key, row) {
+      const preview = document.getElementById("explainPreview");
+      const task = document.getElementById("explainTask");
 
-  let url = `https://chatgpt.com/?q=${encoded}`;
+      preview.value = buildExplainPrompt(row, task.value || "both", key);
 
-  if (provider === "gemini") {
-    url = `https://gemini.google.com/app?prompt=${encoded}`;
-  }
+      task.onchange = () => {
+        preview.value = buildExplainPrompt(row, task.value || "both", key);
+      };
 
-  if (provider === "claude") {
-    url = "https://claude.ai/new";
-  }
+      document.getElementById("explainModalBackdrop").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
 
-  if (!window.open(url, "_blank")) {
-    alert("Popup blocked. Allow popups.");
-  }
+    function closeExplainModal() {
+      document.getElementById("explainModalBackdrop").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
 
-  navigator.clipboard.writeText(prompt).catch(() => {});
-  closeExplainModal();
-}
+    function copyExplainPrompt() {
+      const text = document.getElementById("explainPreview").value.trim();
+      navigator.clipboard.writeText(text).then(() => alert("Prompt copied."));
+    }
 
-function buildExplainPrompt(row, task = "both", key = "wf") {
-  // Compound Main or Compound Stats
-  if (key === "cm" || key === "cs") {
-    return buildCompoundExplainPrompt(row, task, key);
-  }
+    function openExplainInAI() {
+      const prompt = document.getElementById("explainPreview").value.trim();
+      const provider = document.getElementById("explainProvider").value;
+      const encoded = encodeURIComponent(prompt);
 
-  // Word Families
-  return buildWordFamilyExplainPrompt(row, task);
-}
+      let url = `https://chatgpt.com/?q=${encoded}`;
 
-function buildWordFamilyExplainPrompt(row, task = "both") {
-  const word = getFirstNonEmpty(row, ["Word", "FLemma", "Baseword", "Compound"]);
-  const root = getFirstNonEmpty(row, ["GPT_Root", "Greek_Latin_Root_1"]);
-  const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts"]);
-  const definition = getFirstNonEmpty(row, ["Definition", "Greek_Latin_Meaning_1", "Prefix_1_Meaning"]);
+      if (provider === "gemini") {
+        url = `https://gemini.google.com/app?prompt=${encoded}`;
+      }
 
-  let inst = "1) Explain this vocabulary entry and its morphology clearly in student-friendly language. 2) Provide etymology/history when available.";
+      if (provider === "claude") {
+        url = "https://claude.ai/new";
+      }
 
-  if (task === "explain") {
-    inst = "Explain this vocabulary entry and its morphology clearly in student-friendly language.";
-  } else if (task === "history") {
-    inst = "Focus on etymology/history if available.";
-  }
+      navigator.clipboard.writeText(prompt).catch(() => {});
+      window.open(url, "_blank", "noopener");
+      closeExplainModal();
+    }
 
-  return `You are a literacy and morphology expert.
+    function buildExplainPrompt(row, task, key) {
+      const word = getFirstNonEmpty(row, ["Word", "FLemma", "Baseword", "Compound", "Compound_Word"]);
+      const baseword = getFirstNonEmpty(row, ["Baseword", "Baseword_1"]);
+      const root = getFirstNonEmpty(row, ["GPT_Root", "Root_1", "Greek_Latin_Root_1"]);
+      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts", "GPT_CODES"]);
+      const prefixes = ["Prefix_1", "Prefix_2", "Prefix_3"].map(c => row[c]).filter(Boolean).join(", ");
+      const suffixes = ["Suffix_1", "Suffix_2", "Suffix_3", "Suffix_4", "Suffix_5", "Suffix_6"].map(c => row[c]).filter(Boolean).join(", ");
 
-${inst}
+      let instruction = "Explain this vocabulary entry, its morphology, and its etymology/history when available.";
 
-This row is from the Word Families sheet.
+      if (task === "explain") {
+        instruction = "Explain this vocabulary entry and its morphology clearly in student-friendly language.";
+      }
+
+      if (task === "history") {
+        instruction = "Focus on etymology/history if available.";
+      }
+
+      const sheetName =
+        key === "cf" ? "Curated Frequent and Familiar Word Families" :
+        key === "wf" ? "Full Word Families" :
+        "Compound Words";
+
+      return `You are a literacy and morphology expert.
+
+${instruction}
+
+This row is from the ${sheetName} sheet.
 
 Row details:
 - Word: ${word}
+- Baseword: ${baseword}
 - Root: ${root}
-- Parts: ${parts}
-- Meaning: ${definition}
+- GPT-coded parts: ${parts}
+- Prefixes: ${prefixes || "none listed"}
+- Suffixes: ${suffixes || "none listed"}
 
 Please:
-1. Explain the word's meaning.
+1. Explain the word's meaning in student-friendly language.
 2. Explain the morphological parts.
-3. Check whether the morphological parse seems accurate.
-4. Give two quick teaching tips.`;
-}
+3. Explain how the baseword/root connects to the full word.
+4. Check whether the morphological parse seems accurate.
+5. Give two quick teaching tips.`;
+    }
 
-function buildCompoundExplainPrompt(row, task = "both", key = "cm") {
-  const compoundWord = getFirstNonEmpty(row, [
-    "Compound",
-    "Compound_Word",
-    "Compound Word",
-    "Word",
-    "FLemma",
-    "Baseword"
-  ]);
+    function showReportFromIndex(key, rowIndex) {
+      const config = DATASETS[key];
+      const row = config.filtered[Number(rowIndex)];
 
-  let inst = "1) Explain this compound word clearly in student-friendly language. 2) Explain its morphology and etymology/history when available.";
+      if (!row) {
+        alert("Could not open report form for this row.");
+        return;
+      }
 
-  if (task === "explain") {
-    inst = "Explain this compound word and its morphology clearly in student-friendly language.";
-  } else if (task === "history") {
-    inst = "Focus on the compound word's etymology/history if available.";
-  }
+      const word = getLookupWordFromRow(row);
+      const parts = getFirstNonEmpty(row, ["GPT_Coded_Word_Parts", "GPT_CODES", "GPT_Root"]);
 
-  const gptCodeBlock = getCompoundGPTCodeBlock(row);
-  const componentBlock = getCompoundComponentBlock(row);
-  const meaningBlock = getCompoundMeaningBlock(row);
+      reportContext = {
+        dataset: key,
+        word: word,
+        current_parse: parts,
+        baseword: getFirstNonEmpty(row, ["Baseword", "Baseword_1"]),
+        root: getFirstNonEmpty(row, ["GPT_Root", "Root_1"]),
+        prefix_1: getFirstNonEmpty(row, ["Prefix_1"]),
+        suffix_1: getFirstNonEmpty(row, ["Suffix_1"]),
+        row: row
+      };
 
-  return `You are a literacy and morphology expert.
+      document.getElementById("reportWord").textContent = word;
+      document.getElementById("reportParts").textContent = parts || "N/A";
+      document.getElementById("reportNotes").value = "";
+      document.getElementById("reportStatus").textContent = "";
+      document.getElementById("reportModalBackdrop").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
 
-${inst}
+    function closeReportModal() {
+      document.getElementById("reportModalBackdrop").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
 
-This row is from the Compound Words sheet.
+    async function submitErrorReport() {
+      const notes = document.getElementById("reportNotes").value.trim();
+      const btn = document.getElementById("submitReportBtn");
+      const status = document.getElementById("reportStatus");
 
-IMPORTANT:
-For this compound sheet, use the GPT Codes / GPT parse columns as the main morphology evidence.
+      if (!notes) {
+        status.textContent = "Please enter some notes before submitting.";
+        status.style.color = "#dc2626";
+        return;
+      }
 
-Compound word:
-- ${compoundWord}
+      const payload = {
+        timestamp: new Date().toISOString(),
+        dataset: reportContext ? reportContext.dataset : "",
+        word: reportContext ? reportContext.word : "",
+        current_parse: reportContext ? reportContext.current_parse : "",
+        baseword: reportContext ? reportContext.baseword : "",
+        root: reportContext ? reportContext.root : "",
+        prefix_1: reportContext ? reportContext.prefix_1 : "",
+        suffix_1: reportContext ? reportContext.suffix_1 : "",
+        user_correction: notes
+      };
 
-GPT Codes / GPT parse columns:
-${gptCodeBlock || "- No GPT code/parse columns found for this row."}
+      btn.disabled = true;
+      btn.textContent = "Sending...";
+      status.textContent = "";
 
-Compound components / related fields:
-${componentBlock || "- No component fields found."}
+      try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycbydBfAee3LRNRjT8O-K2rutdLR67KS-2Lp_0TjBuER38EAhRRd7LyITADcbzDALCYgw/exec", {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(payload)
+        });
 
-Definition / meaning / etymology fields:
-${meaningBlock || "- No definition, meaning, or etymology fields found."}
+        const result = await response.json();
 
-Please:
-1. Explain what the compound means.
-2. Identify the parts/components of the compound.
-3. Explain how the components combine to create the meaning.
-4. Use the GPT Codes / GPT parse columns to explain the morphology.
-5. Check whether the compound analysis seems accurate.
-6. Give two quick teaching tips for using this word in vocabulary or morphology instruction.`;
-}
+        if (result.status === "success") {
+          status.textContent = "✅ Error reported successfully. Thank you.";
+          status.style.color = "#15803d";
 
-function getCompoundGPTCodeBlock(row) {
-  const cols = Object.keys(row || {}).filter(col => {
-    const c = col.toLowerCase();
+          setTimeout(() => {
+            closeReportModal();
+            btn.disabled = false;
+            btn.textContent = "Submit Report";
+          }, 1500);
+        } else {
+          throw new Error(result.message || "Google Script rejected the report.");
+        }
+      } catch (error) {
+        console.error(error);
+        status.textContent = "❌ Failed to send report. Please try again.";
+        status.style.color = "#dc2626";
+        btn.disabled = false;
+        btn.textContent = "Submit Report";
+      }
+    }
 
-    return (
-      c.includes("gpt") &&
-      (
-        c.includes("code") ||
-        c.includes("coded") ||
-        c.includes("parse") ||
-        c.includes("parsed") ||
-        c.includes("part") ||
-        c.includes("component") ||
-        c.includes("morph") ||
-        c.includes("analysis") ||
-        c.includes("root")
-      )
-    );
-  });
+    function runAdvancedQuery() {
+      const sourceKey = document.getElementById("advSource").value;
+      const config = DATASETS[sourceKey];
 
-  return formatRowColumns(row, cols);
-}
+      if (!config.loaded || !config.data.length) {
+        alert("Please wait for the selected database to finish loading.");
+        initDataset(sourceKey);
+        return;
+      }
 
-function getCompoundComponentBlock(row) {
-  const cols = Object.keys(row || {}).filter(col => {
-    const c = col.toLowerCase();
+      const target = document.getElementById("advTarget").value;
 
-    return (
-      c.includes("component") ||
-      c.includes("compound") ||
-      c.includes("constituent") ||
-      c.includes("element") ||
-      c.includes("modifier") ||
-      c.includes("head")
-    );
-  });
+      const getVal = id => {
+        const n = parseFloat(document.getElementById(id).value);
+        return Number.isFinite(n) ? n : null;
+      };
 
-  return formatRowColumns(row, cols);
-}
+      const wMin = getVal("advWordZipfMin");
+      const wMax = getVal("advWordZipfMax");
+      const bMin = getVal("advBaseZipfMin");
+      const bMax = getVal("advBaseZipfMax");
+      const gMin = getVal("advGradeMin");
+      const gMax = getVal("advGradeMax");
+      const mMin = getVal("advMorphMin");
+      const mMax = getVal("advMorphMax");
 
-function getCompoundMeaningBlock(row) {
-  const cols = Object.keys(row || {}).filter(col => {
-    const c = col.toLowerCase();
+      const wordZipfCol = config.all.includes("Word_frq_Zipf_Recomputed") ? "Word_frq_Zipf_Recomputed" : "Word_frq_Zipf";
+      const baseZipfCol = "Baseword_frq_Zipf";
+      const gradeCol = findColumn(config.all, "Grade Level") || "Vocabulary eXpected Grade Level Flor et al._ 2024";
+      const morphCol = config.all.includes(MORPHEME_COL_PLUS_INFLECTIONS) ? MORPHEME_COL_PLUS_INFLECTIONS : MORPHEME_COL_WITHOUT_INFLECTIONS;
 
-    return (
-      c.includes("definition") ||
-      c.includes("meaning") ||
-      c.includes("etymology") ||
-      c.includes("origin")
-    );
-  });
+      const results = new Set();
 
-  return formatRowColumns(row, cols);
-}
+      for (const row of config.data) {
+        if (!passesRange(row[wordZipfCol], wMin, wMax)) continue;
+        if (!passesRange(row[baseZipfCol], bMin, bMax)) continue;
+        if (!passesRange(row[gradeCol], gMin, gMax)) continue;
+        if (!passesRange(row[morphCol], mMin, mMax)) continue;
 
-function formatRowColumns(row, cols) {
-  const seen = new Set();
+        const val = String(row[target] || "").trim();
+        const word = String(row["Word"] || "").trim();
 
-  return cols
-    .filter(col => {
-      if (seen.has(col)) return false;
-      seen.add(col);
+        if (!val) continue;
+
+        if (target === "Word") {
+          results.add(val);
+        } else {
+          results.add(word ? `${word}: ${val}` : val);
+        }
+      }
+
+      const out = Array.from(results).sort((a, b) => a.localeCompare(b));
+
+      document.getElementById("advCount").textContent = out.length.toLocaleString();
+      document.getElementById("advResultsText").value = out.join("\n");
+    }
+
+    function passesRange(value, min, max) {
+      if (min === null && max === null) return true;
+
+      const n = parseFloat(value);
+
+      if (!Number.isFinite(n)) return false;
+      if (min !== null && n < min) return false;
+      if (max !== null && n > max) return false;
+
       return true;
-    })
-    .map(col => {
-      let val = row[col];
+    }
 
-      if (val === null || val === undefined) return "";
+    function findColumn(cols, hint) {
+      const h = hint.toLowerCase();
+      return cols.find(c => c.toLowerCase().includes(h));
+    }
 
-      val = String(val)
-        .replace(/�+/g, "")
-        .replace(/^\[|\]$/g, "")
-        .trim();
+    function clearAdvancedQuery() {
+      document.querySelectorAll("#adv-queries input[type='number']").forEach(el => el.value = "");
+      document.getElementById("advCount").textContent = "0";
+      document.getElementById("advResultsText").value = "";
+    }
 
-      if (!val) return "";
+    function copyAdvancedList() {
+      const text = document.getElementById("advResultsText").value;
+      if (!text) return alert("Please generate a wordlist first.");
 
-      return `- ${col}: ${val}`;
-    })
-    .filter(Boolean)
-    .join("\n");
-}
+      navigator.clipboard.writeText(text).then(() => {
+        alert("List copied to clipboard.");
+      });
+    }
 
-window.addEventListener("click", (e) => {
-  if (e.target === byId("columnModal")) closeModal();
-  if (e.target === byId("explainModalBackdrop")) closeExplainModal();
-});
+    function downloadAdvancedList() {
+      const text = document.getElementById("advResultsText").value;
+      if (!text) return alert("Please generate a wordlist first.");
 
-    // --- WORD CLOUD ---
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const link = document.createElement("a");
+
+      link.href = URL.createObjectURL(blob);
+      link.download = "Custom_BAWF_Wordlist.txt";
+      link.click();
+
+      URL.revokeObjectURL(link.href);
+    }
+
     function generateWordCloud() {
       const input = document.getElementById("wordInput").value;
       const lines = input.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
       if (!lines.length) return;
 
       const parsed = [];
-      for (const line of lines) {
-        let word = "", val = NaN;
-        if (line.includes("\t")) {
-          const cols = line.split("\t").map(c => c.trim());
-          for (let i = cols.length - 1; i >= 0; i--) {
-            const n = Number(cols[i]);
-            if (Number.isFinite(n)) { val = n; word = cols.slice(0, i).join(" ").trim(); break; }
-          }
-        } else {
-          const parts = line.split(/\s+/);
-          if (parts.length >= 2) { val = Number(parts[parts.length - 1]); word = parts.slice(0, -1).join(" ").trim(); }
-        }
-        if (word && Number.isFinite(val) && val > 0) parsed.push([word, val]);
-      }
-      if (!parsed.length) return;
 
-      const looksLikeZipf = parsed.map(x => x[1]).every(v => v >= 1 && v <= 8);
+      for (const line of lines) {
+        const parts = line.split(/\s+/);
+        if (parts.length < 2) continue;
+
+        const value = Number(parts[parts.length - 1]);
+        const word = parts.slice(0, -1).join(" ");
+
+        if (word && Number.isFinite(value) && value > 0) {
+          parsed.push([word, value]);
+        }
+      }
+
+      if (!parsed.length) {
+        document.getElementById("cloudStatus").textContent = "No valid word-frequency pairs found.";
+        return;
+      }
+
+      const looksLikeZipf = parsed.every(x => x[1] >= 1 && x[1] <= 8);
       const list = parsed.map(([w, v]) => [w, looksLikeZipf ? Math.pow(10, v - 1) : v]);
 
       WordCloud(document.getElementById("wordCanvas"), {
-        list, gridSize: 8, weightFactor: (s) => Math.min(Math.max(Math.sqrt(s) * 8, 14), 120),
-        color: "random-dark", backgroundColor: "#ffffff", rotateRatio: 0.3
+        list: list,
+        gridSize: 8,
+        weightFactor: s => Math.min(Math.max(Math.sqrt(s) * 8, 14), 120),
+        color: "random-dark",
+        backgroundColor: "#ffffff",
+        rotateRatio: 0.3
       });
+
+      document.getElementById("cloudStatus").textContent = "Word cloud generated.";
     }
 
-    // --- LLM ---
     function generateWithLLM() {
       const words = document.getElementById("llmInput").value.trim();
-      if (!words) return alert("Please specify words first.");
-      const checkedOptions = Array.from(document.querySelectorAll('.act-option:checked')).map(el => `- ${el.value}`).join('\n');
-      document.getElementById("finalPrompt").value = `You are an expert reading specialist and curriculum designer. Generate a high-quality teaching resource using the target words for Grade ${document.getElementById("llmGrade").value}.\nTarget Words:\n${words}\nFormat: ${document.getElementById("llmTextType").value}\nLength: ${document.getElementById("llmLength").value}\nContext: ${document.getElementById("llmContentArea").value.trim()}\nFocus: ${document.getElementById("llmFocus").value.trim()}\nRequired:\n${checkedOptions}`;
-      document.getElementById("llmStatus").textContent = "🚀 Prompt compiled!";
-    }
-    function copyLLMPrompt() { navigator.clipboard.writeText(document.getElementById("finalPrompt").value).then(() => alert("Copied!")); }
-  
-    
-    
-    function openInLLM() {
-      const p = document.getElementById("llmProvider").value;
-      window.open(p === 'gemini' ? `https://gemini.google.com/app` : p === 'chatgpt' ? `https://chatgpt.com/` : `https://claude.ai/chats`, '_blank');
-    }
 
-    // --- EXCEL COPY ---
-    (() => {
-      if (window.__BAWF_EXCEL_COPY_INIT__) return; window.__BAWF_EXCEL_COPY_INIT__ = true;
-      const css = `.db-table td.excel-selected { background: #dbeafe !important; } .db-table td.excel-anchor { outline: 2px solid #2563eb; outline-offset: -2px; } .db-table td.excel-sparse { background: #fde68a !important; } body.excel-dragging { user-select: none; -webkit-user-select: none; }`;
-      const style = document.createElement("style"); style.textContent = css; document.head.appendChild(style);
-      const state = { dragging: false, table: null, tbody: null, startRow: -1, startCol: -1, endRow: -1, endCol: -1 };
-      const sparseSelection = new Set();
-      const CLEAN = (v) => String(v ?? "").replace(/\r?\n+/g, " ").replace(/\t/g, " ").trim();
-      const isEditableEl = (el) => !!el?.closest?.('input, textarea, select, [contenteditable="true"]');
-      function getDataCells(tr) { return Array.from(tr.cells).filter((td) => !td.querySelector(".row-actions")); }
-      
-      function clearSelections() {
-        document.querySelectorAll(".excel-selected, .excel-anchor, .excel-sparse").forEach(td => td.classList.remove("excel-selected", "excel-anchor", "excel-sparse"));
-        sparseSelection.clear(); state.dragging = false; document.body.classList.remove("excel-dragging");
+      if (!words) {
+        alert("Please paste target words first.");
+        return;
       }
 
-      document.addEventListener("mousedown", (e) => {
-        if (e.button !== 0 || isEditableEl(e.target)) return;
+      const checkedOptions = Array.from(document.querySelectorAll(".act-option:checked"))
+        .map(el => `- ${el.value}`)
+        .join("\n");
+
+      const prompt = `You are an expert reading specialist and curriculum designer.
+
+Generate a high-quality teaching resource using the target words below.
+
+Target words:
+${words}
+
+Resource type: ${document.getElementById("llmTextType").value}
+Grade level: ${document.getElementById("llmGrade").value}
+Length: ${document.getElementById("llmLength").value}
+Content area/context: ${document.getElementById("llmContentArea").value.trim()}
+Teacher focus: ${document.getElementById("llmFocus").value.trim()}
+
+Required activities:
+${checkedOptions}
+
+Please make the output classroom-ready, accurate, and engaging.`;
+
+      document.getElementById("finalPrompt").value = prompt;
+      document.getElementById("llmStatus").textContent = "🚀 Prompt compiled.";
+    }
+
+    function copyLLMPrompt() {
+      const text = document.getElementById("finalPrompt").value;
+
+      if (!text) {
+        alert("Generate a prompt first.");
+        return;
+      }
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Prompt copied.");
+      });
+    }
+
+    function openInLLM() {
+      const provider = document.getElementById("llmProvider").value;
+
+      if (provider === "gemini") {
+        window.open("https://gemini.google.com/app", "_blank", "noopener");
+      } else if (provider === "chatgpt") {
+        window.open("https://chatgpt.com/", "_blank", "noopener");
+      } else {
+        window.open("https://claude.ai/new", "_blank", "noopener");
+      }
+    }
+
+    function escapeHTML(str = "") {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function escapeJS(str = "") {
+      return String(str)
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "");
+    }
+
+    window.addEventListener("click", e => {
+      if (e.target === document.getElementById("columnModal")) closeModal();
+      if (e.target === document.getElementById("explainModalBackdrop")) closeExplainModal();
+      if (e.target === document.getElementById("reportModalBackdrop")) closeReportModal();
+    });
+
+    (() => {
+      if (window.__BAWF_EXCEL_COPY_INIT__) return;
+      window.__BAWF_EXCEL_COPY_INIT__ = true;
+
+      const state = {
+        dragging: false,
+        table: null,
+        tbody: null,
+        startRow: -1,
+        startCol: -1,
+        endRow: -1,
+        endCol: -1
+      };
+
+      const clean = v => String(v ?? "").replace(/\r?\n+/g, " ").replace(/\t/g, " ").trim();
+      const isEditable = el => !!el.closest("input, textarea, select, [contenteditable='true']");
+      const getDataCells = tr => Array.from(tr.cells).filter(td => !td.querySelector(".row-actions"));
+
+      function clearSelections() {
+        document.querySelectorAll(".excel-selected, .excel-anchor").forEach(td => {
+          td.classList.remove("excel-selected", "excel-anchor");
+        });
+
+        state.dragging = false;
+        document.body.classList.remove("excel-dragging");
+      }
+
+      document.addEventListener("mousedown", e => {
+        if (e.button !== 0 || isEditable(e.target)) return;
+
         const td = e.target.closest("table.db-table tbody td");
-        if (!td) { if (!e.target.closest("table.db-table")) clearSelections(); return; }
+
+        if (!td) {
+          if (!e.target.closest("table.db-table")) clearSelections();
+          return;
+        }
+
         if (td.querySelector(".row-actions")) return;
-        
+
         clearSelections();
-        state.dragging = true; state.table = td.closest('table'); state.tbody = td.closest('tbody');
-        const tr = td.closest('tr'); state.startRow = state.endRow = Array.prototype.indexOf.call(state.tbody.rows, tr);
+
+        state.dragging = true;
+        state.table = td.closest("table");
+        state.tbody = td.closest("tbody");
+
+        const tr = td.closest("tr");
+
+        state.startRow = state.endRow = Array.prototype.indexOf.call(state.tbody.rows, tr);
         state.startCol = state.endCol = getDataCells(tr).indexOf(td);
-        document.body.classList.add("excel-dragging"); td.classList.add("excel-selected", "excel-anchor");
+
+        document.body.classList.add("excel-dragging");
+        td.classList.add("excel-selected", "excel-anchor");
       });
 
-      document.addEventListener("mousemove", (e) => {
+      document.addEventListener("mousemove", e => {
         if (!state.dragging) return;
+
         const td = e.target.closest("table.db-table tbody td");
-        if (!td || td.querySelector(".row-actions") || td.closest('table') !== state.table) return;
-        
-        const tr = td.closest('tr');
+
+        if (!td || td.querySelector(".row-actions") || td.closest("table") !== state.table) return;
+
+        const tr = td.closest("tr");
+
         state.endRow = Array.prototype.indexOf.call(state.tbody.rows, tr);
         state.endCol = getDataCells(tr).indexOf(td);
-        
+
         state.table.querySelectorAll(".excel-selected").forEach(c => c.classList.remove("excel-selected"));
-        const r1 = Math.min(state.startRow, state.endRow), r2 = Math.max(state.startRow, state.endRow);
-        const c1 = Math.min(state.startCol, state.endCol), c2 = Math.max(state.startCol, state.endCol);
-        for(let r=r1; r<=r2; r++) {
+
+        const r1 = Math.min(state.startRow, state.endRow);
+        const r2 = Math.max(state.startRow, state.endRow);
+        const c1 = Math.min(state.startCol, state.endCol);
+        const c2 = Math.max(state.startCol, state.endCol);
+
+        for (let r = r1; r <= r2; r++) {
           const cells = getDataCells(state.tbody.rows[r]);
-          for(let c=c1; c<=c2; c++) if(cells[c]) cells[c].classList.add("excel-selected");
+          for (let c = c1; c <= c2; c++) {
+            if (cells[c]) cells[c].classList.add("excel-selected");
+          }
         }
       });
-      document.addEventListener("mouseup", () => { state.dragging = false; document.body.classList.remove("excel-dragging"); });
 
-      document.addEventListener("copy", (e) => {
-        if (isEditableEl(document.activeElement) || !state.table) return;
-        const r1 = Math.min(state.startRow, state.endRow), r2 = Math.max(state.startRow, state.endRow);
-        const c1 = Math.min(state.startCol, state.endCol), c2 = Math.max(state.startCol, state.endCol);
+      document.addEventListener("mouseup", () => {
+        state.dragging = false;
+        document.body.classList.remove("excel-dragging");
+      });
+
+      document.addEventListener("copy", e => {
+        if (isEditable(document.activeElement) || !state.table || !state.tbody) return;
+
+        const r1 = Math.min(state.startRow, state.endRow);
+        const r2 = Math.max(state.startRow, state.endRow);
+        const c1 = Math.min(state.startCol, state.endCol);
+        const c2 = Math.max(state.startCol, state.endCol);
+
         const lines = [];
-        for(let r=r1; r<=r2; r++) {
+
+        for (let r = r1; r <= r2; r++) {
           const cells = getDataCells(state.tbody.rows[r]);
           const rowOut = [];
-          for(let c=c1; c<=c2; c++) rowOut.push(CLEAN(cells[c]?.innerText));
+
+          for (let c = c1; c <= c2; c++) {
+            rowOut.push(clean(cells[c] ? cells[c].innerText : ""));
+          }
+
           lines.push(rowOut.join("\t"));
         }
-        if(lines.length) { e.preventDefault(); e.clipboardData.setData("text/plain", lines.join("\n")); }
-      });
-      document.addEventListener("keydown", (e) => { if (e.key === "Escape") clearSelections(); });
-    })();
-function showExplainFromIndex(key, rowIndex) {
-  const config = DATASETS[key];
-  const i = Number(rowIndex);
 
-  if (!config || !Array.isArray(config.filtered) || !config.filtered[i]) {
-    console.error("Explain row not found", { key, rowIndex, config });
-    alert("Could not open Explain popup for this row.");
-    return;
-  }
-
-  showExplainModal(key, config.filtered[i]);
-}
-window.showExplainFromIndex = showExplainFromIndex;
-
-document.addEventListener("click", (e) => {
-  const explainBtn = e.target.closest(".explain-btn[data-explain-key][data-explain-index]");
-  if (explainBtn) showExplainFromIndex(explainBtn.dataset.explainKey, Number(explainBtn.dataset.explainIndex));
-
-  const reportBtn = e.target.closest(".report-btn[data-report-key][data-report-index]");
-  if (reportBtn) showReportFromIndex(reportBtn.dataset.reportKey, Number(reportBtn.dataset.reportIndex));
-  
-  if (e.target === document.getElementById("columnModal")) closeModal();
-  if (e.target === document.getElementById("explainModalBackdrop")) closeExplainModal();
-  if (e.target === document.getElementById("reportModalBackdrop")) closeReportModal();
-});
-
-  </script>
-      <script type="module">
-  import * as webllm from "https://esm.run/@mlc-ai/web-llm";
-
-  let engine = null;
-  let messages = [
-    { role: "system", content: "You will develop the requested teaching resources, such as stories and worksheets." }
-  ];
-
-  const statusEl = () => document.getElementById("webllmStatus");
-  const modelEl = () => document.getElementById("webllmModel");
-  const chatEl = () => document.getElementById("webllmChat");
-  const inputEl = () => document.getElementById("webllmInput");
-  const loadBtnEl = () => document.getElementById("loadWebLLMBtn");
-
-  function isChatCapableModelId(id = "") {
-    const s = id.toLowerCase();
-    return !s.includes("embed") && !s.includes("embedding") && !s.includes("rerank");
-  }
-
-  function addChat(role, text) {
-    const wrap = document.createElement("div");
-    wrap.style.margin = "8px 0";
-    wrap.innerHTML = `<strong>${role}:</strong> <span></span>`;
-    const span = wrap.querySelector("span");
-    span.textContent = text;
-    chatEl().appendChild(wrap);
-    chatEl().scrollTop = chatEl().scrollHeight;
-    return span;
-  }
-
-  function setStatus(msg, color = "#374151") {
-    const el = statusEl();
-    if (el) {
-      el.textContent = msg;
-      el.style.color = color;
-    }
-  }
-
-  function populateModels() {
-    const list = (webllm.prebuiltAppConfig?.model_list || [])
-      .filter(m => isChatCapableModelId(m.model_id));
-
-    const select = modelEl();
-    select.innerHTML = "";
-
-    if (!list.length) {
-      const opt = document.createElement("option");
-      opt.textContent = "No chat models available";
-      select.appendChild(opt);
-      return;
-    }
-
-    const sorted = [...list].sort((a, b) => {
-      const getSize = m => parseFloat(m.model_id.match(/(\d+\.?\d*)/)?.[1] || 999);
-      return getSize(a) - getSize(b);
-    });
-
-    sorted.forEach(model => {
-      const opt = document.createElement("option");
-      opt.value = model.model_id;
-      const vram = model.vram_required_MB ? ` ~${Math.round(model.vram_required_MB / 1024)}GB` : "";
-      opt.textContent = `${model.model_id}${vram}`;
-      select.appendChild(opt);
-    });
-  }
-
-  async function initWebLLMInternal() {
-    if (!window.isSecureContext) {
-      setStatus("❌ WebLLM needs HTTPS (or localhost)", "red");
-      return;
-    }
-    if (!navigator.gpu) {
-      setStatus("❌ WebGPU not available in this browser/device", "red");
-      return;
-    }
-
-    const selected = modelEl().value;
-    if (!selected) {
-      setStatus("❌ Please select a model first", "red");
-      return;
-    }
-
-    if (!isChatCapableModelId(selected)) {
-      setStatus("❌ Selected model is not a chat model. Please choose an Instruct/Chat model.", "red");
-      return;
-    }
-
-    loadBtnEl().disabled = true;
-    setStatus("Loading model... (first time can take 30–180 seconds)", "#1d4ed8");
-
-    try {
-      engine = await webllm.CreateMLCEngine(selected, {
-        initProgressCallback: (report) => {
-          const pct = report.progress ? ` ${(report.progress * 100).toFixed(0)}%` : "";
-          setStatus(`Loading ${selected}... ${report.text || ""}${pct}`, "#1d4ed8");
+        if (lines.length) {
+          e.preventDefault();
+          e.clipboardData.setData("text/plain", lines.join("\n"));
         }
       });
 
-      setStatus(`✅ Model loaded: ${selected}`, "#15803d");
-      addChat("System", `Model ready: ${selected}`);
-    } catch (err) {
-      console.error(err);
-      setStatus(`❌ Failed to load model: ${err?.message || err}`, "red");
-    } finally {
-      loadBtnEl().disabled = false;
-    }
-  }
-
-  async function sendWebLLMInternal() {
-    if (!engine) {
-      setStatus("❌ Load a model first.", "red");
-      return;
-    }
-
-    const userText = inputEl().value.trim();
-    if (!userText) return;
-
-    inputEl().value = "";
-    addChat("You", userText);
-    messages.push({ role: "user", content: userText });
-
-    const assistantSpan = addChat("AI", "");
-    let acc = "";
-
-    try {
-      const stream = await engine.chat.completions.create({
-        messages,
-        stream: true,
-        temperature: 0.7
+      document.addEventListener("keydown", e => {
+        if (e.key === "Escape") clearSelections();
       });
-
-      for await (const chunk of stream) {
-        const token = chunk?.choices?.[0]?.delta?.content || "";
-        acc += token;
-        assistantSpan.textContent = acc;
-        chatEl().scrollTop = chatEl().scrollHeight;
-      }
-
-      messages.push({ role: "assistant", content: acc || "(No output)" });
-      setStatus("✅ Response complete.", "#15803d");
-    } catch (err) {
-      console.error("WebLLM generation error:", err);
-      setStatus(`❌ Generation failed: ${err?.message || err}`, "red");
-    }
-  }
-
-  function resetWebLLMChatInternal() {
-    messages = [
-      { role: "system", content: "You will develop the requested teaching resources, such as stories and worksheets." }
-    ];
-    chatEl().innerHTML = "";
-    setStatus("Chat reset.", "#374151");
-  }
-
-  window.initWebLLM = initWebLLMInternal;
-  window.sendWebLLM = sendWebLLMInternal;
-  window.resetWebLLMChat = resetWebLLMChatInternal;
-
-  window.addEventListener("load", () => {
-    setTimeout(() => {
-      populateModels();
-      setStatus("Select a model, then click 'Load Model'.", "#374151");
-    }, 600);
-  });
-</script>
+    })();
+  </script>
 </body>
 </html>
