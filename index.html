@@ -613,12 +613,13 @@
         This curated word family list contains frequent and familiar word families that most people know and that cover
         much of the text children read.
       </p>
-      <p>
-        The full database is for exploring all words attested in the largest current corpora. The focused database is a
-        trimmed version that lists only word families with familiarity ratings above approximately 3.5, suggesting that
-        these words are widely known by most speakers of English. These words are likely to be more useful for teaching
-        than words that are not well known by English-language speakers.
-      </p>
+<p>
+  The full database is for exploring all words attested in the largest current corpora. The focused database is a
+  trimmed version that lists only word families with familiarity ratings above approximately 3.5, suggesting that
+  these words are widely known by most speakers of English. GPT familiarity estimates below 3.5 are unlikely to be
+  known to 90% of people, following Brysbaert et al. 2025. These words are likely to be more useful for teaching
+  than words that are not well known by English-language speakers.
+</p>
       <p>
         This filtered spreadsheet does not contain all database information. It includes the basewords and members of
         familiar word-family derivations. It lists word-family size and word-family frequency differently than the main
@@ -1090,52 +1091,49 @@
   }
 
   function chooseDefaultColumns(key, headers) {
-    if (key === "cf") {
-      const preferred = [
-        "Baseword",
-        "Baseword_frq_Zipf",
-        "Baseword_Family_Size",
-        "Word",
-        "Word_frq_Zipf_Recomputed",
-        "GPT_Coded_Word_Parts",
-        "Prefix_1",
-        "Prefix_2",
-        "Prefix_3",
-        "Suffix_1",
-        "Suffix_2",
-        "Suffix_3",
-        "Suffix_4",
-        "Suffix_5",
-        "Suffix_6",
-        MORPHEME_COL_PLUS_INFLECTIONS
-      ];
+if (key === "cf") {
+  const preferred = [
+    "Baseword",
+    "Baseword_frq_Zipf",
+    "Baseword_Family_Size",
+    "Word",
+    "Word_frq_Zipf_Recomputed",
+    "GPT_Coded_Word_Parts",
+    "Prefix_1",
+    "Prefix_2",
+    "Prefix_3",
+    "Suffix_1",
+    "Suffix_2",
+    "Suffix_3",
+    "Suffix_4",
+    MORPHEME_COL_PLUS_INFLECTIONS
+  ];
 
       const found = preferred.filter(c => headers.includes(c));
       return found.length ? found : headers.slice(0, 16);
     }
 
-    if (key === "wf") {
-      const preferred = [
-        "Word",
-        "Word_frq_Zipf",
-        "Baseword",
-        "Baseword_frq_Zipf",
-        "Baseword_Family_Size",
-        "GPT_Root",
-        "GPT_Coded_Word_Parts",
-        "Prefix_1",
-        "Prefix_2",
-        "Prefix_3",
-        "Suffix_1",
-        "Suffix_2",
-        "Suffix_3",
-        "Suffix_4",
-        "Suffix_5",
-        "Suffix_6",
-        MORPHEME_COL_PLUS_INFLECTIONS,
-        "Vocabulary eXpected Grade Level Flor et al._ 2024",
-        "GPT_Familiarity Brysbaert et al._ 2024"
-      ];
+if (key === "wf") {
+  const preferred = [
+    "Word",
+    "Word_frq_Zipf",
+    "Baseword",
+    "Baseword_frq_Zipf",
+    "Baseword_Family_Size",
+    "GPT_Root",
+    "GPT_Coded_Word_Parts",
+    "Prefix_1",
+    "Prefix_2",
+    "Prefix_3",
+    "Suffix_1",
+    "Suffix_2",
+    "Suffix_3",
+    "Suffix_4",
+    "Suffix_5",
+    "Suffix_6",
+    MORPHEME_COL_PLUS_INFLECTIONS,
+    "Vocabulary eXpected Grade Level Flor et al._ 2024"
+  ];
 
       const found = preferred.filter(c => headers.includes(c));
       return found.length ? found : headers.slice(0, 20);
